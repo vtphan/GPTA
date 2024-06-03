@@ -1,0 +1,71 @@
+[
+    {
+        "caption": "Gem",
+        "id": "GEMStudent",
+        "children": [
+            {
+                "caption": "See white board",
+                "id": "gemsGetBoardContent",
+                "command": "gems_get_board_content",
+            },
+            {
+                "caption": "Ask for help 🤔",
+                "id": "gemsNeedHelp",
+                "command": "gems_need_help",
+            },
+            {
+                "caption": "Submit code 😎",
+                "id": "gemsGotIt",
+                "command": "gems_got_it",
+            },
+            {
+                "caption": "View exercises",
+                "id": "gemsViewExercises",
+                "command": "gems_view_exercises"
+            },
+            {"caption":"-", "id":"side-bar-separator"},
+            {
+                "caption": "Attendance",
+                "id": "gemsAttendanceReport",
+                "command": "gems_attendance_report",
+            },
+            {
+                "caption": "Points",
+                "id": "gemsPointsReport",
+                "command": "gems_points_report",
+            },
+            {"caption":"-", "id":"side-bar-separator"},
+            {
+                "caption": "Set working folder",
+                "id": "gemsSetLocalFolder",
+                "command": "gems_set_local_folder",
+            },
+            {
+                "caption": "Set server address",
+                "id": "gemsSetServerAddress",
+                "command": "gems_set_server_address",
+            },
+            {
+                "caption": "Set course id",
+                "id": "gemsSetCourseId",
+                "command": "gems_set_course_id",
+            },
+            {
+                "caption": "Set username",
+                "id": "gemsSetName",
+                "command": "gems_set_name",
+            },
+            {
+                "caption": "Register",
+                "id": "gemsCompleteRegistration",
+                "command": "gems_complete_registration",
+            },
+            {"caption":"-", "id":"side-bar-separator"},
+            {
+                "caption": "Update GEM",
+                "id": "gemsUpdate",
+                "command": "gems_update",
+            },
+        ]
+    }
+]
