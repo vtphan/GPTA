@@ -10,6 +10,7 @@ import (
 // App represents the application with a database connection.
 type App struct {
 	DB       *gorm.DB
+	Mailer   EmailSender
 	Sessions map[string]session
 }
 

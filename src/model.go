@@ -294,3 +294,11 @@ type ProblemStatistics struct {
 	// Define foreign keys
 	Problem Problem `gorm:"foreignKey:ProblemID"`
 }
+
+// TempUserTag corresponding tags to register for an email address
+type TempUserTag struct {
+	gorm.Model
+	ID    int `gorm:"primaryKey;autoIncrement"`
+	Email string
+	Tag   string
+}

@@ -1416,6 +1416,106 @@ var LOGIN = `
    </body>
 </html>
 `
+
+var REGISTER = `
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Teacher Login</title>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.0/css/bulma.min.css">
+	  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+   </head>
+   <body>
+   <div class="container">
+      <section class="section">      
+       <div class="columns">
+       <div class="column is-4 is-offset-4">
+		  <div class="field">
+		  <p class="control has-icons-left has-icons-right">
+		    <input id="email" class="input" type="email" placeholder="Email">
+		    <span class="icon is-small is-left">
+		      <i class="fa fa-user"></i>
+		    </span>
+		    <span class="icon is-small is-right">
+		      <i class="fa fa-check"></i>
+		    </span>
+		  </p>
+		</div>
+		<div class="field">
+		  <p class="control">
+		    <button id="register" class="button is-success" style="color: #292929;">
+		      Register
+		    </button>
+		  </p>
+		</div>
+      </div>         
+       </div>
+      </section>
+	</div>
+	  <script>
+	  	$(document).ready(function(){
+			$('#login').click(function(){
+				var email = $('#email').val().trim();
+				
+				if(email == "") {
+					alert("Please enter a valid email address!");
+				} else {
+					$.post("/web_register", {email: email}, function(data, status){
+						if (status == "success"){
+							window.location.replace("/view_exercises?role=teacher&uid="+data);
+						} else {
+							alert("Unauthorized access");
+						}
+					});
+				}
+			});
+		});
+	  </script>
+   </body>
+</html>
+`
+var EMAIL_SENT = `
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Teacher Login</title>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.0/css/bulma.min.css">
+	  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+   </head>
+   <body>
+   <div class="container">
+      <section class="section">      
+       <h2>Please check your email to complete registration.</h2>
+      </section>
+	</div>
+	  <script>
+	  	$(document).ready(function(){
+			$('#login').click(function(){
+				var email = $('#email').val().trim();
+				
+				if(email == "") {
+					alert("Please enter a valid email address!");
+				} else {
+					$.post("/web_register", {email: email}, function(data, status){
+						if (status == "success"){
+							window.location.replace("/view_exercises?role=teacher&uid="+data);
+						} else {
+							alert("Unauthorized access");
+						}
+					});
+				}
+			});
+		});
+	  </script>
+   </body>
+</html>
+`
 var PROBLEM_FILE_UPLOAD_VIEW = `
 <!DOCTYPE html>
 <html lang="en">

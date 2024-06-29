@@ -15,6 +15,15 @@ import (
 	"time"
 )
 
+func randomString(length int) string {
+	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 //-----------------------------------------------------------------
 func initHandlers(app App) {
 	http.HandleFunc("/test", testHandler)
@@ -94,6 +103,9 @@ func initHandlers(app App) {
 	http.HandleFunc("/", app.indexHandler)
 	http.HandleFunc("/index", app.indexHandler)
 	// http.HandleFunc("/peer_tutoring", Authorize(peerTutorHandler, "student"))
+	http.HandleFunc("/web_registration", app.webRegisterHandler)
+	http.HandleFunc("/register", app.webRegisterPageHandler)
+	http.HandleFunc("/register_emal_sent", app.webRegisterEmailSentCompletePageHandler)
 }
 
 //-----------------------------------------------------------------
@@ -153,6 +165,7 @@ func main() {
 	}
 	Config = initConfig(configFile)
 	app := App{}
+	app.Mailer = *NewEmailSender("smtp-mail.outlook.com", 587, os.Getenv("ADMIN_EMAIL"), os.Getenv("ADMIN_EMAIL_PASS"))
 	app.migrateSchema(*Config)
 	initHandlers(app)
 
