@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -20,7 +18,7 @@ func teacher_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	BoardsSem.Lock()
 	defer BoardsSem.Unlock()
 
-	selected := &Submission{}
+	selected := &StudentSubmission{}
 
 	if index >= 0 {
 		// Try to select by index first

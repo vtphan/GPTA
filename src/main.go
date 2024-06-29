@@ -8,7 +8,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -18,7 +17,7 @@ import (
 )
 
 //-----------------------------------------------------------------
-func init_handlers() {
+func initHandlers(app *App) {
 	http.HandleFunc("/test", testHandler)
 
 	// Analytics
@@ -129,7 +128,7 @@ func informIPAddress() string {
 }
 
 //-----------------------------------------------------------------
-func init_config(filename string) *Configuration {
+func initConfig(filename string) *Configuration {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -140,78 +139,24 @@ func init_config(filename string) *Configuration {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if config.IP == "" {
-		config.IP = informIPAddress()
-	}
-	config.Address = fmt.Sprintf("%s:%d", config.IP, config.Port)
-	// if config.PeerTutor == 1 {
-	// 	PeerTutorAllowed = true
-	// } else {
-	// 	PeerTutorAllowed = false
-	// }
 	return config
 }
 
-//-----------------------------------------------------------------
-func inform_name_server() {
-	nameserver := fmt.Sprintf("%s/tell?who=%s&address=%s", Config.NameServer, Config.CourseId, Config.Address)
-	_, err := http.Get(nameserver)
-	if err != nil {
-		fmt.Println("Error", err)
-		log.Fatal("Unable to contact with name server.")
-	}
-}
-
-func get_course_specific_address(nameserver string, course string) {
-	resp, err := http.Get(fmt.Sprintf("%s/ask?who=%s", nameserver, course))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	address := string(bodyBytes)
-	fmt.Printf("* Teacher Login: %s/teacher_signin\n", address)
-}
-
-//-----------------------------------------------------------------
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file := "", "", ""
-	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
-	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
-	flag.StringVar(&student_file, "add_students", student_file, "student file.")
+	configFile := ""
+	flag.StringVar(&configFile, "c", configFile, "json-formatted configuration file.")
 	flag.Parse()
-	if config_file == "" {
+	if configFile == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
-	Config = init_config(config_file)
-	if Config.NameServer != "" {
-		inform_name_server()
-	}
-	init_database(Config.Database, Config.DBUserName, Config.DBPassWord, Config.DBServerIP)
-	if teacher_file != "" {
-		add_multiple(teacher_file, "teacher")
-	}
-	if student_file != "" {
-		add_multiple(student_file, "student")
-	}
-	init_handlers()
-	load_teachers()
-	fmt.Println("**************************************************")
-	fmt.Printf("*   Course id:      %s\n", Config.CourseId)
-	if Config.NameServer != "" {
-		fmt.Printf("*   Server address: %s\n", Config.NameServer)
-	} else {
-		fmt.Printf("*   Serving at:     %s\n", Config.Address)
-	}
-	fmt.Printf("*   GEM %s\n", VERSION)
-	fmt.Println("**************************************************\n")
-	get_course_specific_address(Config.NameServer, Config.CourseId)
+	Config = initConfig(configFile)
+	app := App{}
+	app.migrateSchema(*Config)
+	initHandlers(app)
+
 	err := http.ListenAndServe(Config.Address, nil)
 	if err != nil {
 		log.Fatal("Unable to serve gem server at " + Config.Address)

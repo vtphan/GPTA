@@ -16,7 +16,7 @@ type User struct {
 	Email    string
 	// Define relationships
 	Attendances           []Attendance           `gorm:"foreignKey:StudentID"`
-	Submissions           []Submission           `gorm:"foreignKey:StudentID"`
+	Submissions           []StudentSubmission    `gorm:"foreignKey:StudentID"`
 	Scores                []Score                `gorm:"foreignKey:StudentID"`
 	Feedbacks             []Feedback             `gorm:"foreignKey:AuthorID"`
 	TestCases             []TestCase             `gorm:"foreignKey:StudentID"`

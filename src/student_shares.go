@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -151,7 +149,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 	if !complete {
 		SubSem.Lock()
 		defer SubSem.Unlock()
-		sub := &Submission{
+		sub := &StudentSubmission{
 			Sid:           int(sid),
 			Uid:           uid,
 			Pid:           pid,

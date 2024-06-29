@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -16,18 +14,19 @@ import (
 
 //---------------------------------------------------------
 type Configuration struct {
-	CourseId   string
-	CourseName string
-	NameServer string
-	IP         string
-	Port       int
-	Database   string
-	DBServerIP string
-	DBUserName string
-	DBPassWord string
-	Address    string
-	LogFile    string
-	PeerTutor  int
+	CourseId       string
+	CourseName     string
+	NameServer     string
+	IP             string
+	Port           int
+	Database       string
+	DBServerIP     string
+	DBUserName     string
+	DBPassWord     string
+	DBServerPort   int
+	Address        string
+	LogFile        string
+	PeerTutor      int
 	ChatgptaServer string
 }
 
@@ -148,7 +147,7 @@ var Students = make(map[int]*StudenInfo)
 var BulletinBoard = make([]string, 0)
 
 //---------------------------------------------------------
-type Submission struct {
+type StudentSubmission struct {
 	Sid           int // submission id
 	Uid           int // student id
 	Pid           int // problem id
@@ -161,8 +160,8 @@ type Submission struct {
 	SnapshotID    int
 }
 
-var WorkingSubs = make([]*Submission, 0)
-var Submissions = make(map[int]*Submission)
+var WorkingSubs = make([]*StudentSubmission, 0)
+var Submissions = make(map[int]*StudentSubmission)
 
 //---------------------------------------------------------
 
