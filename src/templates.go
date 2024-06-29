@@ -1348,7 +1348,7 @@ var SUBMISSION_VIEW_TEMPLATE = `
 	</body>
 	</html>
 `
-var TEACHER_LOGIN = `
+var LOGIN = `
 <!DOCTYPE html>
 <html lang="en">
    <head>

@@ -56,7 +56,7 @@ func (app App) signinCompleteHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app App) signinHandler(w http.ResponseWriter, r *http.Request) {
 	temp := template.New("")
-	t, err := temp.Parse(TEACHER_LOGIN)
+	t, err := temp.Parse(LOGIN)
 	if err != nil {
 		log.Fatal(err)
 	}
