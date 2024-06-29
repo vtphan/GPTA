@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 var STUDENT_MESSAGING_TEMPLATE = `
@@ -1404,7 +1402,7 @@ var TEACHER_LOGIN = `
 				if(name == "" || pass == "") {
 					alert("Please enter both name and password!");
 				} else {
-					$.post("/teacher_signin_complete", {username: name, password: pass}, function(data, status){
+					$.post("/signin_complete", {username: name, password: pass}, function(data, status){
 						if (status == "success"){
 							window.location.replace("/view_exercises?role=teacher&uid="+data);
 						} else {
