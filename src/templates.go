@@ -1456,18 +1456,22 @@ var REGISTER = `
       </section>
 	</div>
 	  <script>
+	    function validateEmail(email) {
+			const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+			return re.test(String(email).toLowerCase());
+		}
 	  	$(document).ready(function(){
-			$('#login').click(function(){
+			$('#register').click(function(){
 				var email = $('#email').val().trim();
 				
-				if(email == "") {
+				if(email == "" || !validateEmail(email)) {
 					alert("Please enter a valid email address!");
 				} else {
 					$.post("/web_register", {email: email}, function(data, status){
 						if (status == "success"){
-							window.location.replace("/view_exercises?role=teacher&uid="+data);
+							window.location.replace("/signin);
 						} else {
-							alert("Unauthorized access");
+							alert("Something went wrong, please try again");
 						}
 					});
 				}
@@ -1494,19 +1498,77 @@ var EMAIL_SENT = `
        <h2>Please check your email to complete registration.</h2>
       </section>
 	</div>
+   </body>
+</html>
+`
+var GIVE_PASSWORD = `
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Teacher Login</title>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.0/css/bulma.min.css">
+	  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+   </head>
+   <body>
+    <div class="container">
+      <section class="section">
+       <div class="columns">
+       <div class="column is-4 is-offset-4">
+	   <div class="field">
+		  <p class="control has-icons-left">
+		    <input id="password" class="input" type="password" placeholder="Password">
+		    <span class="icon is-small is-left">
+		     <i class="fas fa-envelope"></i>
+		    </span>
+			{{.Email}}
+		  </p>
+		</div>
+		  <div class="field">
+		  <p class="control has-icons-left">
+		    <input id="password" class="input" type="password" placeholder="Password">
+		    <span class="icon is-small is-left">
+		     <i class="fas fa-key"></i>
+		    </span>
+		  </p>
+		</div>
+		<div class="field">
+		  <p class="control has-icons-left">
+		    <input id="confirm_password" class="input" type="password" placeholder="Confirm Password">
+		    <span class="icon is-small is-left">
+		     <i class="fas fa-key"></i>
+		    </span>
+		  </p>
+		</div>
+		<div class="field">
+		  <p class="control">
+		    <button id="submit" class="button is-success" style="color: #292929;">
+		      Submit
+		    </button>
+		  </p>
+		</div>
+      </div>         
+       </div>
+      </section>
+	</div>
 	  <script>
+	  	var email = '{{.Email}}';
 	  	$(document).ready(function(){
-			$('#login').click(function(){
-				var email = $('#email').val().trim();
-				
-				if(email == "") {
-					alert("Please enter a valid email address!");
+			$('#submit').click(function(){
+				var password = $('#password').val().trim();
+				var confirm_password = $('#confirm_password').val().trim();
+				if(password != confirm_password ) {
+					alert("Passwords doesn't match!");
+				} else if (password.length < 6) {
+				 	alert("Password length must be at least 6");
 				} else {
-					$.post("/web_register", {email: email}, function(data, status){
+					$.post("/submit_password", {email: email, password: password}, function(data, status){
 						if (status == "success"){
-							window.location.replace("/view_exercises?role=teacher&uid="+data);
+							window.location.replace("/signin);
 						} else {
-							alert("Unauthorized access");
+							alert("Something went wrong, please try again!");
 						}
 					});
 				}
