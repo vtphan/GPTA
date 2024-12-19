@@ -63,6 +63,7 @@ These steps are done only once.  In subsequent usage, there is no need to go thr
 Install latest version of [Go](https://golang.org/dl/). Run these on the command line inside `src` folder.
 * go mod init GEM
 * go mod tidy
+* go mod vendor
 
 ##### Install MySQL Server
 The current version of Codespace need MySQL server pre-installed and running beforehand. The MySQL server can be installed using the following resources.
