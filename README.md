@@ -73,7 +73,7 @@ The current version of Codespace need MySQL server pre-installed and running bef
 ##### Create New MySQL User and Grant Previlege
 Enter into MySQL CLI using the following command
 ```
-myql -u root -p
+mysql -u root -p
 ```
 Update SQL mode (needs to avoid conflict with Go library).
 ```
