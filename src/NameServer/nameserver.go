@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -11,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"time"
 )
 
@@ -34,9 +31,9 @@ var Records = make(map[string]*Record)
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Return a unique identifier to be used by Record
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func newUid() string {
 	n := 10
 	for {
@@ -50,7 +47,7 @@ func newUid() string {
 	}
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func informIPAddress() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -64,7 +61,7 @@ func informIPAddress() string {
 	return ""
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func writeLog(filename, message string) {
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -76,18 +73,18 @@ func writeLog(filename, message string) {
 	log.Println(message)
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Use config.json which is presumed to exist in the current directory.
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func initConfig() *Configuration {
-	var pwd, filename string
+	var _, filename string
 	var err error
 	var file *os.File
-	pwd, err = os.Getwd()
+	//pwd, err = os.Getwd()
 	if err != nil {
 		log.Fatal("Current directory is inaccessible.")
 	}
-	filename = path.Join(pwd, "config.json")
+	filename = "/Users/shashwatdadhich/go/src/github.com/CodeSpace/src/NameServer/config.json"
 	file, err = os.Open(filename)
 	if err != nil {
 		log.Fatal("Could not open " + filename)
@@ -105,7 +102,7 @@ func initConfig() *Configuration {
 	return config
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func askHandler(w http.ResponseWriter, r *http.Request) {
 	who := r.FormValue("who")
 	rec, ok := Records[who]
@@ -116,7 +113,7 @@ func askHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func tellHandler(w http.ResponseWriter, r *http.Request) {
 	if len(Records) > Config.Max {
 		fmt.Fprintf(w, "max_record_exceeded")
@@ -145,7 +142,7 @@ func tellHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func main() {
 	Config = initConfig()
 	fmt.Printf("Name server is running on http://%s\n", Config.Address)

@@ -2,22 +2,23 @@
 package main
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"log"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func create_tables() {
-	execSQL := func(s string) {
-		sql_stmt, err := Database.Prepare(s)
-		if err != nil {
-			log.Fatal(err)
-		}
-		sql_stmt.Exec()
+func execSQL(s string) {
+	if err := DB.Exec(s).Error; err != nil {
+		log.Fatalf("failed to execute SQL: %v", err)
 	}
+}
+
+func create_tables() {
 	execSQL("create table if not exists student (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists teacher (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists attendance (id INT AUTO_INCREMENT NOT NULL, student_id INT NOT NULL, attendance_at timestamp, PRIMARY KEY (`id`))")
@@ -42,217 +43,165 @@ func create_tables() {
 	// foreign key example: http://www.sqlitetutorial.net/sqlite-foreign-key/
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func init_database(db_name string, username string, pass string, server string) {
 	var err error
-	prepare := func(s string) *sql.Stmt {
-		stmt, err := Database.Prepare(s)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return stmt
+
+	// Prepare DSN (Data Source Name) for GORM
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?parseTime=true", username, pass, server)
+
+	// Open a connection to MySQL using GORM
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect to database: ", err)
 	}
 
-	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/", username, pass, server))
+	// Create the database if it doesn't exist
+	err = DB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", db_name)).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to create database: ", err)
 	}
-	_, err = Database.Exec("CREATE DATABASE IF NOT EXISTS " + db_name)
+
+	// Switch to the selected database
+	dsn = fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", username, pass, server, db_name)
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to the selected database: ", err)
 	}
-	// _, err = Database.Exec("USE " + db_name)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	Database, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", username, pass, server, db_name))
+
+	// Set connection pool settings (like MaxLifetime) if necessary
+	sqlDB, err := DB.DB()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to get raw SQL database object: ", err)
 	}
-	Database.SetConnMaxLifetime(time.Minute * 3)
+	sqlDB.SetConnMaxLifetime(time.Minute * 3)
 	create_tables()
-	AddStudentSQL = prepare("insert into student (name, password) values (?, ?)")
-	AddTeacherSQL = prepare("insert into teacher (name, password) values (?, ?)")
-	AddProblemSQL = prepare("insert into problem (teacher_id, problem_description, answer, filename, merit, effort, attempts, topic_id, tag, problem_uploaded_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	AddSubmissionSQL = prepare("insert into submission (problem_id, student_id, student_code, submission_category, attempt_number, code_submitted_at, snapshot_id, answer) values (?, ?, ?, ?, ?, ?, ?, ?)")
-	AddSubmissionCompleteSQL = prepare("insert into submission (problem_id, student_id, student_code, submission_category, attempt_number, code_submitted_at, completed, snapshot_id, answer) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	CompleteSubmissionSQL = prepare("update submission set completed=?, verdict=? where id=?")
-	AddScoreSQL = prepare("insert into score (problem_id, student_id, teacher_id, score, graded_submission_number, score_given_at) values (?, ?, ?, ?, ?, ?)")
-	AddFeedbackSQL = prepare("insert into feedback (teacher_id, student_id, feedback, feedback_given_at, submission_id) values (?, ?, ?, ?, ?)")
-	UpdateScoreSQL = prepare("update score set teacher_id=?, score=?, graded_submission_number=? where id=?")
-	AddAttendanceSQL = prepare("insert into attendance (student_id, attendance_at) values (?, ?)")
-	AddTagSQL = prepare("insert into tag (topic_description) values (?)")
-	AddTestCaseSQL = prepare("insert into test_case (problem_id, student_id, test_cases, added_at) values (?, ?, ?, ?)")
-	UpdateTestCaseSQL = prepare("update test_case set test_cases=?, added_at=? where id=?")
-	AddHelpSubmissionSQL = prepare("insert into code_explanation (problem_id, student_id, snapshot_id, trying_what, need_help_with, code_submitted_at) values(?, ?, ?, ?, ?, ?)")
-	AddHelpMessageSQL = prepare("insert into help_message (code_explanation_id, student_id, message, given_at) values (?, ?, ?, ?)")
-	UpdateHelpMessageSQL = prepare("update help_message set useful=?, updated_at=? where id=?")
-	AddCodeSnapshotSQL = prepare("insert into code_snapshot (student_id, problem_id, code, status, last_updated_at, event) values(?, ?, ?, ?, ?, ?)")
-	AddSnapShotFeedbackSQL = prepare("insert into snapshot_feedback (snapshot_id, feedback, author_id, author_role, given_at) values(?, ?, ?, ?, ?)")
-	AddSnapshotBackFeedbackSQL = prepare("insert into snapshot_back_feedback (snapshot_feedback_id, author_id, author_role, is_helpful, given_at) values(?, ?, ?, ?, ?)")
-	UpdateSnapshotBackFeedbackSQL = prepare("update snapshot_back_feedback set is_helpful=?, given_at=? where snapshot_feedback_id=? and author_id=? and author_role=?")
-	UpdateProblemEndTimeSQL = prepare("update problem set problem_ended_at=? where id=?")
-	AddHelpEligibleSQL = prepare("insert into help_eligible (problem_id, student_id, became_eligible_at) values(?, ?, ?)")
-	AddUserEventLogSQL = prepare("insert into user_event_log (name, user_id, user_type, event_type, referral_info, event_time) values(?, ?, ?, ?, ?, ?)")
-	AddStudentStatusSQL = prepare("insert into student_status (student_id, problem_id, coding_stat, help_stat, submission_stat, tutoring_stat, last_updated_at) values(?, ?, ?, ?, ?, ?, ?)")
-	UpdateStudentCodingStatSQL = prepare("update student_status set coding_stat = ?, last_updated_at = ? where student_id = ? and problem_id = ?")
-	UpdateStudentHelpStatSQL = prepare("update student_status set help_stat = ?, last_updated_at = ? where student_id = ? and problem_id = ?")
-	UpdateStudentSubmissionStatSQL = prepare("update student_status set submission_stat = ?, last_updated_at = ? where student_id = ? and problem_id = ?")
-	UpdateStudentTutoringStatSQL = prepare("update student_status set tutoring_stat = ?, last_updated_at = ? where student_id = ? and problem_id = ?")
-	AddMessageSQL = prepare("insert into message (snapshot_id, message, author_id, author_role, given_at, type) values (?, ?, ?, ?, ?, ?)")
-	AddMessageFeedbackSQL = prepare("insert into message_feedback (message_id, feedback, author_id, author_role, given_at) values(?, ?, ?, ?, ?)")
-	AddMessageBackFeedbackSQL = prepare("insert into message_back_feedback (message_feedback_id, author_id, author_role, useful, given_at) values(?, ?, ?, ?, ?)")
-	UpdateMessageBackFeedbackSQL = prepare("update message_back_feedback set useful=?, given_at=? where message_feedback_id=? and author_id=? and author_role=?")
-	AddProblemStatisticsSQL = prepare("insert into problem_statistics (problem_id, active, submission, help_request, graded_correct, graded_incorrect) values (?, 0, 0, 0, 0, 0)")
-	IncProblemStatActiveSQL = prepare("update problem_statistics set active = active + 1 where problem_id = ?")
-	IncProblemStatSubmissionSQL = prepare("update problem_statistics set submission = submission + 1 where problem_id = ?")
-	IncProblemStatHelpSQL = prepare("update problem_statistics set help_request = help_request + 1 where problem_id = ?")
-	IncProblemStatGradedCorrectSQL = prepare("update problem_statistics set graded_correct = graded_correct + 1 where problem_id = ?")
-	IncProblemStatGradedIncorrectSQL = prepare("update problem_statistics set graded_incorrect = graded_incorrect + 1 where problem_id = ?")
-	// Initialize passcode for current session and default board
 	Passcode = RandStringRunes(12)
 	Students[0] = &StudenInfo{
 		Boards: make([]*Board, 0),
 	}
 }
 
-func databaseTransaction(stmt *sql.Stmt, args ...any) (sql.Result, error) {
-	tx, err := Database.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	result, err := tx.Stmt(stmt).Exec(args...)
-	if err != nil {
-		fmt.Println("doing rollback")
-		tx.Rollback()
-	} else {
-		tx.Commit()
-	}
-	return result, err
-}
-
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 // Add or update score based on a decision. If decision is "correct"
 // a new problem, if there's one, is added to student's board.
-//-----------------------------------------------------------------
-func add_or_update_score(decision string, pid, student_id, teacher_id, partial_credits int) string {
-	mesg := ""
+// -----------------------------------------------------------------
+func addOrUpdateScore(decision string, pid, studentID, teacherID, partialCredits int) string {
+	var score Score
+	var problem Problem
+	var message string
 
-	// Find score information for this student (student_id) for this problem (pid)
-
-	score_id, current_points, current_attempts, current_tid := 0, 0, 0, 0
-	rows, _ := Database.Query("select id, score, graded_submission_number, teacher_id from score where problem_id=? and student_id=?", pid, student_id)
-	for rows.Next() {
-		rows.Scan(&score_id, &current_points, &current_attempts, &current_tid)
-		break
+	// Retrieve score information for this student and problem
+	if err := DB.Where("problem_id = ? AND student_id = ?", pid, studentID).First(&score).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Sprintf("Unable to retrieve score: %v", err)
 	}
-	rows.Close()
 
-	// Find merit points and effort points for this problem (pid)
-	merit, effort := 0, 0
-	rows, _ = Database.Query("select merit, effort from problem where id=?", pid)
-	for rows.Next() {
-		rows.Scan(&merit, &effort)
-		break
+	// Retrieve merit and effort points for the problem
+	if err := DB.First(&problem, pid).Error; err != nil {
+		return fmt.Sprintf("Unable to retrieve problem: %v", err)
 	}
-	rows.Close()
 
 	// Determine points for this student
-	points, teacher := 0, teacher_id
+	points := 0
+	teacher := teacherID
+
 	if decision == "correct" {
-		points = merit
-		mesg = "Answer is correct."
+		points = problem.Merit
+		message = "Answer is correct."
 	} else {
-		if partial_credits < merit {
-			points = partial_credits
+		if partialCredits < problem.Merit {
+			points = partialCredits
 		} else {
-			points = effort
+			points = problem.Effort
 		}
 
-		// If the problem was previously graded correct, this submission
-		// does not reduce it.  Grading is asynchronous.
-		if points < current_points {
-			points = current_points
-			teacher = current_tid
+		// Ensure points are not reduced if previously graded correct
+		if points < score.Score {
+			points = score.Score
+			teacher = score.TeacherID
 		}
-		mesg = "Answer is incorrect."
+		message = "Answer is incorrect."
 	}
-	// m := add_next_problem_to_board(pid, student_id, decision)
-	// mesg = mesg + m
-
-	// Add a new score or update a current score for this student & problem
-	if score_id == 0 {
-		_, err := AddScoreSQL.Exec(pid, student_id, teacher_id, points, current_attempts+1, time.Now())
-		if err != nil {
-			mesg = fmt.Sprintf("Unable to add score: %d %d %d", pid, student_id, teacher_id)
-			writeLog(Config.LogFile, mesg)
-			return mesg
+	currentTime := time.Now()
+	// Update or create a new score record
+	if score.ID == 0 {
+		newScore := Score{
+			ProblemID:              pid,
+			StudentID:              studentID,
+			TeacherID:              teacher,
+			Score:                  points,
+			GradedSubmissionNumber: score.GradedSubmissionNumber + 1,
+			ScoreGivenAt:           &currentTime,
+		}
+		if err := DB.Create(&newScore).Error; err != nil {
+			return fmt.Sprintf("Unable to add score: %v", err)
 		}
 	} else {
-		_, err := UpdateScoreSQL.Exec(teacher, points, current_attempts+1, score_id)
-		if err != nil {
-			mesg = fmt.Sprintf("Unable to update score: %d %d", teacher, score_id)
-			writeLog(Config.LogFile, mesg)
-			return mesg
+		if err := DB.Model(&score).Updates(Score{
+			TeacherID:              teacher,
+			Score:                  points,
+			GradedSubmissionNumber: score.GradedSubmissionNumber + 1,
+		}).Error; err != nil {
+			return fmt.Sprintf("Unable to update score: %v", err)
 		}
 	}
-	return mesg
+	return message
 }
 
-func addOrUpdateStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, tutoringStat string) {
-	rows, err := Database.Query("select * from student_status where student_id = ? and problem_id = ?", studentID, problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if rows.Next() {
-		now := time.Now()
-		rows.Close()
-		if codingStat != "" {
-			_, err = UpdateStudentCodingStatSQL.Exec(codingStat, now, studentID, problemID)
-			if err != nil {
-				log.Fatal(err)
+func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
+	var studentStatus StudentStatus
+
+	if err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).First(&studentStatus).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			newStatus := StudentStatus{
+				StudentID:      studentID,
+				ProblemID:      problemID,
+				CodingStat:     codingStat,
+				HelpStat:       helpStat,
+				SubmissionStat: submissionStat,
+				TutoringStat:   tutoringStat,
+				LastUpdatedAt:  time.Now(),
 			}
+			if err := DB.Create(&newStatus).Error; err != nil {
+				log.Fatalf("Unable to add student status: %v", err)
+			}
+		} else {
+			log.Fatalf("Error retrieving student status: %v", err)
+		}
+	} else {
+		updates := map[string]interface{}{
+			"updated_at": time.Now(),
+		}
+		if codingStat != "" {
+			updates["coding_stat"] = codingStat
 		}
 		if helpStat != "" {
-			_, err = UpdateStudentHelpStatSQL.Exec(helpStat, now, studentID, problemID)
-			if err != nil {
-				log.Fatal(err)
-			}
+			updates["help_stat"] = helpStat
 		}
 		if submissionStat != "" {
-			_, err = UpdateStudentSubmissionStatSQL.Exec(submissionStat, now, studentID, problemID)
-			if err != nil {
-				log.Fatal(err)
-			}
+			updates["submission_stat"] = submissionStat
 		}
 		if tutoringStat != "" {
-			_, err = UpdateStudentTutoringStatSQL.Exec(tutoringStat, now, studentID, problemID)
-			if err != nil {
-				log.Fatal(err)
-			}
+			updates["tutoring_stat"] = tutoringStat
 		}
-	} else {
-		rows.Close()
-		_, err = AddStudentStatusSQL.Exec(studentID, problemID, codingStat, helpStat, submissionStat, tutoringStat, time.Now())
-		if err != nil {
-			log.Fatal(err)
+		if err := DB.Model(&studentStatus).Updates(updates).Error; err != nil {
+			log.Fatalf("Unable to update student status: %v", err)
 		}
 	}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func init_teacher(id int, name string, password string) {
-	Teacher[id] = password
+	Teachers[id] = password
 	TeacherPass[name] = password
 	TeacherNameToId[name] = id
 	TeacherIdToName[id] = name
 	SeenHelpSubmissions[id] = map[int]bool{}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 // initialize once per session
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func init_student(student_id int, name string, password string) {
 	_, err := AddAttendanceSQL.Exec(student_id, time.Now())
 	if err != nil {
@@ -289,40 +238,37 @@ func init_student(student_id int, name string, password string) {
 	StudentSnapshot[student_id] = map[int]int{}
 }
 
-//-----------------------------------------------------------------
-func load_and_authorize_student(student_id int, password string) bool {
-	var pw, name string
-	found := false
-	rows, err := Database.Query("select name, password from student where id=?", student_id)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
+// -----------------------------------------------------------------
+func loadAndAuthorizeStudent(studentID int, password string) bool {
+	var student Student
+
+	if err := DB.First(&student, studentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false
+		}
+		log.Fatalf("Error retrieving student: %v", err)
 	}
-	for rows.Next() {
-		rows.Scan(&name, &pw)
-		found = true
-		break
-	}
-	if !found || pw != password {
+
+	if student.Password != password {
 		return false
 	}
-	init_student(student_id, name, password)
+
+	init_student(student.ID, student.Name, password)
 	return true
 }
 
-//-----------------------------------------------------------------
-func load_teachers() {
-	rows, _ := Database.Query("select id,name, password from teacher")
-	defer rows.Close()
-	var password string
-	var name string
-	var id int
-	for rows.Next() {
-		rows.Scan(&id, &name, &password)
-		Teacher[id] = password
-		TeacherPass[name] = password
-		TeacherNameToId[name] = id
-		TeacherIdToName[id] = name
+// -----------------------------------------------------------------
+func LoadTeachers() {
+	var teachers []Teacher
+	if err := DB.Find(&teachers).Error; err != nil {
+		log.Fatalf("Unable to load teachers: %v", err)
+	}
+
+	for _, teacher := range teachers {
+		Teachers[teacher.ID] = teacher.Password
+		TeacherPass[teacher.Name] = teacher.Password
+		TeacherNameToId[teacher.Name] = teacher.ID
+		TeacherIdToName[teacher.ID] = teacher.Name
 	}
 	Passcode = RandStringRunes(20)
 }

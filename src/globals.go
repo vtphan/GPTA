@@ -1,11 +1,10 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
 	"bufio"
 	"database/sql"
+	"gorm.io/gorm"
 	"log"
 	"math/rand"
 	"os"
@@ -14,20 +13,20 @@ import (
 	"time"
 )
 
-//---------------------------------------------------------
+// ---------------------------------------------------------
 type Configuration struct {
-	CourseId   string
-	CourseName string
-	NameServer string
-	IP         string
-	Port       int
-	Database   string
-	DBServerIP string
-	DBUserName string
-	DBPassWord string
-	Address    string
-	LogFile    string
-	PeerTutor  int
+	CourseId       string
+	CourseName     string
+	NameServer     string
+	IP             string
+	Port           int
+	Database       string
+	DBServerIP     string
+	DBUserName     string
+	DBPassWord     string
+	Address        string
+	LogFile        string
+	PeerTutor      int
 	ChatgptaServer string
 }
 
@@ -37,7 +36,7 @@ var Config *Configuration
 // Database
 //---------------------------------------------------------
 
-var Database *sql.DB
+var DB *gorm.DB
 var AddStudentSQL *sql.Stmt
 var AddTeacherSQL *sql.Stmt
 var AddAttendanceSQL *sql.Stmt
@@ -81,7 +80,7 @@ var UpdateMessageBackFeedbackSQL *sql.Stmt
 // Authentication
 //---------------------------------------------------------
 
-var Teacher = make(map[int]string)
+var Teachers = make(map[int]string)
 var TeacherPass = make(map[string]string)
 var TeacherNameToId = make(map[string]int)
 var TeacherIdToName = make(map[int]string)
@@ -147,8 +146,8 @@ var Students = make(map[int]*StudenInfo)
 
 var BulletinBoard = make([]string, 0)
 
-//---------------------------------------------------------
-type Submission struct {
+// ---------------------------------------------------------
+type StudentSubmission struct {
 	Sid           int // submission id
 	Uid           int // student id
 	Pid           int // problem id
@@ -161,8 +160,8 @@ type Submission struct {
 	SnapshotID    int
 }
 
-var WorkingSubs = make([]*Submission, 0)
-var Submissions = make(map[int]*Submission)
+var WorkingSubs = make([]*StudentSubmission, 0)
+var Submissions = make(map[int]*StudentSubmission)
 
 //---------------------------------------------------------
 
@@ -191,7 +190,7 @@ type HelpFeedback struct {
 
 var HelpFeedbacks = make([]*HelpFeedback, 0)
 
-//---------------------------------------------------------
+// ---------------------------------------------------------
 type ProblemInfo struct {
 	Description string
 	Filename    string
@@ -228,7 +227,7 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 func writeLog(filename, message string) {
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {

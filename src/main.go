@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func init_handlers() {
 	http.HandleFunc("/test", testHandler)
 
@@ -98,7 +98,7 @@ func init_handlers() {
 	http.HandleFunc("/peer_tutoring", Authorize(peerTutorHandler, "student"))
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func informIPAddress() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -128,7 +128,7 @@ func informIPAddress() string {
 	return ""
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func init_config(filename string) *Configuration {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -152,7 +152,7 @@ func init_config(filename string) *Configuration {
 	return config
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func inform_name_server() {
 	nameserver := fmt.Sprintf("%s/tell?who=%s&address=%s", Config.NameServer, Config.CourseId, Config.Address)
 	_, err := http.Get(nameserver)
@@ -176,11 +176,11 @@ func get_course_specific_address(nameserver string, course string) {
 	fmt.Printf("* Teacher Login: %s/teacher_signin\n", address)
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file := "", "", ""
+	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/CodeSpace/Examples/gem_config.json", "", ""
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
@@ -201,7 +201,7 @@ func main() {
 		add_multiple(student_file, "student")
 	}
 	init_handlers()
-	load_teachers()
+	LoadTeachers()
 	fmt.Println("**************************************************")
 	fmt.Printf("*   Course id:      %s\n", Config.CourseId)
 	if Config.NameServer != "" {

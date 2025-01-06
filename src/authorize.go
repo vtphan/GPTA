@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -9,9 +7,9 @@ import (
 	"strconv"
 )
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 // Authorize localhost
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func AuthorizeLocalhost(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Host == "localhost:8080" {
@@ -24,7 +22,7 @@ func AuthorizeLocalhost(fn func(http.ResponseWriter, *http.Request)) http.Handle
 	}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRole string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		givenRole := r.FormValue("role")
@@ -40,7 +38,7 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 			ok := false
 			var password string
 			if givenRole == "teacher" {
-				password, ok = Teacher[uid]
+				password, ok = Teachers[uid]
 				if ok && password != r.FormValue("password") {
 					ok = false
 					msg += r.FormValue("uid") + " (Teacher): Password doesn't match. "

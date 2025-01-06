@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -13,9 +11,9 @@ import (
 	"net/http"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 // When problems are deactivated, boards cleared, no new submissions are possibile.
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_deactivates_problemsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	CodeSnapshotSem.Lock()
 	defer CodeSnapshotSem.Unlock()
@@ -82,10 +80,10 @@ func teacher_deactivates_problemsHandler(w http.ResponseWriter, r *http.Request,
 	// }
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 // Clear submissions, boards, statuses, and set all problems inactive.
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_clears_submissionsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	WorkingSubs = make([]*Submission, 0)
+	WorkingSubs = make([]*StudentSubmission, 0)
 	fmt.Fprintf(w, "Done.")
 }
