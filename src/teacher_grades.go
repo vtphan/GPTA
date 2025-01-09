@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,7 +10,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func extract_partial_credits(content string) int {
 	re := regexp.MustCompile(`(\d)+ for effort`)
 	result := re.FindSubmatch([]byte(content))
@@ -24,7 +22,7 @@ func extract_partial_credits(content string) int {
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, decision := r.FormValue("content"), r.FormValue("decision")
 	sid, _ := strconv.Atoi(r.FormValue("sid"))
@@ -41,7 +39,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 	if changed == "True" {
 		// If the original file is changed, there's feedback.  Copy it to whiteboard.
 		if prob, ok := ActiveProblems[sub.Filename]; ok {
-			_, err := AddFeedbackSQL.Exec(uid, student_id, content, time.Now(), sub.Sid)
+			err := AddFeedback(uid, student_id, content, time.Now(), sub.Sid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -89,7 +87,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		if decision != "correct" {
 			partial_credits = extract_partial_credits(content)
 		}
-		scoring_mesg := add_or_update_score(decision, sub.Pid, sub.Uid, uid, partial_credits)
+		scoring_mesg := addOrUpdateScore(decision, sub.Pid, sub.Uid, uid, partial_credits)
 		mesg = scoring_mesg + "\n" + mesg
 		if decision == "correct" {
 			// Students[sub.Uid].SubmissionStatus = 4
@@ -107,7 +105,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 					HelpEligibleStudents[pid][sub.Uid] = true
 					SeenHelpSubmissions[sub.Uid] = map[int]bool{}
 					// Add eligible timestamp to datbase
-					_, err := AddHelpEligibleSQL.Exec(pid, sub.Uid, now)
+					err := AddHelpEligible(pid, sub.Uid, now)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -118,7 +116,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 
 			// Add the correct submission to codesnapshot.
 			// addCodeSnapshot(sub.Uid, pid, content, 3, now)
-			_, err := IncProblemStatGradedCorrectSQL.Exec(pid)
+			err := IncProblemStatGradedCorrect(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -135,7 +133,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 
 			// Add the incorrect submission to codesnapshot.
 			// addCodeSnapshot(sub.Uid, sub.Pid, content, 2, time.Now())
-			_, err := IncProblemStatGradedIncorrectSQL.Exec(sub.Pid)
+			err := IncProblemStatGradedIncorrect(sub.Pid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -143,7 +141,8 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		}
 
 		// Update submission complete time
-		_, err := CompleteSubmissionSQL.Exec(time.Now(), decision, sid)
+		completed := time.Now() // Set the completion time to now
+		err := CompleteSubmission(int(sid), completed, decision)
 		if err != nil {
 			log.Fatal(err)
 		}

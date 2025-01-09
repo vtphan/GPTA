@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"html/template"
 	"log"
 	"net/http"
@@ -69,7 +70,7 @@ type SubmissionDashboard struct {
 }
 
 type TemplateDate struct {
-	Feedback   	   FeedbackProvisionDashBoard
+	Feedback       FeedbackProvisionDashBoard
 	Submission     SubmissionDashboard
 	Status         DashBoardStudentInfo
 	ChatgptaServer string
@@ -77,116 +78,132 @@ type TemplateDate struct {
 	UserRole       string
 	Password       string
 	Username       string
-	CourseName	   string
+	CourseName     string
 }
 
 func getCurrentUserVote(feedbackID int, userID int, userRole string) string {
-	var vote string
-	row, err := Database.Query("select useful from message_back_feedback where message_feedback_id=? and author_id=? and author_role=?", feedbackID, userID, userRole)
-	defer row.Close()
+	var feedback MessageBackFeedback
+
+	// Query the database using GORM
+	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
+		Select("useful").First(&feedback).Error
+
 	if err != nil {
-		log.Fatal(err)
+		if err == gorm.ErrRecordNotFound {
+			return "" // Return an empty string if no record is found
+		}
+		log.Printf("Error fetching vote: %v", err)
+		return ""
 	}
-	for row.Next() {
-		row.Scan(&vote)
-	}
-	row.Close()
-	return vote
+
+	return feedback.Useful
 }
 
 func getMessageFeedbacks(messageID int, userID int, userRole string) []*FeedbackDashBaord {
-	rows, err := Database.Query("select id, feedback, author_id, author_role, given_at from message_feedback where message_id = ?", messageID)
-	defer rows.Close()
+	var feedbacks []MessageFeedback
+
+	// Query the database using GORM
+	err := DB.Where("message_id = ?", messageID).Find(&feedbacks).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error fetching message feedbacks: %v", err)
+		return nil
 	}
-	var feedback, authorRole string
-	var authorID, feedbackID int
-	var givenAt time.Time
 
-	feedbacks := make([]*FeedbackDashBaord, 0)
+	feedbackDashboards := make([]*FeedbackDashBaord, 0)
 
-	for rows.Next() {
-		rows.Scan(&feedbackID, &feedback, &authorID, &authorRole, &givenAt)
-		name := ""
-		if authorRole == "teacher" {
-			name = getTeacherName(authorID)
+	for _, feedback := range feedbacks {
+		// Fetch author name based on role
+		var name string
+		if feedback.AuthorRole == "teacher" {
+			name = getTeacherName(feedback.AuthorID)
 		} else {
-			name = getStudentName(authorID)
+			name = getStudentName(feedback.AuthorID)
 		}
-		feedbacks = append(feedbacks, &FeedbackDashBaord{
+
+		// Populate the dashboard entry
+		feedbackDashboards = append(feedbackDashboards, &FeedbackDashBaord{
 			Name:            name,
-			Role:            authorRole,
-			Feedback:        feedback,
-			FeedbackID:      feedbackID,
-			CurrentUserVote: getCurrentUserVote(feedbackID, userID, userRole),
-			Downvote:        getBackFeedbackCount(feedbackID, "no"),
-			Upvote:          getBackFeedbackCount(feedbackID, "yes"),
-			GivenAt:         givenAt,
+			Role:            feedback.AuthorRole,
+			Feedback:        feedback.Feedback,
+			FeedbackID:      feedback.ID,
+			CurrentUserVote: getCurrentUserVote(feedback.ID, userID, userRole),
+			Downvote:        getBackFeedbackCount(feedback.ID, "no"),
+			Upvote:          getBackFeedbackCount(feedback.ID, "yes"),
+			GivenAt:         feedback.GivenAt,
 		})
 	}
-	rows.Close()
-	return feedbacks
+
+	return feedbackDashboards
 }
 
 func getLatestSnapshot(studentID int, problemID int) *Snapshot {
-	rows, err := Database.Query("select id, code, max(last_updated_at) from code_snapshot where problem_id = ? and student_id=? group by problem_id, student_id", problemID, studentID)
-	defer rows.Close()
+	var snapshot Snapshot
+
+	// Query the latest snapshot using GORM
+	err := DB.Model(&Snapshot{}).
+		Select("id, code, MAX(last_updated) as last_updated").
+		Where("problem_id = ? AND student_id = ?", problemID, studentID).
+		Group("problem_id, student_id").
+		Scan(&snapshot).Error
+
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error fetching latest snapshot: %v", err)
+		return nil
 	}
-	var ID int
-	var code string
-	var lastUpdate time.Time
-	if rows.Next() {
-		rows.Scan(&ID, &code, &lastUpdate)
-	}
-	rows.Close()
-	return &Snapshot{
-		ID:          ID,
-		ProblemName: getProblemNameFromID(problemID),
-		Code:        code,
-		LastUpdated: lastUpdate,
-	}
+
+	// Add the problem name
+	snapshot.ProblemName = getProblemNameFromID(problemID)
+
+	return &snapshot
 }
 
 func getTeacherName(authorID int) string {
-	rows, err := Database.Query("select name from teacher where id = ?", authorID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
 	var name string
-	if rows.Next() {
-		rows.Scan(&name)
+
+	// Use GORM to fetch the teacher's name
+	err := DB.Model(&Teacher{}).
+		Select("name").
+		Where("id = ?", authorID).
+		Scan(&name).Error
+
+	if err != nil {
+		log.Printf("Error fetching teacher name for ID %d: %v", authorID, err)
+		return ""
 	}
+
 	return name
 }
 
 func getStudentName(studentID int) string {
-	rows, err := Database.Query("select name from student where id = ?", studentID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
 	var name string
-	if rows.Next() {
-		rows.Scan(&name)
+
+	// Use GORM to fetch the student's name
+	err := DB.Model(&Student{}).
+		Select("name").
+		Where("id = ?", studentID).
+		Scan(&name).Error
+
+	if err != nil {
+		log.Printf("Error fetching student name for ID %d: %v", studentID, err)
+		return ""
 	}
+
 	return name
 }
 
 func getBackFeedbackCount(feedbackID int, backFeedbackType string) int {
-	vote := 0
-	rows, err := Database.Query("select count(*) from message_back_feedback where useful = ? and message_feedback_id = ?", backFeedbackType, feedbackID)
-	defer rows.Close()
+	var voteCount int64
+
+	err := DB.Model(&MessageBackFeedback{}).
+		Where("useful = ? AND message_feedback_id = ?", backFeedbackType, feedbackID).
+		Count(&voteCount).Error
+
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error counting back feedbacks for feedback ID %d: %v", feedbackID, err)
+		return 0
 	}
-	for rows.Next() {
-		rows.Scan(&vote)
-	}
-	return vote
+
+	return int(voteCount)
 }
 
 func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
@@ -199,76 +216,81 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	students := getAllStudents()
-	var messages = make([]*MessageDashBoard, 0)
+	var messages []*MessageDashBoard
 	_, ok := HelpEligibleStudents[problemID][uid]
+
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		rows, err := Database.Query("select M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.Code, C.event from message M, code_snapshot C where M.snapshot_id = C.id and C.problem_id = ? and C.student_id = ?", problemID, studentID)
-		defer rows.Close()
-		if err != nil {
-			log.Fatal(err)
+		var rawMessages []struct {
+			ID         int
+			SnapshotID int
+			Message    string
+			AuthorID   int
+			AuthorRole string
+			GivenAt    time.Time
+			Type       int
+			Code       string
+			Event      string
 		}
-		var snapshotID, authorID, messageType, messageID int
-		var message, authorRole, code, event string
-		var givenAt time.Time
-		for rows.Next() {
-			rows.Scan(&messageID, &snapshotID, &message, &authorID, &authorRole, &givenAt, &messageType, &code, &event)
+
+		err = DB.Table("messages").
+			Select("M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.code, C.event").
+			Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
+			Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
+			Scan(&rawMessages).Error
+
+		if err != nil {
+			log.Printf("Error fetching messages: %v", err)
+			http.Error(w, "Error fetching messages", http.StatusInternalServerError)
+			return
+		}
+
+		for _, raw := range rawMessages {
 			name := ""
-			if authorRole == "teacher" {
-				name = getTeacherName(authorID)
+			if raw.AuthorRole == "teacher" {
+				name = getTeacherName(raw.AuthorID)
 			} else {
-				name = students[authorID]
+				name = students[raw.AuthorID]
 			}
 			messages = append(messages, &MessageDashBoard{
-				ID:         messageID,
+				ID:         raw.ID,
 				Name:       name,
-				Role:       authorRole,
-				Message:    message,
-				Type:       messageType,
-				Event:      event,
-				GivenAt:    givenAt,
-				SnapshotID: snapshotID,
-				Code:       code,
-				Feedbacks:  getMessageFeedbacks(messageID, uid, role),
+				Role:       raw.AuthorRole,
+				Message:    raw.Message,
+				Type:       raw.Type,
+				Event:      raw.Event,
+				GivenAt:    raw.GivenAt,
+				SnapshotID: raw.SnapshotID,
+				Code:       raw.Code,
+				Feedbacks:  getMessageFeedbacks(raw.ID, uid, role),
 			})
 		}
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
+		return
 	}
 
-	// Sort the messages by descding order of GivenAt
 	sort.Slice(messages, func(i, j int) bool {
 		return messages[i].GivenAt.After(messages[j].GivenAt)
 	})
 
-	// TODO(shiplu): sort the messages array
-	// sort.Slice(helpRequests, func(i, j int) bool { return helpRequests[i].GivenAt.Before(helpRequests[j].GivenAt) })
-	latestSnapshot := &Snapshot{}
+	var latestSnapshot *Snapshot
 	if _, ok := StudentSnapshot[studentID][problemID]; ok {
 		latestSnapshot = Snapshots[StudentSnapshot[studentID][problemID]]
 	} else {
 		latestSnapshot = getLatestSnapshot(studentID, problemID)
 	}
 
-	// Get student status
-	rows, err := Database.Query("select coding_stat, help_stat, submission_stat, tutoring_stat from student_status where problem_id=? and student_id=?", problemID, studentID)
-	defer rows.Close()
+	var studentStatus DashBoardStudentInfo
+	err = DB.Model(&StudentStatus{}).
+		Select("coding_stat, help_stat, submission_stat, tutoring_stat").
+		Where("problem_id = ? AND student_id = ?", problemID, studentID).
+		Scan(&studentStatus).Error
+
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error fetching student status: %v", err)
 	}
-	var codingStat, submissionStat, helpStat, tutoringStat string
-	// var studentInfo []*DashBoardStudentInfo
-	studentStats := DashBoardStudentInfo{}
-	for rows.Next() {
-		rows.Scan(&codingStat, &helpStat, &submissionStat, &tutoringStat)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-			studentStats.CodingStat = codingStat
-			studentStats.HelpStat = helpStat
-			studentStats.SubmissionStat = submissionStat
-			studentStats.TutoringStat = tutoringStat
-		}
-	}
-	rows.Close()
 
 	data := &FeedbackProvisionDashBoard{
 		StudentName:  students[studentID],
@@ -280,9 +302,10 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 		UserID:       uid,
 		UserRole:     role,
 		Password:     r.FormValue("password"),
-		Status:       studentStats,
+		Status:       studentStatus,
 		Username:     getName(uid, role),
 	}
+
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, data)
 	if err != nil {
@@ -302,29 +325,15 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 		log.Fatal(err)
 	}
 
-	var submissions = make([]*SubmissionInfo, 0)
+	var submissions []*SubmissionInfo
 	_, ok := HelpEligibleStudents[problemID][uid]
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		rows, err := Database.Query("select id, snapshot_id, student_code, code_submitted_at, verdict from submission where student_id = ? and problem_id = ?", studentID, problemID)
-		defer rows.Close()
+		err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+			Find(&submissions).Error
 		if err != nil {
 			log.Fatal(err)
 		}
-		var snapshotID, submissionID int
-		var verdict, code string
-		var submittedAt time.Time
-		for rows.Next() {
-			verdict = ""
-			rows.Scan(&submissionID, &snapshotID, &code, &submittedAt, &verdict)
 
-			submissions = append(submissions, &SubmissionInfo{
-				ID:          submissionID,
-				SnapshotID:  snapshotID,
-				Code:        code,
-				Grade:       verdict,
-				SubmittedAt: submittedAt,
-			})
-		}
 		sort.SliceStable(submissions, func(i, j int) bool {
 			if submissions[i].Grade == "" && submissions[j].Grade == "" {
 				return submissions[i].SubmittedAt.Before(submissions[j].SubmittedAt)
@@ -339,9 +348,9 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 		})
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
+		return
 	}
-	// TODO(shiplu): sort the messages array
-	// sort.Slice(helpRequests, func(i, j int) bool { return helpRequests[i].GivenAt.Before(helpRequests[j].GivenAt) })
+
 	data := &SubmissionDashboard{
 		StudentName: getStudentName(studentID),
 		ProblemName: getProblemNameFromID(problemID),
@@ -364,16 +373,19 @@ func hasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who s
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	userRole := r.FormValue("role")
 	fmt.Print(feedbackID, userRole, uid)
-	row, err := Database.Query("select * from message_back_feedback where message_feedback_id=? and author_id = ? and author_role = ?", feedbackID, uid, userRole)
-	defer row.Close()
+
+	var feedback MessageBackFeedback
+	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, userRole).
+		First(&feedback).Error
 	if err != nil {
-		log.Fatal(err)
+		if gorm.ErrRecordNotFound == err {
+			fmt.Fprint(w, "no")
+		} else {
+			log.Fatal(err)
+		}
+		return
 	}
-	if row.Next() {
-		fmt.Fprint(w, "yes")
-	} else {
-		fmt.Fprint(w, "no")
-	}
+	fmt.Fprint(w, "yes")
 }
 
 func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
@@ -397,83 +409,42 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	}
 
 	// Get all student messages from DB
-	var messages = make([]*MessageDashBoard, 0)
+	var messages []MessageDashBoard
 	_, ok := HelpEligibleStudents[problemID][uid]
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		rows, err := Database.Query("select M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.type, C.Code, C.event, M.given_at from message M, code_snapshot C where M.snapshot_id = C.id and C.problem_id = ? and C.student_id = ?", problemID, studentID)
-		defer rows.Close()
+		var msgList []MessageDashBoard
+		err := DB.Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
+			Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
+			Find(&msgList).Error
 		if err != nil {
 			log.Fatal(err)
 		}
-		var snapshotID, authorID, messageType, messageID int
-		var message, authorRole, code, event string
-		var givenAt time.Time
-		for rows.Next() {
-			rows.Scan(&messageID, &snapshotID, &message, &authorID, &authorRole, &messageType, &code, &event, &givenAt)
-			name := ""
-			if authorRole == "teacher" {
-				name = getTeacherName(authorID)
-			} else {
-				name = students[authorID]
-			}
-			messages = append(messages, &MessageDashBoard{
-				ID:         messageID,
-				Name:       name,
-				Role:       authorRole,
-				Message:    message,
-				Type:       messageType,
-				Event:      event,
-				GivenAt:    givenAt,
-				SnapshotID: snapshotID,
-				Code:       code,
-				Feedbacks:  getMessageFeedbacks(messageID, uid, role),
-			})
+
+		// Fetching related message feedbacks for each message
+		for i := range msgList {
+			msgList[i].Feedbacks = getMessageFeedbacks(msgList[i].ID, uid, role)
 		}
+
+		// Sorting by 'GivenAt' in descending order
+		sort.Slice(msgList, func(i, j int) bool {
+			return msgList[i].GivenAt.After(msgList[j].GivenAt)
+		})
+
+		messages = msgList
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
 
-	// Sort the messages by descding order of GivenAt
-	sort.Slice(messages, func(i, j int) bool {
-		return messages[i].GivenAt.After(messages[j].GivenAt)
-	})
-
-	feedback := &FeedbackProvisionDashBoard{
-		StudentName:  students[studentID],
-		ProblemName:  latestSnapshot.ProblemName,
-		LastSnapshot: latestSnapshot,
-		Messages:     messages,
-		StudentID:    studentID,
-		ProblemID:    problemID,
-		UserID:       uid,
-		UserRole:     role,
-		Password:     r.FormValue("password"),
-	}
-
-	// Get all submissions from DB.
-	var submissions = make([]*SubmissionInfo, 0)
-	_, ok = HelpEligibleStudents[problemID][uid]
+	// Get all submissions from DB
+	var submissions []SubmissionInfo
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		rows, err := Database.Query("select id, snapshot_id, student_code, code_submitted_at, verdict from submission where student_id = ? and problem_id = ?", studentID, problemID)
-		defer rows.Close()
+		err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+			Find(&submissions).Error
 		if err != nil {
 			log.Fatal(err)
 		}
-		var snapshotID, submissionID int
-		var verdict, code string
-		var submittedAt time.Time
-		for rows.Next() {
-			verdict = ""
-			rows.Scan(&submissionID, &snapshotID, &code, &submittedAt, &verdict)
 
-			submissions = append(submissions, &SubmissionInfo{
-				ID:          submissionID,
-				SnapshotID:  snapshotID,
-				Code:        code,
-				Grade:       verdict,
-				SubmittedAt: submittedAt,
-			})
-		}
+		// Sorting submissions by 'SubmittedAt' and 'Grade'
 		sort.SliceStable(submissions, func(i, j int) bool {
 			if submissions[i].Grade == "" && submissions[j].Grade == "" {
 				return submissions[i].SubmittedAt.After(submissions[j].SubmittedAt)
@@ -490,10 +461,31 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
 
+	// Get student status
+	var studentStats DashBoardStudentInfo
+	err = DB.Table("student_statuses").
+		Where("problem_id = ? AND student_id = ?", problemID, studentID).
+		First(&studentStats).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Fatal(err)
+	}
+
+	feedback := &FeedbackProvisionDashBoard{
+		StudentName:  students[studentID],
+		ProblemName:  latestSnapshot.ProblemName,
+		LastSnapshot: latestSnapshot,
+		Messages:     convertMessagesToPointers(messages), // Convert to []*MessageDashBoard
+		StudentID:    studentID,
+		ProblemID:    problemID,
+		UserID:       uid,
+		UserRole:     role,
+		Password:     r.FormValue("password"),
+	}
+
 	submission := &SubmissionDashboard{
 		StudentName: getStudentName(studentID),
 		ProblemName: getProblemNameFromID(problemID),
-		Submissions: submissions,
+		Submissions: convertSubmissionsToPointers(submissions), // Convert to []*SubmissionInfo
 		StudentID:   studentID,
 		ProblemID:   problemID,
 		UserID:      uid,
@@ -501,26 +493,6 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		Password:    r.FormValue("password"),
 		Username:    getName(uid, role),
 	}
-
-	// Get student status
-	rows, err := Database.Query("select coding_stat, help_stat, submission_stat, tutoring_stat from student_status where problem_id=? and student_id=?", problemID, studentID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var codingStat, submissionStat, helpStat, tutoringStat string
-	// var studentInfo []*DashBoardStudentInfo
-	studentStats := DashBoardStudentInfo{}
-	for rows.Next() {
-		rows.Scan(&codingStat, &helpStat, &submissionStat, &tutoringStat)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-			studentStats.CodingStat = codingStat
-			studentStats.HelpStat = helpStat
-			studentStats.SubmissionStat = submissionStat
-			studentStats.TutoringStat = tutoringStat
-		}
-	}
-	rows.Close()
 
 	data := TemplateDate{
 		Submission:     *submission,
@@ -531,7 +503,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		UserRole:       role,
 		Password:       r.FormValue("password"),
 		Username:       getName(uid, role),
-		CourseName:		Config.CourseName,
+		CourseName:     Config.CourseName,
 	}
 
 	w.Header().Set("Content-Type", "text/html")
@@ -540,4 +512,21 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
+}
+
+func convertMessagesToPointers(messages []MessageDashBoard) []*MessageDashBoard {
+	var result []*MessageDashBoard
+	for i := range messages {
+		result = append(result, &messages[i])
+	}
+	return result
+}
+
+// Converts []SubmissionInfo to []*SubmissionInfo
+func convertSubmissionsToPointers(submissions []SubmissionInfo) []*SubmissionInfo {
+	var result []*SubmissionInfo
+	for i := range submissions {
+		result = append(result, &submissions[i])
+	}
+	return result
 }

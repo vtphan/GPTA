@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,7 +10,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacherGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 
 	HelpSubSem.Lock()
@@ -59,7 +57,7 @@ func teacher_return_without_feedbackHandler(w http.ResponseWriter, r *http.Reque
 func teacher_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submission_id, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
-	_, err := AddHelpMessageSQL.Exec(submission_id, uid, message, time.Now())
+	err := AddHelpMessage(submission_id, uid, message, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}

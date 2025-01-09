@@ -84,7 +84,7 @@ func initConfig() *Configuration {
 	if err != nil {
 		log.Fatal("Current directory is inaccessible.")
 	}
-	filename = "/Users/shashwatdadhich/go/src/github.com/CodeSpace/src/NameServer/config.json"
+	filename = "/Users/shashwatdadhich/go/src/github.com/GPTA/src/NameServer/config.json"
 	file, err = os.Open(filename)
 	if err != nil {
 		log.Fatal("Could not open " + filename)

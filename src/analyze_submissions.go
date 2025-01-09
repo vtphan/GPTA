@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -9,10 +7,9 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
-	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type SubmissionData struct {
 	Flag      string
 	Start     int64
@@ -20,59 +17,75 @@ type SubmissionData struct {
 	Completed int64
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func analyze_submissionsHandler(w http.ResponseWriter, r *http.Request) {
 	// if r.FormValue("pc") != Passcode {
-	// 	fmt.Fprintf(w, "Unauthorized")
-	// 	return
+	//     fmt.Fprintf(w, "Unauthorized")
+	//     return
 	// }
+
 	pid := r.FormValue("pid")
-	records := make(map[int][]*SubmissionData)
-	var sid, priority int
-	var start, at, completed time.Time
-
-	row, _ := Database.Query("select problem_uploaded_at from problem where id=?", pid)
-	for row.Next() {
-		row.Scan(&start)
+	if pid == "" {
+		http.Error(w, "Problem ID is required", http.StatusBadRequest)
+		return
 	}
-	row.Close()
 
-	rows, _ := Database.Query("select student_id, submission_category, code_submitted_at, completed from submission where problem_id=?", pid)
-	for rows.Next() {
-		rows.Scan(&sid, &priority, &at, &completed)
-		if _, ok := records[sid]; !ok {
-			records[sid] = make([]*SubmissionData, 0)
+	var problem Problem
+	if err := DB.First(&problem, pid).Error; err != nil {
+		http.Error(w, "Problem not found", http.StatusNotFound)
+		fmt.Println(err)
+		return
+	}
+
+	var submissions []Submission
+	if err := DB.Where("problem_id = ?", pid).Find(&submissions).Error; err != nil {
+		http.Error(w, "Failed to fetch submissions", http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+
+	records := make(map[int][]*SubmissionData)
+	for _, submission := range submissions {
+		if _, ok := records[submission.StudentID]; !ok {
+			records[submission.StudentID] = make([]*SubmissionData, 0)
 		}
+
 		flag := "unknown"
-		if priority == 1 {
+		if submission.SubmissionCategory == 1 {
 			flag = "Got it!"
-		} else if priority == 2 {
+		} else if submission.SubmissionCategory == 2 {
 			flag = "Help!"
 		}
-		records[sid] = append(
-			records[sid],
-			&SubmissionData{
-				Flag:      flag,
-				Start:     start.UnixNano(),
-				At:        at.UnixNano(),
-				Completed: completed.UnixNano(),
-			})
+
+		records[submission.StudentID] = append(records[submission.StudentID], &SubmissionData{
+			Flag:      flag,
+			Start:     problem.ProblemUploadedAt.UnixNano(),
+			At:        submission.CodeSubmittedAt.UnixNano(),
+			Completed: submission.Completed.UnixNano(),
+		})
 	}
-	for sid, _ := range records {
+
+	// Sort submissions for each student by submission time
+	for sid := range records {
 		sort.Slice(records[sid], func(i, j int) bool {
 			return records[sid][i].At < records[sid][j].At
 		})
 	}
-	rows.Close()
+
+	// Render the HTML template
 	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.New("").Parse(ANALYZE_SUBMISSIONS_TEMPLATE)
-	err := t.Execute(w, records)
+	t, err := template.New("").Parse(ANALYZE_SUBMISSIONS_TEMPLATE)
 	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err := t.Execute(w, records); err != nil {
 		fmt.Println(err)
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 var ANALYZE_SUBMISSIONS_TEMPLATE = `
 <html>
   <head>

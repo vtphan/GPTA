@@ -1,10 +1,9 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,32 +11,32 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 // func insert_problems(uid int, problems []*ProblemInfo) {
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func insert_problem(uid int, problem *ProblemInfo) {
-	// Create new problem
 	pid := int64(0)
+
 	if problem.Merit > 0 {
-		// Find Tag id
-		rows, _ := Database.Query("select id from tag where topic_description=?", problem.Tag)
-		tagID := int64(0)
-		for rows.Next() {
-			rows.Scan(&tagID)
-			break
-		}
-		rows.Close()
-		if tagID == 0 {
-			result, err := AddTagSQL.Exec(problem.Tag)
-			if err != nil {
-				fmt.Println(err)
+		// Find Tag ID
+		var tag Tag
+		if err := DB.Where("topic_description = ?", problem.Tag).First(&tag).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				// Add new tag if not found
+				newTag, err := AddTag(problem.Tag)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				tag = newTag
 			} else {
-				tagID, _ = result.LastInsertId()
+				fmt.Println(err)
+				return
 			}
 		}
 
 		// Insert only real problems into database
-		result, err := AddProblemSQL.Exec(
+		result, err := AddProblem(
 			uid,
 			problem.Description,
 			problem.Answer,
@@ -46,13 +45,13 @@ func insert_problem(uid int, problem *ProblemInfo) {
 			problem.Effort,
 			problem.Attempts,
 			problem.Topic_id,
-			int(tagID),
+			tag.ID,
 			time.Now(),
 		)
 		if err != nil {
 			log.Fatal(err)
 		}
-		pid, _ = result.LastInsertId()
+		pid = int64(result.ID)
 		problem.Pid = int(pid)
 		ActiveProblems[problem.Filename] = &ActiveProblem{
 			Info:     problem,
@@ -61,16 +60,16 @@ func insert_problem(uid int, problem *ProblemInfo) {
 			Attempts: make(map[int]int),
 		}
 		HelpEligibleStudents[int(pid)] = map[int]bool{}
-		_, err = AddProblemStatisticsSQL.Exec(problem.Pid)
+		err = AddProblemStatistics(problem.Pid)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 // Teacher starts one or more problems.
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content := r.FormValue("content")
 	answer := r.FormValue("answer")

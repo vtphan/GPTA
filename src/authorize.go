@@ -62,7 +62,7 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 			} else {
 				_, ok = Students[uid]
 				if !ok {
-					ok = load_and_authorize_student(uid, r.FormValue("password"))
+					ok = loadAndAuthorizeStudent(uid, r.FormValue("password"))
 				} else if Students[uid].Password != r.FormValue("password") {
 					ok = false
 					msg += Students[uid].Name + "(Student): Password doesn't match. "

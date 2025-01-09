@@ -1,17 +1,14 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, filename := r.FormValue("content"), r.FormValue("filename")
 	need_help_with := r.FormValue("need_help_with")
@@ -20,7 +17,6 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 		need_help_with = "None."
 	}
 
-	var err error
 	msg := "your help message has been sent"
 
 	pid := 0
@@ -36,17 +32,19 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 			}
 			now := time.Now()
 			snapshotID = addCodeSnapshot(uid, pid, content, 0, now, "at_ask_for_help")
-			var result sql.Result
-			// result, err = AddHelpSubmissionSQL.Exec(pid, uid, snapshotID, "", need_help_with, now)
-			result, err = AddMessageSQL.Exec(snapshotID, need_help_with, uid, "student", now, 0)
+
+			// Using the GORM AddMessage function
+			_, err := AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
 			if err != nil {
 				log.Fatal(err)
 			}
-			sid, _ = result.LastInsertId()
-			_, err = IncProblemStatHelpSQL.Exec(pid)
+
+			// Increment the help request count using GORM function
+			err = IncProblemStatHelp(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
+
 			addOrUpdateStudentStatus(uid, pid, "", "Asked for help", "", "")
 		}
 	} else {
@@ -70,7 +68,6 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 	}
 
 	fmt.Fprintf(w, msg)
-
 }
 
 //-----------------------------------------------------------------------------------

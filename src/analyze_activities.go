@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -11,7 +9,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type DailyActivityData struct {
 	Pids     map[int]bool
 	Sids     map[int]bool
@@ -20,19 +18,29 @@ type DailyActivityData struct {
 	SidCount int
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	rows, _ := Database.Query("select problem_id, student_id, code_submitted_at from submission")
-	var at time.Time
-	var pid, sid int
+
+	// Fetch required data using GORM and the existing Submission struct
+	var submissions []Submission
+	if err := DB.Select("problem_id, student_id, code_submitted_at").Find(&submissions).Error; err != nil {
+		http.Error(w, "Failed to fetch activities", http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+
+	// Initialize the data map
 	data := make(map[int64]*DailyActivityData)
-	for rows.Next() {
-		rows.Scan(&pid, &sid, &at)
-		date := time.Date(at.Year(), at.Month(), at.Day(), 0, 0, 0, 0, at.Location()).UnixNano()
+
+	for _, submission := range submissions {
+		// Group by the date (ignoring time of day)
+		date := time.Date(submission.CodeSubmittedAt.Year(), submission.CodeSubmittedAt.Month(), submission.CodeSubmittedAt.Day(), 0, 0, 0, 0, submission.CodeSubmittedAt.Location()).UnixNano()
+
+		// Initialize the DailyActivityData for the date if not already present
 		if _, ok := data[date]; !ok {
 			data[date] = &DailyActivityData{
 				Pids:  make(map[int]bool),
@@ -40,27 +48,33 @@ func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 				Count: 0,
 			}
 		}
+
+		// Update the DailyActivityData
 		data[date].Count++
-		data[date].Pids[pid] = true
-		data[date].Sids[sid] = true
+		data[date].Pids[submission.ProblemID] = true
+		data[date].Sids[submission.StudentID] = true
 	}
-	rows.Close()
-	for d, _ := range data {
+
+	// Compute unique problem and student counts for each date
+	for d := range data {
 		data[d].PidCount = len(data[d].Pids)
 		data[d].SidCount = len(data[d].Sids)
 	}
+
+	// Render the HTML template
 	w.Header().Set("Content-Type", "text/html")
 	t, err := template.New("").Parse(ACTIVITY_VIEW_TEMPLATE)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	err = t.Execute(w, data)
-	if err != nil {
+
+	if err := t.Execute(w, data); err != nil {
 		fmt.Println(err)
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 var ACTIVITY_VIEW_TEMPLATE = `
 <html>
   <head>

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gorm.io/gorm"
 	"html/template"
 	"log"
 	"net/http"
@@ -91,17 +92,18 @@ func formatTimeSince(t time.Time) string {
 	return formatTimeDuration(d)
 }
 
+// test
 func getVoteCount(feedbackID int, voteType string) int {
-	vote := 0
-	rows, err := Database.Query("select count(*) from snapshot_back_feedback where is_helpful = ? and snapshot_feedback_id = ?", voteType, feedbackID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
+	var vote int64
+
+	// Use GORM to count the votes
+	if err := DB.Model(&SnapshotBackFeedback{}).
+		Where("is_helpful = ? AND snapshot_feedback_id = ?", voteType, feedbackID).
+		Count(&vote).Error; err != nil {
+		log.Fatal("Error counting votes: ", err)
 	}
-	for rows.Next() {
-		rows.Scan(&vote)
-	}
-	return vote
+
+	return int(vote)
 }
 
 func add(x int, y int) int {
@@ -146,24 +148,24 @@ func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid in
 }
 
 func getCodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+	var snapshot CodeSnapshot
 	snapshotID := 0
 	studentID := 0
 	problemID := 0
+
 	if r.FormValue("snapshot_id") != "" {
+		// Parse snapshot_id and fetch details using the CodeSnapshot model
 		snapshotID, _ = strconv.Atoi(r.FormValue("snapshot_id"))
-		rows, err := Database.Query("select student_id, problem_id from code_snapshot where id = ?", snapshotID)
-		defer rows.Close()
-		if err != nil {
-			log.Fatal(err)
+		if err := DB.First(&snapshot, snapshotID).Error; err != nil {
+			log.Fatal("Error fetching snapshot: ", err)
 		}
-		if rows.Next() {
-			rows.Scan(&studentID, &problemID)
-		}
-		rows.Close()
+		studentID = snapshot.StudentID
+		problemID = snapshot.ProblemID
 	} else {
 		studentID, _ = strconv.Atoi(r.FormValue("student_id"))
 		problemID, _ = strconv.Atoi(r.FormValue("problem_id"))
 	}
+
 	role := r.FormValue("role")
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode, "add": add}
@@ -171,70 +173,66 @@ func getCodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, 
 	if err != nil {
 		log.Fatal(err)
 	}
-	rows, err := Database.Query("select id from code_explanation where student_id = ? and problem_id = ?", studentID, problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var helpID int
+
+	// Fetch helpIDs using GORM
 	var helpIDs []int
-	for rows.Next() {
-		rows.Scan(&helpID)
-		helpIDs = append(helpIDs, helpID)
+	if err := DB.Model(&CodeExplanation{}).
+		Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Pluck("id", &helpIDs).Error; err != nil {
+		log.Fatal("Error fetching help request IDs: ", err)
 	}
-	rows.Close()
 
-	rows, err = Database.Query("select F.id, F.feedback, F.author_id, F.author_role, F.given_at, C.code from code_snapshot C, snapshot_feedback F where C.id=F.snapshot_id and C.student_id=? and C.problem_id=? order by F.given_at desc", studentID, problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	feedbackID, feedback, authorID, authorRole, givenAt, code := 0, "", 0, "", time.Now(), ""
+	// Fetch feedback and related details using GORM
 	var feedbacks []*FeedbackData
+	var snapshotFeedbacks []struct {
+		ID         int
+		Feedback   string
+		AuthorID   int
+		AuthorRole string
+		GivenAt    time.Time
+		Code       string
+	}
+	if err := DB.Table("code_snapshot AS C").
+		Select("F.id, F.feedback, F.author_id, F.author_role, F.given_at, C.code").
+		Joins("JOIN snapshot_feedback F ON C.id = F.snapshot_id").
+		Where("C.student_id = ? AND C.problem_id = ?", studentID, problemID).
+		Order("F.given_at DESC").
+		Scan(&snapshotFeedbacks).Error; err != nil {
+		log.Fatal("Error fetching feedback: ", err)
+	}
 
-	upvote, downvote := 0, 0
-	currentUserVote := ""
-	for rows.Next() {
-		rows.Scan(&feedbackID, &feedback, &authorID, &authorRole, &givenAt, &code)
+	for _, sf := range snapshotFeedbacks {
+		upvote := getVoteCount(sf.ID, "yes")
+		downvote := getVoteCount(sf.ID, "no")
+		var currentUserVote string
 
-		upvote = getVoteCount(feedbackID, "yes")
-		downvote = getVoteCount(feedbackID, "no")
-		rows2, err := Database.Query("select is_helpful from snapshot_back_feedback where snapshot_feedback_id=? and author_id=? and author_role=?", feedbackID, uid, role)
-		defer rows2.Close()
-		if err != nil {
-			log.Fatal(err)
+		// Fetch current user vote
+		if err := DB.Model(&SnapshotBackFeedback{}).
+			Where("snapshot_feedback_id = ? AND author_id = ? AND author_role = ?", sf.ID, uid, role).
+			Pluck("is_helpful", &currentUserVote).Error; err != nil && err != gorm.ErrRecordNotFound {
+			log.Fatal("Error fetching current user vote: ", err)
 		}
-		for rows2.Next() {
-			rows2.Scan(&currentUserVote)
-		}
-		rows2.Close()
-		if authorRole == "teacher" {
-			rows2, err = Database.Query("select name from teacher where id=?", authorID)
+
+		// Fetch author name
+		var authorName string
+		if sf.AuthorRole == "teacher" {
+			DB.Model(&Teacher{}).Where("id = ?", sf.AuthorID).Pluck("name", &authorName)
 		} else {
-			rows2, err = Database.Query("select name from student where id=?", authorID)
+			DB.Model(&Student{}).Where("id = ?", sf.AuthorID).Pluck("name", &authorName)
 		}
-		defer rows2.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-		authorName := ""
-		if rows2.Next() {
-			rows2.Scan(&authorName)
-		}
-		rows2.Close()
+
 		feedbacks = append(feedbacks, &FeedbackData{
-			FeedbackID:      feedbackID,
-			Feedback:        feedback,
-			FeedbackTime:    givenAt,
+			FeedbackID:      sf.ID,
+			Feedback:        sf.Feedback,
+			FeedbackTime:    sf.GivenAt,
 			Upvote:          upvote,
 			Downvote:        downvote,
 			CurrentUserVote: currentUserVote,
 			GivenBy:         authorName,
-			Code:            code,
+			Code:            sf.Code,
 		})
-		currentUserVote = ""
-
 	}
+
 	idx := StudentSnapshot[studentID][problemID]
 	data := &SnapshotData{
 		Snapshot:       Snapshots[idx],
@@ -245,11 +243,12 @@ func getCodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, 
 		Password:       r.FormValue("password"),
 	}
 	w.Header().Set("Content-Type", "text/html")
-	err = t.Execute(w, data)
-	if err != nil {
+	if err := t.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
+
+	// Log event
 	otherInfo := struct {
 		Referral  string
 		ProblemID int
@@ -257,21 +256,17 @@ func getCodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, 
 		Referral:  r.URL.String(),
 		ProblemID: problemID,
 	}
-	elog, _ := json.Marshal((otherInfo))
+	elog, _ := json.Marshal(otherInfo)
 	logEvent("willing to help", uid, role, "click", string(elog))
 }
 
 func getNumberOfReply(snapshotID int) int {
-	rows, err := Database.Query("select count(*) from snapshot_feedback where snapshot_id = ?", snapshotID)
-	defer rows.Close()
+	var count int64
+	err := DB.Model(&SnapshotFeedback{}).Where("snapshot_id = ?", snapshotID).Count(&count).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error fetching number of replies: ", err)
 	}
-	c := 0
-	if rows.Next() {
-		rows.Scan(&c)
-	}
-	return c
+	return int(count)
 }
 
 func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {

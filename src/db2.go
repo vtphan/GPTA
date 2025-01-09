@@ -2,7 +2,6 @@ package main
 
 import (
 	"gorm.io/gorm"
-	_ "gorm.io/gorm"
 	"time"
 )
 
@@ -46,7 +45,7 @@ type Problem struct {
 	TopicID            int
 	Tag                int
 	ProblemUploadedAt  time.Time
-	ProblemEndedAt     time.Time
+	ProblemEndedAt     *time.Time `gorm:"default:null"`
 }
 
 // Submission represents the submission table
@@ -73,6 +72,7 @@ type Score struct {
 	Score                  int
 	GradedSubmissionNumber int
 	ScoreGivenAt           *time.Time
+	Problem                Problem `gorm:"foreignKey:ProblemID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // Feedback represents the feedback table
@@ -252,7 +252,7 @@ func AddTeacher(name string, password string) error {
 	return nil
 }
 
-func AddProblem(teacherID int, problemDescription, answer, filename string, merit, effort, attempts int, topicID int, tag int, problemUploadedAt time.Time) error {
+func AddProblem(teacherID int, problemDescription, answer, filename string, merit, effort, attempts int, topicID int, tag int, problemUploadedAt time.Time) (Problem, error) {
 	problem := Problem{
 		TeacherID:          teacherID,
 		ProblemDescription: problemDescription,
@@ -266,9 +266,10 @@ func AddProblem(teacherID int, problemDescription, answer, filename string, meri
 		ProblemUploadedAt:  problemUploadedAt,
 	}
 	if err := DB.Create(&problem).Error; err != nil {
-		return err
+		return problem, err
 	}
-	return nil
+
+	return problem, nil
 }
 
 func AddSubmission(problemID, studentID int, studentCode string, submissionCategory int, attemptNumber int, codeSubmittedAt time.Time, snapshotID int, answer string) error {
@@ -288,8 +289,11 @@ func AddSubmission(problemID, studentID int, studentCode string, submissionCateg
 	return nil
 }
 
-func CompleteSubmission(id int, completed bool, verdict string) error {
-	if err := DB.Model(&Submission{}).Where("id = ?", id).Updates(map[string]interface{}{"Completed": completed, "Verdict": verdict}).Error; err != nil {
+func CompleteSubmission(id int, completed time.Time, verdict string) error {
+	if err := DB.Model(&Submission{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"Completed": completed,
+		"Verdict":   verdict,
+	}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -346,12 +350,12 @@ func AddAttendance(studentID int, attendanceAt time.Time) error {
 	return nil
 }
 
-func AddTag(topicDescription string) error {
+func AddTag(topicDescription string) (Tag, error) {
 	tag := Tag{TopicDescription: topicDescription}
 	if err := DB.Create(&tag).Error; err != nil {
-		return err
+		return tag, err
 	}
-	return nil
+	return tag, nil
 }
 
 func AddTestCase(problemID, studentID int, testCases string, addedAt time.Time) error {
@@ -468,7 +472,7 @@ func UpdateSnapshotBackFeedback(snapshotFeedbackID int, isHelpful bool, givenAt 
 	return nil
 }
 
-func UpdateProblemEndTime(problemID int, problemEndedAt time.Time) error {
+func UpdateProblemEndTime(problemEndedAt time.Time, problemID int) error {
 	if err := DB.Model(&Problem{}).Where("id = ?", problemID).Update("ProblemEndedAt", problemEndedAt).Error; err != nil {
 		return err
 	}
@@ -546,7 +550,7 @@ func UpdateStudentTutoringStat(studentID, problemID int, tutoringStat string, la
 	return nil
 }
 
-func AddMessage(snapshotID int, message string, authorID int, authorRole string, givenAt time.Time, messageType int) error {
+func AddMessage(snapshotID int, message string, authorID int, authorRole string, givenAt time.Time, messageType int) (Message, error) {
 	messageEntry := Message{
 		SnapshotID: snapshotID,
 		Message:    message,
@@ -556,9 +560,9 @@ func AddMessage(snapshotID int, message string, authorID int, authorRole string,
 		Type:       messageType,
 	}
 	if err := DB.Create(&messageEntry).Error; err != nil {
-		return err
+		return messageEntry, err
 	}
-	return nil
+	return messageEntry, nil
 }
 
 func AddMessageFeedback(messageID int, feedback string, authorID int, authorRole string, givenAt time.Time) error {

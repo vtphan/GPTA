@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,7 +9,7 @@ import (
 	"strings"
 )
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func add_multiple(filename, role string) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -34,92 +33,93 @@ func add_multiple(filename, role string) {
 	}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func add_user(name, role string, password string) {
-	var err error
-	var rows *sql.Rows
-	var result sql.Result
 	var id int64
 
 	if role == "teacher" {
-		rows, err = Database.Query("select name from teacher where name=?", name)
+		var teacherExists bool
+		err := DB.Model(&Teacher{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&teacherExists).Error
 		if err != nil {
 			log.Fatal(err)
+		}
+		if teacherExists {
+			fmt.Printf("%s already exists. Choose a different name.\n", name)
+			return
 		}
 	} else {
-		rows, err = Database.Query("select name from student where name=?", name)
+		var studentExists bool
+		err := DB.Model(&Student{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&studentExists).Error
 		if err != nil {
 			log.Fatal(err)
 		}
+		if studentExists {
+			fmt.Printf("%s already exists. Choose a different name.\n", name)
+			return
+		}
 	}
-	defer rows.Close()
-	for rows.Next() {
-		fmt.Printf("%s already exists. Choose a different name.\n", name)
-		return
-	}
+
 	if role != "teacher" {
 		password = RandStringRunes(12)
 	}
+
 	if role == "teacher" {
-		result, err = AddTeacherSQL.Exec(name, password)
-	} else {
-		result, err = AddStudentSQL.Exec(name, password)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	id, err = result.LastInsertId()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if role == "teacher" {
+		teacher := Teacher{Name: name, Password: password}
+		err := DB.Create(&teacher).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+		id = int64(teacher.ID)
 		init_teacher(int(id), name, password)
 	} else {
+		student := Student{Name: name, Password: password}
+		err := DB.Create(&student).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+		id = int64(student.ID)
 		init_student(int(id), name, password)
 	}
-	fmt.Printf("|%s| is added. Must complete registeration.\n", name)
+
+	fmt.Printf("|%s| is added. Must complete registration.\n", name)
 }
 
-//-----------------------------------------------------------------
 func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	role := r.FormValue("role")
 	course_id := r.FormValue("course_id")
+
 	if course_id != Config.CourseId {
 		fmt.Fprintf(w, "Failed")
 		return
 	}
-	var err error
-	var rows *sql.Rows
+
+	var id int
+	var password string
+
 	if role == "teacher" {
-		rows, err = Database.Query("select id, password from teacher where name=?", name)
-		defer rows.Close()
+		var teacher Teacher
+		err := DB.Model(&Teacher{}).Select("id, password").Where("name = ?", name).First(&teacher).Error
+		if err != nil {
+			fmt.Fprintf(w, "Failed")
+			return
+		}
+		id = teacher.ID
+		password = teacher.Password
 	} else if role == "student" {
-		rows, err = Database.Query("select id, password from student where name=?", name)
-		defer rows.Close()
+		var student Student
+		err := DB.Model(&Student{}).Select("id, password").Where("name = ?", name).First(&student).Error
+		if err != nil {
+			fmt.Fprintf(w, "Failed")
+			return
+		}
+		id = student.ID
+		password = student.Password
 	} else {
 		fmt.Fprintf(w, "Failed")
 		return
 	}
-	if err != nil {
-		fmt.Fprintf(w, "Failed")
-		// log.Fatal(err)
-	}
-	var password string
-	var id int
-	for rows.Next() {
-		rows.Scan(&id, &password)
-		msg := fmt.Sprintf("%d,%s", id, password)
-		// msg := ""
-		// if Config.NameServer != "" {
-		// 	msg = fmt.Sprintf("%d,%s,%s,%s", id, password, Config.CourseId, Config.NameServer)
-		// } else {
-		// 	msg = fmt.Sprintf("%d,%s,%s", id, password, Config.CourseId)
-		// }
-		fmt.Fprintf(w, msg)
-		return
-	}
-	fmt.Fprintf(w, "Failed")
-}
 
-//-----------------------------------------------------------------
+	msg := fmt.Sprintf("%d,%s", id, password)
+	fmt.Fprintf(w, msg)
+}

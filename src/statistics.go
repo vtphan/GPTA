@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -26,34 +24,24 @@ type StatsData struct {
 	// Durations          map[string]float64
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
-		fmt.Fprintf(w, "Unauthorized")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
 	pid, err := strconv.Atoi(r.FormValue("pid"))
-	if err != nil {
-		fmt.Println("Unknown problem")
-		fmt.Fprintf(w, "Unknown problem")
-		return
-	}
-	if pid <= 0 { // select the last problem (max id)
-		// for _, p := range ActiveProblems {
-		// 	if pid < p.Info.Pid {
-		// 		pid = p.Info.Pid
-		// 	}
-		// }
-		row, err := Database.Query("select id from problem order by id desc limit 1")
+	if err != nil || pid <= 0 {
+		var latestProblem Problem
+		err = DB.Order("id desc").First(&latestProblem).Error
 		if err != nil {
-			fmt.Println("Error retrieving latest problem", err)
+			http.Error(w, "Error retrieving latest problem", http.StatusInternalServerError)
 			return
 		}
-		for row.Next() {
-			row.Scan(&pid)
-		}
-		row.Close()
+		pid = latestProblem.ID
 	}
+
 	data := &StatsData{
 		Performance: make(map[string]int),
 		Durations:   make(map[string][]float64),
@@ -61,70 +49,57 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		NextPid:     pid + 1,
 		PrevPid:     pid - 1,
 	}
+
 	if pid > 0 {
-		rows, err := Database.Query("select score.student_id, score.score, score.graded_submission_number, problem.problem_uploaded_at, problem.problem_description, submission.id, submission.code_submitted_at, submission.completed from score join problem on score.problem_id=problem.id join submission on score.problem_id=submission.problem_id and score.student_id=submission.student_id where problem.id=? order by submission.id desc", pid)
+		var scores []Score
+		err = DB.Preload("Problem").Where("problem_id = ?", pid).Find(&scores).Error
 		if err != nil {
-			fmt.Println("Error retrieving problem statistics", pid, err)
+			http.Error(w, "Error retrieving problem statistics", http.StatusInternalServerError)
 			return
 		}
-		var student_id, score, attempts, sub_id int
-		var prob_at, sub_at, sub_completed time.Time
-		var prob_content string
-		var prob_duration float64
+
 		participants := make(map[int]int)
-		for rows.Next() {
-			rows.Scan(&student_id, &score, &attempts, &prob_at, &prob_content, &sub_id, &sub_at, &sub_completed)
-			// Submission id is ordered descendingly.
-			// Therefore, only the last submission of student is looked at.
-			if _, ok := participants[student_id]; !ok {
-				participants[student_id] = sub_id
-				prob_duration = sub_at.Sub(prob_at).Minutes()
-				key := fmt.Sprintf("%d points", score)
+		var problem Problem
+		for _, score := range scores {
+			if _, ok := participants[score.StudentID]; !ok {
+				participants[score.StudentID] = score.ID
+				duration := time.Since(score.Problem.ProblemUploadedAt).Minutes()
+				key := fmt.Sprintf("%d points", score.Score)
 				data.Performance[key]++
-				if _, ok := data.Durations[key]; !ok {
-					data.Durations[key] = make([]float64, 0)
-				}
-				data.Durations[key] = append(data.Durations[key], prob_duration)
-				// fmt.Println(data.Performance)
-				// fmt.Println(data.Durations)
+				data.Durations[key] = append(data.Durations[key], duration)
 			}
 		}
-		rows.Close()
 
-		data.ProblemDescription = prob_content
+		problem = scores[0].Problem
+		data.ProblemDescription = problem.ProblemDescription
+		data.Date = problem.ProblemUploadedAt.Format("2006-01-02")
 
-		the_date := prob_at.Format("2006-01-02")
-		rows, err = Database.Query("select student_id, attendance_at from attendance where DATE(at) = ?", the_date)
-		var at time.Time
-		attendants := make(map[int]int)
-		for rows.Next() {
-			rows.Scan(&student_id, &at)
-			attendants[student_id] = 0
+		var attendances []Attendance
+		err = DB.Where("DATE(attendance_at) = ?", problem.ProblemUploadedAt.Format("2006-01-02")).Find(&attendances).Error
+		if err != nil {
+			http.Error(w, "Error retrieving attendance records", http.StatusInternalServerError)
+			return
 		}
-		rows.Close()
 
-		data.Performance["Inactive"] = len(attendants) - len(participants)
-		data.Date = the_date
-		// data.Performance["Inactive"] = len(Students) - count - 1
-		// if data.Performance["Inactive"] < 0 {
-		// 	// something is wrong.
-		// 	data.Performance["Inactive"] = 0
-		// }
+		data.Performance["Inactive"] = len(attendances) - len(participants)
 	}
 
 	w.Header().Set("Content-Type", "text/html")
 	t, err := template.New("").Parse(STATS_TEMPLATE)
 	if err != nil {
+		http.Error(w, "Error parsing template", http.StatusInternalServerError)
 		fmt.Println(err)
-	} else {
-		err = t.Execute(w, data)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return
+	}
+
+	err = t.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Error executing template", http.StatusInternalServerError)
+		fmt.Println(err)
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 var STATS_TEMPLATE = `
 <html>
   <head>

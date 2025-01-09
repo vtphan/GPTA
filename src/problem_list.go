@@ -32,38 +32,30 @@ type ProblemListData struct {
 func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	password := r.FormValue("password")
-	rows, err := Database.Query("select id, filename, problem_uploaded_at, problem_ended_at from problem")
-	defer rows.Close()
+
+	// Fetch problems from the database
+	var problemsData []struct {
+		ID                int
+		Filename          string
+		ProblemUploadedAt time.Time
+		ProblemEndedAt    *time.Time
+	}
+	err := DB.Raw("SELECT id, filename, problem_uploaded_at, problem_ended_at FROM problems").Scan(&problemsData).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var problemID int
-	var filename string
-	var problemUploadedAt time.Time
-	var problems = make([]*ProblemData, 0)
 
-	var problemIDs = make([]int, 0)
-	var filenameList = make([]string, 0)
-	var uploadTimeList = make([]time.Time, 0)
-	var endTimeList = make([]time.Time, 0)
+	problems := make([]*ProblemData, 0)
 
-	for rows.Next() {
-		var problemEndedAt time.Time
-		rows.Scan(&problemID, &filename, &problemUploadedAt, &problemEndedAt)
-		problemIDs = append(problemIDs, problemID)
-		filenameList = append(filenameList, filename)
-		uploadTimeList = append(uploadTimeList, problemUploadedAt)
-		endTimeList = append(endTimeList, problemEndedAt)
-	}
-	rows.Close()
+	for _, problem := range problemsData {
+		// Gather stats for each problem
+		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problem.ID)
 
-	for i := 0; i < len(problemIDs); i++ {
-		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problemIDs[i])
 		problems = append(problems, &ProblemData{
-			ID:                 problemIDs[i],
-			Filename:           filenameList[i],
-			UploadedAt:         uploadTimeList[i],
-			IsActive:           endTimeList[i].IsZero(),
+			ID:                 problem.ID,
+			Filename:           problem.Filename,
+			UploadedAt:         problem.ProblemUploadedAt,
+			IsActive:           problem.ProblemEndedAt == nil,
 			Attendance:         len(getCurrentStudents()),
 			NumActive:          nActive,
 			NumHelpRequest:     nHelp,
@@ -72,6 +64,8 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 			NumNotGraded:       nNotGraded,
 		})
 	}
+
+	// Prepare data for rendering
 	problemListData := &ProblemListData{
 		Problems:         problems,
 		PeerTutorAllowed: PeerTutorAllowed,
@@ -80,11 +74,14 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 		Password:         password,
 		Username:         getName(uid, role),
 	}
+
+	// Render the template
 	temp := template.New("")
 	t, err := temp.Parse(PROBLEM_LIST_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, problemListData)
 	if err != nil {

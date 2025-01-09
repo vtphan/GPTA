@@ -1,7 +1,7 @@
 {
         "CourseId": "COMP1010",
         "CourseName": "CS1",
-        "Database": "COMP1010_003",
+        "Database": "COMP1010_001",
         "DBServerIP": "127.0.0.1",
         "DBUserName": "gem",
         "DBPassword": "Interstellar@1818",

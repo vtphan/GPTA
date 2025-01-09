@@ -34,7 +34,7 @@ func init_handlers() {
 	http.HandleFunc("/student_periodic_update", Authorize(student_periodic_updateHandler, "student"))
 
 	http.HandleFunc("/student_gets_report", Authorize(student_gets_reportHandler, "student"))
-	http.HandleFunc("/student_checks_in", Authorize(student_checks_inHandler, "student"))
+	http.HandleFunc("/student_checks_in", Authorize(studentChecksInHandler, "student"))
 	http.HandleFunc("/student_shares", Authorize(student_sharesHandler, "student"))
 	http.HandleFunc("/student_gets", Authorize(student_getsHandler, "student"))
 	http.HandleFunc("/view_bulletin_board", view_bulletin_boardHandler)
@@ -180,7 +180,7 @@ func get_course_specific_address(nameserver string, course string) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/CodeSpace/Examples/gem_config.json", "", ""
+	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/students.txt"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")

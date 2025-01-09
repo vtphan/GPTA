@@ -55,83 +55,69 @@ func getName(uid int, role string) string {
 }
 
 func getCurrentStudents() []int {
-	rows, err := Database.Query("select student_id from attendance where DATE(attendance_at) = ?", time.Now().Format("2022-01-18"))
-	defer rows.Close()
+	var currentStudents []int
+	err := DB.Raw("SELECT student_id FROM attendances WHERE DATE(attendance_at) = ?", time.Now().Format("2006-01-02")).Scan(&currentStudents).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var studentID int
-	var currentStudents []int
-	for rows.Next() {
-		rows.Scan(&studentID)
-		currentStudents = append(currentStudents, studentID)
-	}
-	rows.Close()
 	return currentStudents
 }
 
 func getAllStudents() map[int]string {
-	rows, err := Database.Query("select id, name from student")
-	defer rows.Close()
+	var students []struct {
+		ID   int
+		Name string
+	}
+	err := DB.Model(&Student{}).Select("id, name").Scan(&students).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var ID int
-	var name string
-	var students = make(map[int]string)
-	for rows.Next() {
-		rows.Scan(&ID, &name)
-		students[ID] = name
+
+	studentsMap := make(map[int]string)
+	for _, student := range students {
+		studentsMap[student.ID] = student.Name
 	}
-	rows.Close()
-	return students
+	return studentsMap
 }
 
 func getProblemStats(problemID int) (int, int, int, int, int) {
-	rows, err := Database.Query("select active, submission, help_request, graded_correct, graded_incorrect from problem_statistics where problem_id = ?", problemID)
-	defer rows.Close()
+	var stats struct {
+		Active          int
+		Submission      int
+		HelpRequest     int
+		GradedCorrect   int
+		GradedIncorrect int
+	}
+	err := DB.Raw("SELECT active, submission, help_request, graded_correct, graded_incorrect FROM problem_statistics WHERE problem_id = ?", problemID).Scan(&stats).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var active, sub, help, correct, incorrect int
-	if rows.Next() {
-		rows.Scan(&active, &sub, &help, &correct, &incorrect)
-	}
-	rows.Close()
-	return active, help, sub - correct - incorrect, correct, incorrect
+	return stats.Active, stats.HelpRequest, stats.Submission - stats.GradedCorrect - stats.GradedIncorrect, stats.GradedCorrect, stats.GradedIncorrect
 }
 
 func getProblemNameFromID(problemID int) string {
-	rows, err := Database.Query("Select filename from problem where id = ?", problemID)
-	defer rows.Close()
+	var problem Problem
+	err := DB.Where("id = ?", problemID).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var problemName string
-	if rows.Next() {
-		rows.Scan(&problemName)
-	}
-	rows.Close()
-	return problemName
+	return problem.Filename
 }
 
 func getLatestSubmissionTime(problemID int) map[int]time.Time {
-	var latestSubmissions = make(map[int]time.Time)
-	rows, err := Database.Query("select student_id, max(code_submitted_at) from submission where problem_id=? group by student_id", problemID)
-	defer rows.Close()
+	latestSubmissions := make(map[int]time.Time)
+	var submissions []struct {
+		StudentID      int
+		SubmissionTime time.Time
+	}
+	err := DB.Raw("SELECT student_id, MAX(code_submitted_at) FROM submissions WHERE problem_id = ? GROUP BY student_id", problemID).Scan(&submissions).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var studentID int
-	var submissionTimeStr string
-	var submissionTime time.Time
-	layout := "2006-01-02 15:04:05-07:00"
-	for rows.Next() {
-		rows.Scan(&studentID, &submissionTimeStr)
-		submissionTime, _ = time.Parse(layout, submissionTimeStr)
-		latestSubmissions[studentID] = submissionTime
+
+	for _, submission := range submissions {
+		latestSubmissions[submission.StudentID] = submission.SubmissionTime
 	}
-	rows.Close()
 	return latestSubmissions
 }
 
@@ -139,64 +125,66 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	role := r.FormValue("role")
 	password := r.FormValue("password")
+
 	students := getAllStudents()
-	rows, err := Database.Query("select student_id, max(last_updated_at) from code_snapshot where problem_id=? group by student_id", problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// currentStudents := getCurrentStudents()
 	var lastUpdateMap = make(map[int]time.Time)
 
-	var studentID int
-	var lastUpdateString string
-	var lastUpdate time.Time
-	layout := "2006-01-02 15:04:05-07:00"
+	// Fetch last update times for students
+	var snapshots []struct {
+		StudentID     int
+		LastUpdatedAt time.Time
+	}
+	err := DB.Raw("SELECT student_id, max(last_updated_at) as last_updated_at FROM code_snapshots WHERE problem_id = ? GROUP BY student_id", problemID).Scan(&snapshots).Error
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	_, ok := HelpEligibleStudents[problemID][uid]
-	for rows.Next() {
-		rows.Scan(&studentID, &lastUpdateString)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-			lastUpdate, _ = time.Parse(layout, lastUpdateString)
-			lastUpdateMap[studentID] = lastUpdate
+
+	for _, snapshot := range snapshots {
+		if role == "teacher" || uid == snapshot.StudentID || (PeerTutorAllowed && ok) {
+			lastUpdateMap[snapshot.StudentID] = snapshot.LastUpdatedAt
 		}
 	}
-	rows.Close()
-	rows, err = Database.Query("select problem_description, problem_ended_at from problem where id=?", problemID)
-	defer rows.Close()
+
+	// Fetch problem details
+	var problem Problem
+	err = DB.Where("id = ?", problemID).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var code string
-	var problemEndedAt time.Time
-	if rows.Next() {
-		rows.Scan(&code, &problemEndedAt)
-	}
-	rows.Close()
+
 	latestSubmissionTime := getLatestSubmissionTime(problemID)
-	rows, err = Database.Query("select student_id, coding_stat, help_stat, submission_stat, tutoring_stat from student_status where problem_id=?", problemID)
-	defer rows.Close()
+
+	// Fetch student statuses
+	var studentStatuses []struct {
+		StudentID      int
+		CodingStat     string
+		HelpStat       string
+		SubmissionStat string
+		TutoringStat   string
+	}
+	err = DB.Raw("SELECT student_id, coding_stat, help_stat, submission_stat, tutoring_stat FROM student_statuses WHERE problem_id = ?", problemID).Scan(&studentStatuses).Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	var codingStat, submissionStat, helpStat, tutoringStat string
+
 	var studentInfo []*DashBoardStudentInfo
-	for rows.Next() {
-		rows.Scan(&studentID, &codingStat, &helpStat, &submissionStat, &tutoringStat)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	for _, status := range studentStatuses {
+		if role == "teacher" || uid == status.StudentID || (PeerTutorAllowed && ok) {
 			studentInfo = append(studentInfo, &DashBoardStudentInfo{
-				StudentID:      studentID,
-				StudentName:    students[studentID],
-				LastUpdatedAt:  lastUpdateMap[studentID],
-				CodingStat:     codingStat,
-				HelpStat:       helpStat,
-				SubmissionStat: submissionStat,
-				TutoringStat:   tutoringStat,
+				StudentID:      status.StudentID,
+				StudentName:    students[status.StudentID],
+				LastUpdatedAt:  lastUpdateMap[status.StudentID],
+				CodingStat:     status.CodingStat,
+				HelpStat:       status.HelpStat,
+				SubmissionStat: status.SubmissionStat,
+				TutoringStat:   status.TutoringStat,
 			})
 		}
 	}
-	rows.Close()
 
+	// Sort student info
 	sort.SliceStable(studentInfo, func(i, j int) bool {
 		if studentInfo[i].SubmissionStat == "submitted" && studentInfo[j].SubmissionStat == "submitted" {
 			return latestSubmissionTime[studentInfo[i].StudentID].Before(latestSubmissionTime[studentInfo[j].StudentID])
@@ -216,41 +204,42 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		return true
 	})
 
+	// Fetch problem stats
 	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problemID)
 
+	// Fetch answer stats
 	var answerStats []*AnswerStatInfo
 	if role != "student" {
-		rows, err = Database.Query("select answer, count(*) as cnt from submission where problem_id = ? and answer is not NULL and LENGTH(answer)>0 group by answer", problemID)
-		defer rows.Close()
+		var answers []struct {
+			Answer string
+			Count  int
+		}
+		err := DB.Raw("SELECT answer, count(*) as cnt FROM submissions WHERE problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0 GROUP BY answer", problemID).Scan(&answers).Error
 		if err != nil {
 			log.Fatal(err)
 		}
-		var ans string
-		var c int
+
 		var total int
-		for rows.Next() {
-			rows.Scan(&ans, &c)
-			if ans != "" {
-				answerStats = append(answerStats, &AnswerStatInfo{
-					Answer: ans,
-					Count:  c,
-				})
-			}
-			total += c
+		for _, answer := range answers {
+			answerStats = append(answerStats, &AnswerStatInfo{
+				Answer: answer.Answer,
+				Count:  answer.Count,
+			})
+			total += answer.Count
 		}
+
 		for i, answer := range answerStats {
-			answerStats[i].Percent = float64(answer.Count) * 100.0 / float64(total)
-			answerStats[i].Percent = math.Round(answerStats[i].Percent*100) / 100
+			answerStats[i].Percent = math.Round(float64(answer.Count)*10000/float64(total)) / 100
 		}
-		rows.Close()
 	}
 
+	// Prepare dashboard data
 	dashBoardData := &DashBoardInfo{
 		StudentInfo:        studentInfo,
 		ProblemID:          problemID,
 		ProblemName:        getProblemNameFromID(problemID),
-		Code:               code,
-		IsActive:           problemEndedAt.IsZero(),
+		Code:               problem.Filename,
+		IsActive:           problem.ProblemEndedAt == nil || problem.ProblemEndedAt.IsZero(),
 		NumActive:          nActive,
 		NumHelpRequest:     nHelp,
 		NumGradedCorrect:   nCorrect,
@@ -262,12 +251,15 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		Password:           password,
 		Username:           getName(uid, role),
 	}
+
+	// Render the template
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"formatTimeSince": formatTimeSince}
 	t, err := temp.Funcs(ownFuncs).Parse(PROBLEM_DASHBOARD_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, dashBoardData)
 	if err != nil {

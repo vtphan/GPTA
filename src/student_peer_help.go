@@ -1,18 +1,18 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
 	pid := 0
@@ -72,74 +72,101 @@ func student_return_without_feedbackHandler(w http.ResponseWriter, r *http.Reque
 func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionID, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
-	res, err := AddHelpMessageSQL.Exec(submissionID, uid, message, time.Now())
+
+	// Use the GORM function to insert the help message
+	err := AddHelpMessage(submissionID, uid, message, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
-	messageID, _ := res.LastInsertId()
-	// student_id := 0
-	// rows, _ := Database.Query("select student_id from code_explanation where id=?", submission_id)
-	// for rows.Next() {
-	// 	rows.Scan(&student_id)
-	// 	break
-	// }
-	// rows.Close()
+
+	// Fetch the help submission for the given submissionID
 	helpSub := HelpSubmissions[submissionID]
 	studentID := helpSub.Uid
+
+	// Compose the final message
 	message = helpSub.Content + "\n\nFeedback: " + message
+
+	// Create a new board entry for the student
 	b := &Board{
 		Content:      message,
 		Answer:       "",
 		Attempts:     0,
 		Filename:     "peer_feedback.txt",
-		Pid:          int(messageID),
+		Pid:          submissionID, // Assuming the submission ID maps to the Pid
 		StartingTime: time.Now(),
 		Type:         "peer_feedback",
 	}
-	Students[studentID].Boards = append(Students[studentID].Boards, b)
-	fmt.Fprint(w, "Dear "+who+", Your feedback has been sent.")
 
+	// Append the new board entry to the student's boards
+	Students[studentID].Boards = append(Students[studentID].Boards, b)
+
+	// Send a response back to the client
+	fmt.Fprint(w, "Dear "+who+", Your feedback has been sent.")
 }
+
 func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	messageID, _ := strconv.Atoi(r.FormValue("message_id"))
-	useful := r.FormValue("useful")
-	_, err := UpdateHelpMessageSQL.Exec(useful, time.Now(), messageID)
+	useful := r.FormValue("useful") == "yes" // Convert to a boolean
+
+	// Use the GORM function to update the HelpMessage
+	err := UpdateHelpMessage(messageID, useful, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
-	if useful == "yes" {
-		studentID := 0
-		rows, _ := Database.Query("select student_id from help_message where id=?", messageID)
-		for rows.Next() {
-			rows.Scan(&studentID)
-			break
+
+	// If the message is marked as useful, update the student's thank status
+	if useful {
+		var studentID int
+		err := DB.Raw("SELECT student_id FROM help_messages WHERE id = ?", messageID).Scan(&studentID).Error
+		if err != nil {
+			log.Fatal(err)
 		}
-		rows.Close()
 		Students[studentID].ThankStatus = 1
 	}
 
+	// Respond back to the client
+	fmt.Fprintf(w, "Thank you, %s! Your feedback has been recorded.", who)
 }
 
 func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	backFeedback := r.FormValue("feedback")
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	authorRole := r.FormValue("role")
-	rows, err := Database.Query("select * from message_back_feedback where message_feedback_id = ? and author_id = ? and author_role = ?", feedbackID, uid, authorRole)
-	defer rows.Close()
-	if err != nil {
+	useful := r.FormValue("useful") // Assuming this field contains "yes" or "no" to determine if feedback is useful
+
+	// Convert the "useful" string to a boolean
+	var isUseful bool
+	if useful == "yes" {
+		isUseful = true
+	} else if useful == "no" {
+		isUseful = false
+	} else {
+		// Handle the case where "useful" is neither "yes" nor "no"
+		http.Error(w, "Invalid value for 'useful'", http.StatusBadRequest)
+		return
+	}
+
+	// Check if the feedback already exists for the given feedbackID, uid, and authorRole
+	var existingFeedback MessageBackFeedback
+	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, authorRole).First(&existingFeedback).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Fatal(err)
 	}
-	if rows.Next() {
-		rows.Close()
-		_, err = UpdateMessageBackFeedbackSQL.Exec(backFeedback, time.Now(), feedbackID, uid, authorRole)
+
+	if err == nil { // Feedback exists, update it
+		// Use the GORM function to update the feedback
+		err := UpdateMessageBackFeedback(feedbackID, isUseful, time.Now())
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else {
-		rows.Close()
-		_, err = AddMessageBackFeedbackSQL.Exec(feedbackID, uid, authorRole, backFeedback, time.Now())
+	} else { // Feedback does not exist, create new feedback
+		// Use the GORM function to add new feedback
+		err := AddMessageBackFeedback(feedbackID, uid, authorRole, backFeedback, time.Now())
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+
+	// Send a response back to the client
+	fmt.Fprintf(w, "Your feedback has been recorded, %s.", who)
 }

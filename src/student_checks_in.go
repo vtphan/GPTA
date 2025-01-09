@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -8,31 +6,40 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 )
 
 //-----------------------------------------------------------------
 
-func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	// attendance is taken automatically by authorization when this handler is called.
-	// Next: return student attendance report
-	rows, err := Database.Query("select attendance_at from attendance where student_id=?", uid)
-	defer rows.Close()
+func studentChecksInHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+	// Retrieve attendance records for the given student ID.
+	var attendances []Attendance
+	err := DB.Where("student_id = ?", uid).Find(&attendances).Error
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Failed to fetch attendance records", http.StatusInternalServerError)
+		log.Printf("Error fetching attendance records: %v", err)
+		return
 	}
-	dates := make([]int64, 0)
-	var t time.Time
-	for rows.Next() {
-		rows.Scan(&t)
-		dates = append(dates, t.Unix())
+
+	// Convert attendance timestamps to UNIX format.
+	dates := make([]int64, len(attendances))
+	for i, attendance := range attendances {
+		dates[i] = attendance.AttendanceAt.Unix()
 	}
-	js, _ := json.Marshal(dates)
+
+	// Marshal the dates into JSON format.
+	js, err := json.Marshal(dates)
+	if err != nil {
+		http.Error(w, "Failed to encode JSON", http.StatusInternalServerError)
+		log.Printf("Error encoding JSON: %v", err)
+		return
+	}
+
+	// Set the response header and write the JSON.
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func student_periodic_updateHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionStat := &StudentSubmissionStatus{}
 	if len(Students[uid].SubmissionStatus) > 0 {

@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -11,7 +9,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type ScoreEntry struct {
 	Name     string
 	Points   int
@@ -26,13 +24,13 @@ type TagsViewData struct {
 	PC              string
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func reportHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	rows, _ := Database.Query("select id, topic_description from tag")
+
 	record := &TagsViewData{
 		Tags:            make(map[int]string),
 		SubmissionCount: make(map[string]int),
@@ -40,45 +38,69 @@ func reportHandler(w http.ResponseWriter, r *http.Request) {
 		PC:              Passcode,
 	}
 
-	var id int
-	var des string
-	for rows.Next() {
-		rows.Scan(&id, &des)
-		record.Tags[id] = des
+	// Fetching tags
+	var tags []struct {
+		ID   int
+		Name string
 	}
-	rows.Close()
-
-	rows, _ = Database.Query("select code_submitted_at from submission")
-	var at time.Time
-	for rows.Next() {
-		rows.Scan(&at)
-		date := fmt.Sprintf("%d.%d.%d", at.Month(), at.Day(), at.Year())
-		record.SubmissionCount[date]++
+	if err := DB.Model(&Tag{}).Select("id, topic_description").Scan(&tags).Error; err != nil {
+		fmt.Println(err)
+		return
 	}
-	rows.Close()
+	for _, tag := range tags {
+		record.Tags[tag.ID] = tag.Name
+	}
 
-	rows, err := Database.Query("select score.score, score.graded_submission_number, score.student_id, student.name from score join student on score.student_id=student.id")
+	// Fetching submission counts
+	rows, err := DB.Raw("SELECT code_submitted_at FROM submissions").Rows()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	var points, attempts, student_id int
-	var stname string
+	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&points, &attempts, &student_id, &stname)
-		if _, ok := record.Scores[student_id]; !ok {
-			record.Scores[student_id] = &ScoreEntry{Name: stname}
+		var at time.Time
+		if err := rows.Scan(&at); err != nil {
+			fmt.Println(err)
+			return
 		}
-		record.Scores[student_id].Points += points
-		record.Scores[student_id].Attempts += attempts
-		record.Scores[student_id].Count += 1
+		date := fmt.Sprintf("%d.%d.%d", at.Month(), at.Day(), at.Year())
+		record.SubmissionCount[date]++
 	}
-	rows.Close()
+
+	// Fetching scores
+	rows, err = DB.Raw(`SELECT scores.score, scores.graded_submission_number, scores.student_id, students.name 
+				FROM scores 
+				JOIN students ON scores.student_id = students.id`).Rows()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var points, attempts, studentID int
+		var stname string
+		if err := rows.Scan(&points, &attempts, &studentID, &stname); err != nil {
+			fmt.Println(err)
+			return
+		}
+		if _, exists := record.Scores[studentID]; !exists {
+			record.Scores[studentID] = &ScoreEntry{Name: stname}
+		}
+		record.Scores[studentID].Points += points
+		record.Scores[studentID].Attempts += attempts
+		record.Scores[studentID].Count++
+	}
 
 	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.New("").Parse(TAGS_VIEW_TEMPLATE)
-	err = t.Execute(w, record)
+	t, err := template.New("").Parse(TAGS_VIEW_TEMPLATE)
 	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err := t.Execute(w, record); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -149,7 +171,7 @@ var TAGS_VIEW_TEMPLATE = `
 </html>
 `
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type ProblemPerformance struct {
 	Pid       int
 	Timestamp int64
@@ -165,32 +187,39 @@ type TagData struct {
 	Performance map[int]*ProblemPerformance
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	tag_id := r.FormValue("tag_id")
-	row, _ := Database.Query("select topic_description from tag where id=? limit 1", tag_id)
-	tag_description := ""
-	for row.Next() {
-		row.Scan(&tag_description)
+	tagID := r.FormValue("tag_id")
+	var tagDescription string
+	if err := DB.Model(&Tag{}).Select("topic_description").Where("id = ?", tagID).Limit(1).Scan(&tagDescription).Error; err != nil {
+		fmt.Println(err)
+		return
 	}
-	row.Close()
 
-	query := "select problem.id, problem.merit, problem.at, score.points, score.student_id from problem join score on problem.id=score.problem_id join student where problem.tag=?"
-	rows, err := Database.Query(query, tag_id)
+	record := make(map[int]*ProblemPerformance)
+	rows, err := DB.Raw(`SELECT problems.id, problems.merit, problems.at, scores.points, scores.student_id
+				FROM problems 
+				JOIN scores ON problems.id = scores.problem_id 
+				JOIN students WHERE problems.tag = ?`, tagID).Rows()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	var pid, merit, points, student_id int
-	var at time.Time
-	record := make(map[int]*ProblemPerformance)
+	defer rows.Close()
+
 	for rows.Next() {
-		rows.Scan(&pid, &merit, &at, &points, &student_id)
-		if _, ok := record[pid]; !ok {
+		var pid, merit, points, studentID int
+		var at time.Time
+		if err := rows.Scan(&pid, &merit, &at, &points, &studentID); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if _, exists := record[pid]; !exists {
 			record[pid] = &ProblemPerformance{
 				Pid:       pid,
 				Timestamp: at.UnixNano(),
@@ -205,26 +234,29 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			record[pid].Incorrect++
 		}
-		record[pid].Activity += 1.0
+		record[pid].Activity++
 	}
-	rows.Close()
 
-	var student_count float32
-	rows, err = Database.Query("select count(*) from student")
-	for rows.Next() {
-		rows.Scan(&student_count)
+	var studentCount int64
+	if err := DB.Model(&Student{}).Count(&studentCount).Error; err != nil {
+		fmt.Println(err)
+		return
 	}
-	rows.Close()
 
-	for pid, _ := range record {
+	studentCountFloat := float32(studentCount)
+	for pid := range record {
 		record[pid].Success = float32(record[pid].Correct) / float32(record[pid].Correct+record[pid].Incorrect)
-		record[pid].Activity = record[pid].Activity / student_count
+		record[pid].Activity /= studentCountFloat
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.New("").Parse(TAG_REPORT_TEMPLATE)
-	err = t.Execute(w, &TagData{Description: tag_description, Performance: record})
+	t, err := template.New("").Parse(TAG_REPORT_TEMPLATE)
 	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err := t.Execute(w, &TagData{Description: tagDescription, Performance: record}); err != nil {
 		fmt.Println(err)
 	}
 }

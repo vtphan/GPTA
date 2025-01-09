@@ -41,7 +41,7 @@ func teacher_deactivates_problemsHandler(w http.ResponseWriter, r *http.Request,
 				idx++
 			}
 		}
-		_, err := UpdateProblemEndTimeSQL.Exec(time.Now(), prob.Info.Pid)
+		err := UpdateProblemEndTime(time.Now(), prob.Info.Pid)
 		if err != nil {
 			log.Fatal(err)
 		}

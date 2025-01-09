@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -10,7 +8,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	fmt.Fprintf(w, Passcode)
 }
@@ -19,7 +17,7 @@ func student_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who st
 	fmt.Fprintf(w, Passcode)
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	// Show content of boards
 	fmt.Println("Students:", len(Students))
@@ -51,29 +49,40 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("file_name")
-	rows, err := Database.Query("select id from problem where filename=?", filename)
-	problem_id := 0
-	for rows.Next() {
-		rows.Scan(&problem_id)
-		break
-	}
-	rows.Close()
-	rows, err = Database.Query("select test_cases from test_case where problem_id=?", problem_id)
-	defer rows.Close()
+
+	// Get the problem ID by filename
+	var problem Problem
+	err := DB.Where("filename = ?", filename).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
+		http.Error(w, "Problem not found", http.StatusNotFound)
+		return
 	}
-	var test_cases = ""
-	for rows.Next() {
-		var tc = ""
-		rows.Scan(&tc)
-		if tc != "" {
-			test_cases += tc[1 : len(tc)-1]
+
+	// Get the test cases for the problem ID
+	var testCases []TestCase
+	err = DB.Where("problem_id = ?", problem.ID).Find(&testCases).Error
+	if err != nil {
+		log.Fatal(err)
+		http.Error(w, "Test cases not found", http.StatusNotFound)
+		return
+	}
+
+	// Concatenate all the test cases
+	var testCasesStr string
+	for _, testCase := range testCases {
+		if testCase.TestCases != "" {
+			testCasesStr += testCase.TestCases[1 : len(testCase.TestCases)-1] // Remove surrounding quotes if any
 		}
 	}
-	fmt.Fprintf(w, "["+test_cases+"]")
+
+	// Respond with the concatenated test cases in JSON format
+	fmt.Fprintf(w, "[%s]", testCasesStr)
 }
 
 func logEvent(eventName string, userID int, userType, eventType, otherInfo string) {
-	AddUserEventLogSQL.Exec(eventName, userID, userType, eventType, otherInfo, time.Now())
+	err := AddUserEventLog(userID, eventName, userType, eventType, otherInfo, time.Now())
+	if err != nil {
+		log.Println("Error logging event:", err)
+	}
 }

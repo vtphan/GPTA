@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
@@ -37,44 +36,8 @@ var Config *Configuration
 //---------------------------------------------------------
 
 var DB *gorm.DB
-var AddStudentSQL *sql.Stmt
-var AddTeacherSQL *sql.Stmt
-var AddAttendanceSQL *sql.Stmt
-var AddProblemSQL *sql.Stmt
-var AddSubmissionSQL *sql.Stmt
-var AddSubmissionCompleteSQL *sql.Stmt
-var CompleteSubmissionSQL *sql.Stmt
-var AddFeedbackSQL *sql.Stmt
-var AddScoreSQL *sql.Stmt
-var UpdateScoreSQL *sql.Stmt
-var AddTagSQL *sql.Stmt
-var AddTestCaseSQL *sql.Stmt
-var UpdateTestCaseSQL *sql.Stmt
-var AddHelpSubmissionSQL *sql.Stmt
-var AddHelpMessageSQL *sql.Stmt
-var UpdateHelpMessageSQL *sql.Stmt
-var AddCodeSnapshotSQL *sql.Stmt
-var AddSnapShotFeedbackSQL *sql.Stmt
-var AddSnapshotBackFeedbackSQL *sql.Stmt
-var UpdateSnapshotBackFeedbackSQL *sql.Stmt
-var UpdateProblemEndTimeSQL *sql.Stmt
-var AddHelpEligibleSQL *sql.Stmt
-var AddUserEventLogSQL *sql.Stmt
-var AddStudentStatusSQL *sql.Stmt
-var UpdateStudentCodingStatSQL *sql.Stmt
-var UpdateStudentSubmissionStatSQL *sql.Stmt
-var UpdateStudentHelpStatSQL *sql.Stmt
-var UpdateStudentTutoringStatSQL *sql.Stmt
-var AddMessageSQL *sql.Stmt
-var AddMessageFeedbackSQL *sql.Stmt
-var AddProblemStatisticsSQL *sql.Stmt
-var IncProblemStatActiveSQL *sql.Stmt
-var IncProblemStatSubmissionSQL *sql.Stmt
-var IncProblemStatHelpSQL *sql.Stmt
-var IncProblemStatGradedCorrectSQL *sql.Stmt
-var IncProblemStatGradedIncorrectSQL *sql.Stmt
-var AddMessageBackFeedbackSQL *sql.Stmt
-var UpdateMessageBackFeedbackSQL *sql.Stmt
+
+//var Database *sql.DB
 
 //---------------------------------------------------------
 // Authentication

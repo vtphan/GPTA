@@ -2,8 +2,8 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
@@ -56,19 +56,23 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 				scoring_mesg := ""
 				if correct_answer == answer {
 					decision = "correct"
-					scoring_mesg = add_or_update_score("correct", pid, uid, 0, -1)
+					scoring_mesg = addOrUpdateScore("correct", pid, uid, 0, -1)
 					ActiveProblems[filename].Attempts[uid] = 0 // This prevents further submission
 					complete = true
-					_, err = IncProblemStatGradedCorrectSQL.Exec(pid)
+
+					// Call refactored function to increment correct submission count
+					err = IncProblemStatGradedCorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
 					addOrUpdateStudentStatus(uid, pid, "", "", "Graded Correct", "")
 				} else if ActiveProblems[filename].Info.ExactAnswer {
 					decision = "incorrect"
-					scoring_mesg = add_or_update_score("incorrect", pid, uid, 0, -1)
+					scoring_mesg = addOrUpdateScore("incorrect", pid, uid, 0, -1)
 					complete = true
-					_, err = IncProblemStatGradedIncorrectSQL.Exec(pid)
+
+					// Call refactored function to increment incorrect submission count
+					err = IncProblemStatGradedIncorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -84,58 +88,58 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			// Add submitted but not graded code to code snapshot.
 			snapshotID = addCodeSnapshot(uid, pid, content, 1, now, "at_submission")
 
-			var result sql.Result
+			var result *gorm.DB
 			if complete {
-				result, err = AddSubmissionCompleteSQL.Exec(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
+				// Use refactored function for completed submission
+				err = AddSubmissionComplete(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
 			} else {
-				result, err = AddSubmissionSQL.Exec(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
+				// Use refactored function for incomplete submission
+				err = AddSubmission(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
 			}
-			if err != nil {
+			if result.Error != nil {
+				log.Fatal(result.Error)
+			}
+			sid = result.Statement.RowsAffected
 
+			// Use refactored function to increment submission count
+			err = IncProblemStatSubmission(pid)
+			if err != nil {
 				log.Fatal(err)
 			}
-			sid, _ = result.LastInsertId()
 
-			_, err = IncProblemStatSubmissionSQL.Exec(pid)
-			if err != nil {
-				log.Fatal(err)
-			}
 			if complete {
-				_, err := CompleteSubmissionSQL.Exec(time.Now(), decision, sid)
+				// Convert decision to boolean for completion
+				completed := time.Now() // Set the completion time to now
+				err := CompleteSubmission(int(sid), completed, decision)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
-			if test_cases != "" {
-				rows, err := Database.Query("select id from test_case where student_id=? and problem_id=?", uid, pid)
-				if err != nil {
-					log.Fatal(err)
-				}
-				tc_id := 0
-				for rows.Next() {
-					rows.Scan(&tc_id)
-					break
-				}
-				rows.Close()
-				if tc_id != 0 {
-					_, err = UpdateTestCaseSQL.Exec(test_cases, now, tc_id)
-				} else {
-					_, err = AddTestCaseSQL.Exec(pid, uid, test_cases, now)
-				}
-				if err != nil {
-					log.Fatal(err)
-				}
 
+			if test_cases != "" {
+				var tc TestCase
+				// Find the test case or create a new one
+				err = DB.Where("student_id = ? AND problem_id = ?", uid, pid).First(&tc).Error
+				if err != nil && err.Error() == "record not found" {
+					// Add test case if not found
+					err = AddTestCase(pid, uid, test_cases, now)
+				} else if err == nil {
+					// Update test case if found
+					err = UpdateTestCase(tc.ID, test_cases, now)
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 			if ActiveProblems[filename].Attempts[uid] == 0 {
 				if PeerTutorAllowed {
 					if _, ok := HelpEligibleStudents[pid][uid]; !ok {
 						HelpEligibleStudents[pid][uid] = true
 						SeenHelpSubmissions[uid] = map[int]bool{}
-						// fmt.Fprintf(w, "You are now elligible to help you friends. To help please click on 'Help Friends' button.")
-						msg = msg + "\nYou are now elligible to help you friends. To help please click on 'Help Friends' button."
+						msg = msg + "\nYou are now elligible to help your friends. To help, please click on the 'Help Friends' button."
 
-						_, err = AddHelpEligibleSQL.Exec(pid, uid, now)
+						// Use refactored function to add help eligibility
+						err = AddHelpEligible(pid, uid, now)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -143,14 +147,13 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 					}
 				}
 			}
-
 		}
 	}
+
 	if !complete {
 		SubSem.Lock()
 		defer SubSem.Unlock()
 		sub := &StudentSubmission{
-			Sid:           int(sid),
 			Uid:           uid,
 			Pid:           pid,
 			Content:       content,
