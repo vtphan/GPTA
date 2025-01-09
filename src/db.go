@@ -19,6 +19,8 @@ func execSQL(s string) {
 }
 
 // TODO - See migrations for pervios entries...that is change the table names from student to students
+// TODO - Remove raw queries
+// TODO - Use structs everywhere the query is written
 func create_tables() {
 	execSQL("create table if not exists students (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists teachers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
