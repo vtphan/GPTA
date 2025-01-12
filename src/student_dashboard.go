@@ -32,7 +32,7 @@ type MessageDashBoard struct {
 	GivenAt    time.Time
 	Code       string
 	SnapshotID int
-	Feedbacks  []*FeedbackDashBaord
+	Feedbacks  []*FeedbackDashBaord `gorm:"-"`
 }
 
 type FeedbackProvisionDashBoard struct {
@@ -137,24 +137,27 @@ func getMessageFeedbacks(messageID int, userID int, userRole string) []*Feedback
 }
 
 func getLatestSnapshot(studentID int, problemID int) *Snapshot {
-	var snapshot Snapshot
+	var snapshot CodeSnapshot
 
-	// Query the latest snapshot using GORM
-	err := DB.Model(&Snapshot{}).
-		Select("id, code, MAX(last_updated) as last_updated").
+	// Get the latest snapshot for the given student and problem
+	err := DB.Model(&CodeSnapshot{}).
 		Where("problem_id = ? AND student_id = ?", problemID, studentID).
-		Group("problem_id, student_id").
-		Scan(&snapshot).Error
+		Order("last_updated_at DESC").
+		First(&snapshot).Error
 
 	if err != nil {
-		log.Printf("Error fetching latest snapshot: %v", err)
-		return nil
+		log.Fatal(err)
 	}
 
-	// Add the problem name
-	snapshot.ProblemName = getProblemNameFromID(problemID)
+	// Get problem name from the problem ID
+	problemName := getProblemNameFromID(problemID)
 
-	return &snapshot
+	return &Snapshot{
+		ID:          snapshot.ID,
+		ProblemName: problemName,
+		Code:        snapshot.Code,
+		LastUpdated: snapshot.LastUpdatedAt,
+	}
 }
 
 func getTeacherName(authorID int) string {
@@ -408,43 +411,81 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		latestSnapshot = getLatestSnapshot(studentID, problemID)
 	}
 
-	// Get all student messages from DB
-	var messages []MessageDashBoard
-	_, ok := HelpEligibleStudents[problemID][uid]
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		var msgList []MessageDashBoard
-		err := DB.Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
-			Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
-			Find(&msgList).Error
+	// Get all student messages from DB using GORM and the Message struct
+	var messages []*MessageDashBoard
+	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
+		var messageRecords []Message
+		err := DB.Joins("JOIN code_snapshots ON messages.snapshot_id = code_snapshots.id").
+			Where("code_snapshots.problem_id = ? AND code_snapshots.student_id = ?", problemID, studentID).
+			Select("messages.*, code_snapshots.code, code_snapshots.event").
+			Find(&messageRecords).Error
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Fetching related message feedbacks for each message
-		for i := range msgList {
-			msgList[i].Feedbacks = getMessageFeedbacks(msgList[i].ID, uid, role)
+		for _, msg := range messageRecords {
+			name := ""
+			if msg.AuthorRole == "teacher" {
+				name = getTeacherName(msg.AuthorID)
+			} else {
+				name = students[msg.AuthorID]
+			}
+			messages = append(messages, &MessageDashBoard{
+				ID:         msg.ID,
+				Name:       name,
+				Role:       msg.AuthorRole,
+				Message:    msg.Message,
+				Type:       msg.Type,
+				Event:      "", // You may need to fetch the actual event if applicable
+				GivenAt:    msg.GivenAt,
+				SnapshotID: msg.SnapshotID,
+				Code:       "", // You may need to fetch the actual code if applicable
+				Feedbacks:  getMessageFeedbacks(msg.ID, uid, role),
+			})
 		}
-
-		// Sorting by 'GivenAt' in descending order
-		sort.Slice(msgList, func(i, j int) bool {
-			return msgList[i].GivenAt.After(msgList[j].GivenAt)
-		})
-
-		messages = msgList
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
+		return
 	}
 
-	// Get all submissions from DB
-	var submissions []SubmissionInfo
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	// Sort the messages by descending order of GivenAt
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].GivenAt.After(messages[j].GivenAt)
+	})
+
+	feedback := &FeedbackProvisionDashBoard{
+		StudentName:  students[studentID],
+		ProblemName:  latestSnapshot.ProblemName,
+		LastSnapshot: latestSnapshot,
+		Messages:     messages,
+		StudentID:    studentID,
+		ProblemID:    problemID,
+		UserID:       uid,
+		UserRole:     role,
+		Password:     r.FormValue("password"),
+	}
+
+	// Get all submissions from DB using GORM
+	var submissions []*SubmissionInfo
+	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
+		var submissionRecords []Submission
 		err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
-			Find(&submissions).Error
+			Find(&submissionRecords).Error
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Sorting submissions by 'SubmittedAt' and 'Grade'
+		for _, sub := range submissionRecords {
+			submissions = append(submissions, &SubmissionInfo{
+				ID:          sub.ID,
+				SnapshotID:  sub.SnapshotID,
+				Code:        sub.StudentCode,
+				Grade:       sub.Verdict, // Corrected spelling of Verdict
+				SubmittedAt: sub.CodeSubmittedAt,
+			})
+		}
+
+		// Sort submissions by submission time and grade
 		sort.SliceStable(submissions, func(i, j int) bool {
 			if submissions[i].Grade == "" && submissions[j].Grade == "" {
 				return submissions[i].SubmittedAt.After(submissions[j].SubmittedAt)
@@ -459,33 +500,13 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		})
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
-	}
-
-	// Get student status
-	var studentStats DashBoardStudentInfo
-	err = DB.Table("student_statuses").
-		Where("problem_id = ? AND student_id = ?", problemID, studentID).
-		First(&studentStats).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		log.Fatal(err)
-	}
-
-	feedback := &FeedbackProvisionDashBoard{
-		StudentName:  students[studentID],
-		ProblemName:  latestSnapshot.ProblemName,
-		LastSnapshot: latestSnapshot,
-		Messages:     convertMessagesToPointers(messages), // Convert to []*MessageDashBoard
-		StudentID:    studentID,
-		ProblemID:    problemID,
-		UserID:       uid,
-		UserRole:     role,
-		Password:     r.FormValue("password"),
+		return
 	}
 
 	submission := &SubmissionDashboard{
 		StudentName: getStudentName(studentID),
 		ProblemName: getProblemNameFromID(problemID),
-		Submissions: convertSubmissionsToPointers(submissions), // Convert to []*SubmissionInfo
+		Submissions: submissions,
 		StudentID:   studentID,
 		ProblemID:   problemID,
 		UserID:      uid,
@@ -494,6 +515,19 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		Username:    getName(uid, role),
 	}
 
+	// Get student status from DB using GORM
+	var studentStats DashBoardStudentInfo
+	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
+		err := DB.Model(&StudentStatus{}).
+			Where("problem_id = ? AND student_id = ?", problemID, studentID).
+			Select("coding_stat, help_stat, submission_stat, tutoring_stat").
+			Take(&studentStats).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// Prepare the final data to pass to the template
 	data := TemplateDate{
 		Submission:     *submission,
 		Feedback:       *feedback,
