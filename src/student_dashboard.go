@@ -145,7 +145,7 @@ func getLatestSnapshot(studentID int, problemID int) *Snapshot {
 		Order("last_updated_at DESC").
 		First(&snapshot).Error
 
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Fatal(err)
 	}
 
@@ -416,12 +416,12 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
 		var messageRecords []Message
 		err := Database.Model(&Message{}).
-			Joins("JOIN ? cs ON messages.snapshot_id = cs.id", &CodeSnapshot{}). // Join the CodeSnapshot model
+			Joins("JOIN code_snapshots cs ON messages.snapshot_id = cs.id"). // Explicitly name the table
 			Where("cs.problem_id = ? AND cs.student_id = ?", problemID, studentID).
 			Select("messages.*, cs.code, cs.event").
 			Find(&messageRecords).Error
 
-		if err != nil {
+		if err != nil && err != gorm.ErrRecordNotFound {
 			log.Printf("Error fetching messages: %v", err)
 			http.Error(w, "Error fetching messages", http.StatusInternalServerError)
 			return

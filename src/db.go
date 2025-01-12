@@ -154,6 +154,7 @@ func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, su
 
 	if err := Database.Where("student_id = ? AND problem_id = ?", studentID, problemID).First(&studentStatus).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Create a new record
 			newStatus := StudentStatus{
 				StudentID:      studentID,
 				ProblemID:      problemID,
@@ -170,8 +171,9 @@ func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, su
 			log.Fatalf("Error retrieving student status: %v", err)
 		}
 	} else {
+		// Update the existing record
 		updates := map[string]interface{}{
-			"updated_at": time.Now(),
+			"last_updated_at": time.Now(), // Use the correct column name
 		}
 		if codingStat != "" {
 			updates["coding_stat"] = codingStat

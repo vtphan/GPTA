@@ -172,6 +172,9 @@ type ActiveProblem struct {
 	Attempts map[int]int
 }
 
+// Todo - everytime the server starts, theis cache gets cleared out
+// Todo - model name dont work with join
+// Todo - && err != gorm.ErrRecordNotFound
 var ActiveProblems = make(map[string]*ActiveProblem)
 
 //---------------------------------------------------------
