@@ -34,7 +34,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 	pid, err := strconv.Atoi(r.FormValue("pid"))
 	if err != nil || pid <= 0 {
 		var latestProblem Problem
-		err = DB.Order("id desc").First(&latestProblem).Error
+		err = Database.Order("id desc").First(&latestProblem).Error
 		if err != nil {
 			http.Error(w, "Error retrieving latest problem", http.StatusInternalServerError)
 			return
@@ -52,7 +52,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if pid > 0 {
 		var scores []Score
-		err = DB.Preload("Problem").Where("problem_id = ?", pid).Find(&scores).Error
+		err = Database.Preload("Problem").Where("problem_id = ?", pid).Find(&scores).Error
 		if err != nil {
 			http.Error(w, "Error retrieving problem statistics", http.StatusInternalServerError)
 			return
@@ -75,7 +75,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		data.Date = problem.ProblemUploadedAt.Format("2006-01-02")
 
 		var attendances []Attendance
-		err = DB.Where("DATE(attendance_at) = ?", problem.ProblemUploadedAt.Format("2006-01-02")).Find(&attendances).Error
+		err = Database.Where("DATE(attendance_at) = ?", problem.ProblemUploadedAt.Format("2006-01-02")).Find(&attendances).Error
 		if err != nil {
 			http.Error(w, "Error retrieving attendance records", http.StatusInternalServerError)
 			return

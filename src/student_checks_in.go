@@ -13,7 +13,7 @@ import (
 func studentChecksInHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// Retrieve attendance records for the given student ID.
 	var attendances []Attendance
-	err := DB.Where("student_id = ?", uid).Find(&attendances).Error
+	err := Database.Where("student_id = ?", uid).Find(&attendances).Error
 	if err != nil {
 		http.Error(w, "Failed to fetch attendance records", http.StatusInternalServerError)
 		log.Printf("Error fetching attendance records: %v", err)

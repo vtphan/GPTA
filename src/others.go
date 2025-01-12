@@ -52,7 +52,7 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 
 	// Get the problem ID by filename
 	var problem Problem
-	err := DB.Where("filename = ?", filename).First(&problem).Error
+	err := Database.Where("filename = ?", filename).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
 		http.Error(w, "Problem not found", http.StatusNotFound)
@@ -61,7 +61,7 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 
 	// Get the test cases for the problem ID
 	var testCases []TestCase
-	err = DB.Where("problem_id = ?", problem.ID).Find(&testCases).Error
+	err = Database.Where("problem_id = ?", problem.ID).Find(&testCases).Error
 	if err != nil {
 		log.Fatal(err)
 		http.Error(w, "Test cases not found", http.StatusNotFound)

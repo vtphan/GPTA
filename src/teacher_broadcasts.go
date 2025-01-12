@@ -20,7 +20,7 @@ func insert_problem(uid int, problem *ProblemInfo) {
 	if problem.Merit > 0 {
 		// Find Tag ID
 		var tag Tag
-		if err := DB.Where("topic_description = ?", problem.Tag).First(&tag).Error; err != nil {
+		if err := Database.Where("topic_description = ?", problem.Tag).First(&tag).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				// Add new tag if not found
 				newTag, err := AddTag(problem.Tag)

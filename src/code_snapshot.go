@@ -21,7 +21,7 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 		Event:         event,
 	}
 
-	if err := DB.Create(snapshot).Error; err != nil {
+	if err := Database.Create(snapshot).Error; err != nil {
 		log.Fatal("Could not save the snapshot for error: ", err)
 		return -1
 	}
@@ -38,7 +38,7 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 
 		// Get the student's name using GORM
 		var student Student
-		if err := DB.First(&student, studentID).Error; err != nil {
+		if err := Database.First(&student, studentID).Error; err != nil {
 			log.Fatal("Error fetching student data: ", err)
 			return -1
 		}
@@ -110,7 +110,7 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 
 	// Retrieve snapshot details
 	var snapshot CodeSnapshot
-	err := DB.Where("id = ?", snapshotID).First(&snapshot).Error
+	err := Database.Where("id = ?", snapshotID).First(&snapshot).Error
 	if err != nil {
 		log.Fatal("Error fetching code snapshot: ", err)
 		http.Error(w, "Could not find snapshot", http.StatusNotFound)
@@ -131,7 +131,7 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 		AuthorRole: authorRole,
 		GivenAt:    now,
 	}
-	if err := DB.Create(&newFeedback).Error; err != nil {
+	if err := Database.Create(&newFeedback).Error; err != nil {
 		log.Fatal("Could not save feedback: ", err)
 		http.Error(w, "Could not save feedback", http.StatusInternalServerError)
 		return
@@ -186,7 +186,7 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 		AuthorRole: authorRole,
 		GivenAt:    now,
 	}
-	if err := DB.Create(&newFeedback).Error; err != nil {
+	if err := Database.Create(&newFeedback).Error; err != nil {
 		log.Fatal("Could not save feedback: ", err)
 		http.Error(w, "Could not save feedback", http.StatusInternalServerError)
 		return
@@ -194,12 +194,13 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 
 	// Retrieve snapshot details based on messageID
 	var snapshotDetails SnapshotMessage
-	err := DB.Table("code_snapshot").
-		Select("cs.student_id, cs.problem_id, cs.code, p.filename, m.type").
-		Joins("join problem p on cs.problem_id = p.id").
-		Joins("join message m on m.snapshot_id = cs.id").
-		Where("m.id = ?", messageID).
-		Scan(&snapshotDetails).Error
+	err := Database.Model(&CodeSnapshot{}). // Use the CodeSnapshot model
+						Select("cs.student_id, cs.problem_id, cs.code, p.filename, m.type").
+						Joins("join ? p on cs.problem_id = p.id", &Problem{}).  // Join the Problem model
+						Joins("join ? m on m.snapshot_id = cs.id", &Message{}). // Join the Message model
+						Where("m.id = ?", messageID).
+						Scan(&snapshotDetails).Error
+
 	if err != nil {
 		log.Fatal("Error fetching message details: ", err)
 		http.Error(w, "Could not find message details", http.StatusNotFound)

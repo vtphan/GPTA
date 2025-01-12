@@ -56,10 +56,15 @@ func getName(uid int, role string) string {
 
 func getCurrentStudents() []int {
 	var currentStudents []int
-	err := DB.Raw("SELECT student_id FROM attendances WHERE DATE(attendance_at) = ?", time.Now().Format("2006-01-02")).Scan(&currentStudents).Error
+	err := Database.Model(&Attendance{}). // Use the Attendance model
+						Select("student_id").                                              // Select only the student_id field
+						Where("DATE(attendance_at) = ?", time.Now().Format("2006-01-02")). // Filter by today's date
+						Scan(&currentStudents).Error                                       // Scan the results into currentStudents slice
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return currentStudents
 }
 
@@ -68,7 +73,7 @@ func getAllStudents() map[int]string {
 		ID   int
 		Name string
 	}
-	err := DB.Model(&Student{}).Select("id, name").Scan(&students).Error
+	err := Database.Model(&Student{}).Select("id, name").Scan(&students).Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,16 +93,23 @@ func getProblemStats(problemID int) (int, int, int, int, int) {
 		GradedCorrect   int
 		GradedIncorrect int
 	}
-	err := DB.Raw("SELECT active, submission, help_request, graded_correct, graded_incorrect FROM problem_statistics WHERE problem_id = ?", problemID).Scan(&stats).Error
+
+	err := Database.Model(&ProblemStatistics{}). // Use the ProblemStatistics model
+							Select("active, submission, help_request, graded_correct, graded_incorrect"). // Select fields
+							Where("problem_id = ?", problemID).                                           // Filter by problem_id
+							Scan(&stats).Error                                                            // Scan the result into the stats struct
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Return the values, calculating the ungraded submissions
 	return stats.Active, stats.HelpRequest, stats.Submission - stats.GradedCorrect - stats.GradedIncorrect, stats.GradedCorrect, stats.GradedIncorrect
 }
 
 func getProblemNameFromID(problemID int) string {
 	var problem Problem
-	err := DB.Where("id = ?", problemID).First(&problem).Error
+	err := Database.Where("id = ?", problemID).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,18 +118,29 @@ func getProblemNameFromID(problemID int) string {
 
 func getLatestSubmissionTime(problemID int) map[int]time.Time {
 	latestSubmissions := make(map[int]time.Time)
+
+	// Assuming Submission is a model representing the submissions table
 	var submissions []struct {
 		StudentID      int
 		SubmissionTime time.Time
 	}
-	err := DB.Raw("SELECT student_id, MAX(code_submitted_at) FROM submissions WHERE problem_id = ? GROUP BY student_id", problemID).Scan(&submissions).Error
+
+	// Perform the query using GORM's ORM methods
+	err := Database.Model(&Submission{}). // Use the Submission model
+						Select("student_id, MAX(code_submitted_at) AS submission_time"). // Select student_id and the max submission time
+						Where("problem_id = ?", problemID).                              // Filter by problem_id
+						Group("student_id").                                             // Group by student_id to get the latest submission per student
+						Scan(&submissions).Error                                         // Scan the result into the submissions slice
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Map the results to student ID and submission time
 	for _, submission := range submissions {
 		latestSubmissions[submission.StudentID] = submission.SubmissionTime
 	}
+
 	return latestSubmissions
 }
 
@@ -129,12 +152,16 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	students := getAllStudents()
 	var lastUpdateMap = make(map[int]time.Time)
 
-	// Fetch last update times for students
+	// Fetch last update times for students using GORM ORM
 	var snapshots []struct {
 		StudentID     int
 		LastUpdatedAt time.Time
 	}
-	err := DB.Raw("SELECT student_id, max(last_updated_at) as last_updated_at FROM code_snapshots WHERE problem_id = ? GROUP BY student_id", problemID).Scan(&snapshots).Error
+	err := Database.Model(&CodeSnapshot{}). // Use the CodeSnapshot model
+						Select("student_id, max(last_updated_at) as last_updated_at").
+						Where("problem_id = ?", problemID).
+						Group("student_id").
+						Scan(&snapshots).Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -147,16 +174,16 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		}
 	}
 
-	// Fetch problem details
+	// Fetch problem details using GORM ORM
 	var problem Problem
-	err = DB.Where("id = ?", problemID).First(&problem).Error
+	err = Database.Where("id = ?", problemID).First(&problem).Error
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	latestSubmissionTime := getLatestSubmissionTime(problemID)
 
-	// Fetch student statuses
+	// Fetch student statuses using GORM ORM
 	var studentStatuses []struct {
 		StudentID      int
 		CodingStat     string
@@ -164,7 +191,10 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		SubmissionStat string
 		TutoringStat   string
 	}
-	err = DB.Raw("SELECT student_id, coding_stat, help_stat, submission_stat, tutoring_stat FROM student_statuses WHERE problem_id = ?", problemID).Scan(&studentStatuses).Error
+	err = Database.Model(&StudentStatus{}). // Use the StudentStatus model
+						Select("student_id, coding_stat, help_stat, submission_stat, tutoring_stat").
+						Where("problem_id = ?", problemID).
+						Scan(&studentStatuses).Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -204,17 +234,21 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		return true
 	})
 
-	// Fetch problem stats
+	// Fetch problem stats using GORM ORM
 	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problemID)
 
-	// Fetch answer stats
+	// Fetch answer stats using GORM ORM (if role is not student)
 	var answerStats []*AnswerStatInfo
 	if role != "student" {
 		var answers []struct {
 			Answer string
 			Count  int
 		}
-		err := DB.Raw("SELECT answer, count(*) as cnt FROM submissions WHERE problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0 GROUP BY answer", problemID).Scan(&answers).Error
+		err := Database.Model(&Submission{}). // Use the Submission model
+							Select("answer, count(*) as cnt").
+							Where("problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0", problemID).
+							Group("answer").
+							Scan(&answers).Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -228,6 +262,7 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 			total += answer.Count
 		}
 
+		// Calculate percentage for each answer
 		for i, answer := range answerStats {
 			answerStats[i].Percent = math.Round(float64(answer.Count)*10000/float64(total)) / 100
 		}

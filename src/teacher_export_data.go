@@ -21,9 +21,9 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		Filename  string
 		Score     int
 	}
-	if err := DB.Table("problems P").
-		Select("S.student_id, P.filename, S.score").
-		Joins("JOIN Scores S ON P.id = S.problem_id").
+	if err := Database.Model(&Problem{}).
+		Select("Score.StudentID, Problem.Filename, Score.Score").
+		Joins("JOIN Scores Score ON Problem.ID = Score.ProblemID").
 		Find(&scores).Error; err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 
 	// Get all students.
 	var students []Student
-	if err := DB.Find(&students).Error; err != nil {
+	if err := Database.Find(&students).Error; err != nil {
 		log.Fatal(err)
 	}
 

@@ -119,7 +119,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			if test_cases != "" {
 				var tc TestCase
 				// Find the test case or create a new one
-				err = DB.Where("student_id = ? AND problem_id = ?", uid, pid).First(&tc).Error
+				err = Database.Where("student_id = ? AND problem_id = ?", uid, pid).First(&tc).Error
 				if err != nil && err.Error() == "record not found" {
 					// Add test case if not found
 					err = AddTestCase(pid, uid, test_cases, now)

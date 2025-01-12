@@ -6,7 +6,7 @@ import (
 
 func countVotes(feedbackID int, voteType string) int {
 	var count int64
-	err := DB.Model(&SnapshotBackFeedback{}).
+	err := Database.Model(&SnapshotBackFeedback{}).
 		Where("snapshot_feedback_id = ? AND is_helpful = ?", feedbackID, voteType).
 		Count(&count).Error
 	if err != nil {
@@ -21,7 +21,7 @@ func getFeedbackData(uid int, role string) []*FeedbackData {
 
 	// Fetch all feedbacks
 	var snapshotFeedbacks []SnapshotBackFeedback
-	err := DB.Find(&snapshotFeedbacks).Error
+	err := Database.Find(&snapshotFeedbacks).Error
 	if err != nil {
 		log.Fatal("Error fetching snapshot feedbacks:", err)
 	}
@@ -33,7 +33,7 @@ func getFeedbackData(uid int, role string) []*FeedbackData {
 
 		// Fetch current user's vote
 		var userVote SnapshotBackFeedback
-		err = DB.Where("snapshot_feedback_id = ? AND author_id = ? AND author_role = ?", feedback.ID, uid, role).
+		err = Database.Where("snapshot_feedback_id = ? AND author_id = ? AND author_role = ?", feedback.ID, uid, role).
 			First(&userVote).Error
 		currentUserVote := ""
 		if err == nil {
@@ -44,13 +44,13 @@ func getFeedbackData(uid int, role string) []*FeedbackData {
 		authorName := ""
 		if feedback.AuthorRole == "teacher" {
 			var teacher Teacher
-			err = DB.First(&teacher, feedback.AuthorID).Error
+			err = Database.First(&teacher, feedback.AuthorID).Error
 			if err == nil {
 				authorName = teacher.Name
 			}
 		} else {
 			var student Student
-			err = DB.First(&student, feedback.AuthorID).Error
+			err = Database.First(&student, feedback.AuthorID).Error
 			if err == nil {
 				authorName = student.Name
 			}

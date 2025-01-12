@@ -39,60 +39,55 @@ func reportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetching tags
-	var tags []struct {
-		ID   int
-		Name string
-	}
-	if err := DB.Model(&Tag{}).Select("id, topic_description").Scan(&tags).Error; err != nil {
+	var tags []Tag // Assuming Tag struct is already defined
+	if err := Database.Model(&Tag{}).Select("id, topic_description").Scan(&tags).Error; err != nil {
 		fmt.Println(err)
 		return
 	}
 	for _, tag := range tags {
-		record.Tags[tag.ID] = tag.Name
+		record.Tags[tag.ID] = tag.TopicDescription
 	}
 
 	// Fetching submission counts
-	rows, err := DB.Raw("SELECT code_submitted_at FROM submissions").Rows()
-	if err != nil {
+	var submissions []Submission // Assuming Submission struct is already defined
+	if err := Database.Model(&Submission{}).Select("code_submitted_at").Scan(&submissions).Error; err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var at time.Time
-		if err := rows.Scan(&at); err != nil {
-			fmt.Println(err)
-			return
-		}
-		date := fmt.Sprintf("%d.%d.%d", at.Month(), at.Day(), at.Year())
+
+	// Count submissions per date
+	for _, submission := range submissions {
+		date := fmt.Sprintf("%d.%d.%d", submission.CodeSubmittedAt.Month(), submission.CodeSubmittedAt.Day(), submission.CodeSubmittedAt.Year())
 		record.SubmissionCount[date]++
 	}
 
 	// Fetching scores
-	rows, err = DB.Raw(`SELECT scores.score, scores.graded_submission_number, scores.student_id, students.name 
-				FROM scores 
-				JOIN students ON scores.student_id = students.id`).Rows()
-	if err != nil {
+	var scores []struct {
+		Points      int
+		Attempts    int
+		StudentID   int
+		StudentName string
+	}
+
+	if err := Database.Model(&Score{}). // Use the Score model
+						Select("scores.score, scores.graded_submission_number, scores.student_id, students.name").
+						Joins("JOIN ? students ON scores.student_id = students.id", &Student{}). // Join the Student model
+						Scan(&scores).Error; err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var points, attempts, studentID int
-		var stname string
-		if err := rows.Scan(&points, &attempts, &studentID, &stname); err != nil {
-			fmt.Println(err)
-			return
+	// Add scores to the record
+	for _, score := range scores {
+		if _, exists := record.Scores[score.StudentID]; !exists {
+			record.Scores[score.StudentID] = &ScoreEntry{Name: score.StudentName}
 		}
-		if _, exists := record.Scores[studentID]; !exists {
-			record.Scores[studentID] = &ScoreEntry{Name: stname}
-		}
-		record.Scores[studentID].Points += points
-		record.Scores[studentID].Attempts += attempts
-		record.Scores[studentID].Count++
+		record.Scores[score.StudentID].Points += score.Points
+		record.Scores[score.StudentID].Attempts += score.Attempts
+		record.Scores[score.StudentID].Count++
 	}
 
+	// Render the template
 	w.Header().Set("Content-Type", "text/html")
 	t, err := template.New("").Parse(TAGS_VIEW_TEMPLATE)
 	if err != nil {
@@ -193,43 +188,51 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
+
 	tagID := r.FormValue("tag_id")
 	var tagDescription string
-	if err := DB.Model(&Tag{}).Select("topic_description").Where("id = ?", tagID).Limit(1).Scan(&tagDescription).Error; err != nil {
+	if err := Database.Model(&Tag{}).
+		Select("topic_description").
+		Where("id = ?", tagID).
+		Limit(1).
+		Scan(&tagDescription).Error; err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	record := make(map[int]*ProblemPerformance)
-	rows, err := DB.Raw(`SELECT problems.id, problems.merit, problems.at, scores.points, scores.student_id
-				FROM problems 
-				JOIN scores ON problems.id = scores.problem_id 
-				JOIN students WHERE problems.tag = ?`, tagID).Rows()
+	var results []struct {
+		ProblemID int
+		Merit     int
+		At        time.Time
+		Points    int
+		StudentID int
+	}
+	err := Database.Model(&Problem{}).
+		Select("problems.id AS problem_id, problems.merit, problems.at, scores.points, scores.student_id").
+		Joins("JOIN ? AS s ON problems.id = s.problem_id", Database.Model(&Score{}).Name()).
+		Joins("JOIN ? AS st ON s.student_id = st.id", Database.Model(&Student{}).Name()).
+		Where("problems.tag = ?", tagID).
+		Scan(&results).Error
+
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error fetching data:", err)
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var pid, merit, points, studentID int
-		var at time.Time
-		if err := rows.Scan(&pid, &merit, &at, &points, &studentID); err != nil {
-			fmt.Println(err)
-			return
-		}
-
+	for _, res := range results {
+		pid := res.ProblemID
 		if _, exists := record[pid]; !exists {
 			record[pid] = &ProblemPerformance{
 				Pid:       pid,
-				Timestamp: at.UnixNano(),
+				Timestamp: res.At.UnixNano(),
 				Correct:   0,
 				Incorrect: 0,
 				Activity:  0,
 				PC:        Passcode,
 			}
 		}
-		if merit == points {
+		if res.Merit == res.Points {
 			record[pid].Correct++
 		} else {
 			record[pid].Incorrect++
@@ -238,7 +241,7 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var studentCount int64
-	if err := DB.Model(&Student{}).Count(&studentCount).Error; err != nil {
+	if err := Database.Model(&Student{}).Count(&studentCount).Error; err != nil {
 		fmt.Println(err)
 		return
 	}

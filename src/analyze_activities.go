@@ -27,7 +27,7 @@ func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch required data using GORM and the existing Submission struct
 	var submissions []Submission
-	if err := DB.Select("problem_id, student_id, code_submitted_at").Find(&submissions).Error; err != nil {
+	if err := Database.Select("problem_id, student_id, code_submitted_at").Find(&submissions).Error; err != nil {
 		http.Error(w, "Failed to fetch activities", http.StatusInternalServerError)
 		fmt.Println(err)
 		return

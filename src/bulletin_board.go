@@ -96,7 +96,7 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 		p := ActiveProblems[key]
 		if p.Active {
 			var problem Problem
-			if err := DB.First(&problem, p.Info.Pid).Error; err != nil {
+			if err := Database.First(&problem, p.Info.Pid).Error; err != nil {
 				fmt.Println("Error retrieving problem starting time", err)
 				return &BulletinBoardMessage{}
 			}

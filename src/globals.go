@@ -35,9 +35,7 @@ var Config *Configuration
 // Database
 //---------------------------------------------------------
 
-var DB *gorm.DB
-
-//var Database *sql.DB
+var Database *gorm.DB
 
 //---------------------------------------------------------
 // Authentication

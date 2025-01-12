@@ -39,7 +39,7 @@ func add_user(name, role string, password string) {
 
 	if role == "teacher" {
 		var teacherExists bool
-		err := DB.Model(&Teacher{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&teacherExists).Error
+		err := Database.Model(&Teacher{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&teacherExists).Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -49,7 +49,7 @@ func add_user(name, role string, password string) {
 		}
 	} else {
 		var studentExists bool
-		err := DB.Model(&Student{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&studentExists).Error
+		err := Database.Model(&Student{}).Select("COUNT(*) > 0").Where("name = ?", name).Find(&studentExists).Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -65,7 +65,7 @@ func add_user(name, role string, password string) {
 
 	if role == "teacher" {
 		teacher := Teacher{Name: name, Password: password}
-		err := DB.Create(&teacher).Error
+		err := Database.Create(&teacher).Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -73,7 +73,7 @@ func add_user(name, role string, password string) {
 		init_teacher(int(id), name, password)
 	} else {
 		student := Student{Name: name, Password: password}
-		err := DB.Create(&student).Error
+		err := Database.Create(&student).Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -99,7 +99,7 @@ func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 
 	if role == "teacher" {
 		var teacher Teacher
-		err := DB.Model(&Teacher{}).Select("id, password").Where("name = ?", name).First(&teacher).Error
+		err := Database.Model(&Teacher{}).Select("id, password").Where("name = ?", name).First(&teacher).Error
 		if err != nil {
 			fmt.Fprintf(w, "Failed")
 			return
@@ -108,7 +108,7 @@ func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 		password = teacher.Password
 	} else if role == "student" {
 		var student Student
-		err := DB.Model(&Student{}).Select("id, password").Where("name = ?", name).First(&student).Error
+		err := Database.Model(&Student{}).Select("id, password").Where("name = ?", name).First(&student).Error
 		if err != nil {
 			fmt.Fprintf(w, "Failed")
 			return

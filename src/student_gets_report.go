@@ -19,11 +19,11 @@ func student_gets_reportHandler(w http.ResponseWriter, r *http.Request, who stri
 	var report []StudentReport
 
 	// Use GORM to find the scores for the given student, including the related problem data
-	err := DB.Table("scores").
-		Joins("join problems on problems.id = scores.problem_id").
-		Where("student_id = ?", uid).
-		Select("scores.score, scores.score_given_at, problems.filename").
-		Find(&report).Error
+	err := Database.Model(&Score{}). // Use the Score model
+						Joins("JOIN ? p ON p.id = scores.problem_id", &Problem{}). // Join the Problem model
+						Where("scores.student_id = ?", uid).
+						Select("scores.score, scores.score_given_at, p.filename").
+						Find(&report).Error
 
 	if err != nil {
 		log.Fatal(err)

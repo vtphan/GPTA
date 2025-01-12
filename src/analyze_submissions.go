@@ -31,14 +31,14 @@ func analyze_submissionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var problem Problem
-	if err := DB.First(&problem, pid).Error; err != nil {
+	if err := Database.First(&problem, pid).Error; err != nil {
 		http.Error(w, "Problem not found", http.StatusNotFound)
 		fmt.Println(err)
 		return
 	}
 
 	var submissions []Submission
-	if err := DB.Where("problem_id = ?", pid).Find(&submissions).Error; err != nil {
+	if err := Database.Where("problem_id = ?", pid).Find(&submissions).Error; err != nil {
 		http.Error(w, "Failed to fetch submissions", http.StatusInternalServerError)
 		fmt.Println(err)
 		return

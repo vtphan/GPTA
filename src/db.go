@@ -13,14 +13,12 @@ import (
 )
 
 func execSQL(s string) {
-	if err := DB.Exec(s).Error; err != nil {
+	if err := Database.Exec(s).Error; err != nil {
 		log.Fatalf("failed to execute SQL: %v", err)
 	}
 }
 
 // TODO - See migrations for pervios entries...that is change the table names from student to students
-// TODO - Remove raw queries
-// TODO - Use structs everywhere the query is written
 func create_tables() {
 	execSQL("create table if not exists students (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists teachers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
@@ -54,26 +52,26 @@ func init_database(db_name string, username string, pass string, server string) 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?parseTime=true", username, pass, server)
 
 	// Open a connection to MySQL using GORM
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	Database, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
 
 	// Create the database if it doesn't exist
-	err = DB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", db_name)).Error
+	err = Database.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", db_name)).Error
 	if err != nil {
 		log.Fatal("Failed to create database: ", err)
 	}
 
 	// Switch to the selected database
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", username, pass, server, db_name)
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	Database, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to the selected database: ", err)
 	}
 
 	// Set connection pool settings (like MaxLifetime) if necessary
-	sqlDB, err := DB.DB()
+	sqlDB, err := Database.DB()
 	if err != nil {
 		log.Fatal("Failed to get raw SQL database object: ", err)
 	}
@@ -95,12 +93,12 @@ func addOrUpdateScore(decision string, pid, studentID, teacherID, partialCredits
 	var message string
 
 	// Retrieve score information for this student and problem
-	if err := DB.Where("problem_id = ? AND student_id = ?", pid, studentID).First(&score).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := Database.Where("problem_id = ? AND student_id = ?", pid, studentID).First(&score).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Sprintf("Unable to retrieve score: %v", err)
 	}
 
 	// Retrieve merit and effort points for the problem
-	if err := DB.First(&problem, pid).Error; err != nil {
+	if err := Database.First(&problem, pid).Error; err != nil {
 		return fmt.Sprintf("Unable to retrieve problem: %v", err)
 	}
 
@@ -136,11 +134,11 @@ func addOrUpdateScore(decision string, pid, studentID, teacherID, partialCredits
 			GradedSubmissionNumber: score.GradedSubmissionNumber + 1,
 			ScoreGivenAt:           &currentTime,
 		}
-		if err := DB.Create(&newScore).Error; err != nil {
+		if err := Database.Create(&newScore).Error; err != nil {
 			return fmt.Sprintf("Unable to add score: %v", err)
 		}
 	} else {
-		if err := DB.Model(&score).Updates(Score{
+		if err := Database.Model(&score).Updates(Score{
 			TeacherID:              teacher,
 			Score:                  points,
 			GradedSubmissionNumber: score.GradedSubmissionNumber + 1,
@@ -154,7 +152,7 @@ func addOrUpdateScore(decision string, pid, studentID, teacherID, partialCredits
 func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
 	var studentStatus StudentStatus
 
-	if err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).First(&studentStatus).Error; err != nil {
+	if err := Database.Where("student_id = ? AND problem_id = ?", studentID, problemID).First(&studentStatus).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			newStatus := StudentStatus{
 				StudentID:      studentID,
@@ -165,7 +163,7 @@ func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, su
 				TutoringStat:   tutoringStat,
 				LastUpdatedAt:  time.Now(),
 			}
-			if err := DB.Create(&newStatus).Error; err != nil {
+			if err := Database.Create(&newStatus).Error; err != nil {
 				log.Fatalf("Unable to add student status: %v", err)
 			}
 		} else {
@@ -187,7 +185,7 @@ func addOrUpdateStudentStatus(studentID, problemID int, codingStat, helpStat, su
 		if tutoringStat != "" {
 			updates["tutoring_stat"] = tutoringStat
 		}
-		if err := DB.Model(&studentStatus).Updates(updates).Error; err != nil {
+		if err := Database.Model(&studentStatus).Updates(updates).Error; err != nil {
 			log.Fatalf("Unable to update student status: %v", err)
 		}
 	}
@@ -245,7 +243,7 @@ func init_student(student_id int, name string, password string) {
 func loadAndAuthorizeStudent(studentID int, password string) bool {
 	var student Student
 
-	if err := DB.First(&student, studentID).Error; err != nil {
+	if err := Database.First(&student, studentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false
 		}
@@ -263,7 +261,7 @@ func loadAndAuthorizeStudent(studentID int, password string) bool {
 // -----------------------------------------------------------------
 func LoadTeachers() {
 	var teachers []Teacher
-	if err := DB.Find(&teachers).Error; err != nil {
+	if err := Database.Find(&teachers).Error; err != nil {
 		log.Fatalf("Unable to load teachers: %v", err)
 	}
 

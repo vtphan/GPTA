@@ -7,7 +7,7 @@ import (
 
 func AddStudent(name string, password string) error {
 	student := Student{Name: name, Password: password}
-	if err := DB.Create(&student).Error; err != nil {
+	if err := Database.Create(&student).Error; err != nil {
 		return err
 	}
 	return nil
@@ -15,7 +15,7 @@ func AddStudent(name string, password string) error {
 
 func AddTeacher(name string, password string) error {
 	teacher := Teacher{Name: name, Password: password}
-	if err := DB.Create(&teacher).Error; err != nil {
+	if err := Database.Create(&teacher).Error; err != nil {
 		return err
 	}
 	return nil
@@ -34,7 +34,7 @@ func AddProblem(teacherID int, problemDescription, answer, filename string, meri
 		Tag:                tag,
 		ProblemUploadedAt:  problemUploadedAt,
 	}
-	if err := DB.Create(&problem).Error; err != nil {
+	if err := Database.Create(&problem).Error; err != nil {
 		return problem, err
 	}
 
@@ -52,14 +52,14 @@ func AddSubmission(problemID, studentID int, studentCode string, submissionCateg
 		SnapshotID:         snapshotID,
 		Answer:             answer,
 	}
-	if err := DB.Create(&submission).Error; err != nil {
+	if err := Database.Create(&submission).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func CompleteSubmission(id int, completed time.Time, verdict string) error {
-	if err := DB.Model(&Submission{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := Database.Model(&Submission{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"Completed": completed,
 		"Verdict":   verdict,
 	}).Error; err != nil {
@@ -77,7 +77,7 @@ func AddScore(problemID, studentID, teacherID int, score int, gradedSubmissionNu
 		GradedSubmissionNumber: gradedSubmissionNumber,
 		ScoreGivenAt:           scoreGivenAt,
 	}
-	if err := DB.Create(&scoreEntry).Error; err != nil {
+	if err := Database.Create(&scoreEntry).Error; err != nil {
 		return err
 	}
 	return nil
@@ -91,14 +91,14 @@ func AddFeedback(teacherID, studentID int, feedback string, feedbackGivenAt time
 		FeedbackGivenAt: feedbackGivenAt,
 		SubmissionID:    submissionID,
 	}
-	if err := DB.Create(&feedbackEntry).Error; err != nil {
+	if err := Database.Create(&feedbackEntry).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateScore(id int, teacherID int, score float64, gradedSubmissionNumber int) error {
-	if err := DB.Model(&Score{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := Database.Model(&Score{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"TeacherID":              teacherID,
 		"Score":                  score,
 		"GradedSubmissionNumber": gradedSubmissionNumber,
@@ -113,7 +113,7 @@ func AddAttendance(studentID int, attendanceAt time.Time) error {
 		StudentID:    studentID,
 		AttendanceAt: attendanceAt,
 	}
-	if err := DB.Create(&attendance).Error; err != nil {
+	if err := Database.Create(&attendance).Error; err != nil {
 		return err
 	}
 	return nil
@@ -121,7 +121,7 @@ func AddAttendance(studentID int, attendanceAt time.Time) error {
 
 func AddTag(topicDescription string) (Tag, error) {
 	tag := Tag{TopicDescription: topicDescription}
-	if err := DB.Create(&tag).Error; err != nil {
+	if err := Database.Create(&tag).Error; err != nil {
 		return tag, err
 	}
 	return tag, nil
@@ -134,14 +134,14 @@ func AddTestCase(problemID, studentID int, testCases string, addedAt time.Time) 
 		TestCases: testCases,
 		AddedAt:   addedAt,
 	}
-	if err := DB.Create(&testCase).Error; err != nil {
+	if err := Database.Create(&testCase).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateTestCase(id int, testCases string, addedAt time.Time) error {
-	if err := DB.Model(&TestCase{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := Database.Model(&TestCase{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"TestCases": testCases,
 		"AddedAt":   addedAt,
 	}).Error; err != nil {
@@ -159,7 +159,7 @@ func AddHelpSubmission(problemID, studentID, snapshotID int, tryingWhat, needHel
 		NeedHelpWith:    needHelpWith,
 		CodeSubmittedAt: codeSubmittedAt,
 	}
-	if err := DB.Create(&helpSubmission).Error; err != nil {
+	if err := Database.Create(&helpSubmission).Error; err != nil {
 		return err
 	}
 	return nil
@@ -172,14 +172,14 @@ func AddHelpMessage(codeExplanationID, studentID int, message string, givenAt ti
 		Message:           message,
 		GivenAt:           givenAt,
 	}
-	if err := DB.Create(&helpMessage).Error; err != nil {
+	if err := Database.Create(&helpMessage).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateHelpMessage(id int, useful bool, updatedAt time.Time) error {
-	if err := DB.Model(&HelpMessage{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := Database.Model(&HelpMessage{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"Useful":    useful,
 		"UpdatedAt": updatedAt,
 	}).Error; err != nil {
@@ -197,7 +197,7 @@ func AddCodeSnapshot(studentID, problemID int, code string, status int, lastUpda
 		LastUpdatedAt: lastUpdatedAt,
 		Event:         event,
 	}
-	if err := DB.Create(&codeSnapshot).Error; err != nil {
+	if err := Database.Create(&codeSnapshot).Error; err != nil {
 		return err
 	}
 	return nil
@@ -211,7 +211,7 @@ func AddSnapShotFeedback(snapshotID int, feedback string, authorID int, authorRo
 		AuthorRole: authorRole,
 		GivenAt:    givenAt,
 	}
-	if err := DB.Create(&snapshotFeedback).Error; err != nil {
+	if err := Database.Create(&snapshotFeedback).Error; err != nil {
 		return err
 	}
 	return nil
@@ -225,14 +225,14 @@ func AddSnapshotBackFeedback(snapshotFeedbackID int, authorID int, authorRole st
 		IsHelpful:          isHelpful,
 		GivenAt:            givenAt,
 	}
-	if err := DB.Create(&snapshotBackFeedback).Error; err != nil {
+	if err := Database.Create(&snapshotBackFeedback).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateSnapshotBackFeedback(snapshotFeedbackID int, isHelpful bool, givenAt time.Time) error {
-	if err := DB.Model(&SnapshotBackFeedback{}).Where("snapshot_feedback_id = ?", snapshotFeedbackID).Updates(map[string]interface{}{
+	if err := Database.Model(&SnapshotBackFeedback{}).Where("snapshot_feedback_id = ?", snapshotFeedbackID).Updates(map[string]interface{}{
 		"IsHelpful": isHelpful,
 		"GivenAt":   givenAt,
 	}).Error; err != nil {
@@ -242,7 +242,7 @@ func UpdateSnapshotBackFeedback(snapshotFeedbackID int, isHelpful bool, givenAt 
 }
 
 func UpdateProblemEndTime(problemEndedAt time.Time, problemID int) error {
-	if err := DB.Model(&Problem{}).Where("id = ?", problemID).Update("ProblemEndedAt", problemEndedAt).Error; err != nil {
+	if err := Database.Model(&Problem{}).Where("id = ?", problemID).Update("ProblemEndedAt", problemEndedAt).Error; err != nil {
 		return err
 	}
 	return nil
@@ -254,7 +254,7 @@ func AddHelpEligible(problemID, studentID int, becameEligibleAt time.Time) error
 		StudentID:        studentID,
 		BecameEligibleAt: becameEligibleAt,
 	}
-	if err := DB.Create(&helpEligible).Error; err != nil {
+	if err := Database.Create(&helpEligible).Error; err != nil {
 		return err
 	}
 	return nil
@@ -269,7 +269,7 @@ func AddUserEventLog(userID int, name, userType, eventType, referralInfo string,
 		ReferralInfo: referralInfo,
 		EventTime:    eventTime,
 	}
-	if err := DB.Create(&userEventLog).Error; err != nil {
+	if err := Database.Create(&userEventLog).Error; err != nil {
 		return err
 	}
 	return nil
@@ -285,35 +285,35 @@ func AddStudentStatus(studentID, problemID int, codingStat, helpStat, submission
 		TutoringStat:   tutoringStat,
 		LastUpdatedAt:  lastUpdatedAt,
 	}
-	if err := DB.Create(&studentStatus).Error; err != nil {
+	if err := Database.Create(&studentStatus).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateStudentCodingStat(studentID, problemID int, codingStat string, lastUpdatedAt time.Time) error {
-	if err := DB.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("CodingStat", codingStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
+	if err := Database.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("CodingStat", codingStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateStudentHelpStat(studentID, problemID int, helpStat string, lastUpdatedAt time.Time) error {
-	if err := DB.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("HelpStat", helpStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
+	if err := Database.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("HelpStat", helpStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateStudentSubmissionStat(studentID, problemID int, submissionStat string, lastUpdatedAt time.Time) error {
-	if err := DB.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("SubmissionStat", submissionStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
+	if err := Database.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("SubmissionStat", submissionStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateStudentTutoringStat(studentID, problemID int, tutoringStat string, lastUpdatedAt time.Time) error {
-	if err := DB.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("TutoringStat", tutoringStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
+	if err := Database.Model(&StudentStatus{}).Where("student_id = ? AND problem_id = ?", studentID, problemID).Update("TutoringStat", tutoringStat).Update("LastUpdatedAt", lastUpdatedAt).Error; err != nil {
 		return err
 	}
 	return nil
@@ -328,7 +328,7 @@ func AddMessage(snapshotID int, message string, authorID int, authorRole string,
 		GivenAt:    givenAt,
 		Type:       messageType,
 	}
-	if err := DB.Create(&messageEntry).Error; err != nil {
+	if err := Database.Create(&messageEntry).Error; err != nil {
 		return messageEntry, err
 	}
 	return messageEntry, nil
@@ -342,7 +342,7 @@ func AddMessageFeedback(messageID int, feedback string, authorID int, authorRole
 		AuthorRole: authorRole,
 		GivenAt:    givenAt,
 	}
-	if err := DB.Create(&messageFeedback).Error; err != nil {
+	if err := Database.Create(&messageFeedback).Error; err != nil {
 		return err
 	}
 	return nil
@@ -356,14 +356,14 @@ func AddMessageBackFeedback(messageFeedbackID int, authorID int, authorRole stri
 		Useful:            useful,
 		GivenAt:           givenAt,
 	}
-	if err := DB.Create(&messageBackFeedback).Error; err != nil {
+	if err := Database.Create(&messageBackFeedback).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func UpdateMessageBackFeedback(messageFeedbackID int, useful bool, givenAt time.Time) error {
-	if err := DB.Model(&MessageBackFeedback{}).Where("message_feedback_id = ?", messageFeedbackID).Updates(map[string]interface{}{
+	if err := Database.Model(&MessageBackFeedback{}).Where("message_feedback_id = ?", messageFeedbackID).Updates(map[string]interface{}{
 		"Useful":  useful,
 		"GivenAt": givenAt,
 	}).Error; err != nil {
@@ -381,42 +381,42 @@ func AddProblemStatistics(problemID int) error {
 		GradedCorrect:   0,
 		GradedIncorrect: 0,
 	}
-	if err := DB.Create(&problemStats).Error; err != nil {
+	if err := Database.Create(&problemStats).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func IncProblemStatActive(problemID int) error {
-	if err := DB.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("Active", gorm.Expr("active + ?", 1)).Error; err != nil {
+	if err := Database.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("Active", gorm.Expr("active + ?", 1)).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func IncProblemStatSubmission(problemID int) error {
-	if err := DB.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("Submission", gorm.Expr("submission + ?", 1)).Error; err != nil {
+	if err := Database.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("Submission", gorm.Expr("submission + ?", 1)).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func IncProblemStatHelp(problemID int) error {
-	if err := DB.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("HelpRequest", gorm.Expr("help_request + ?", 1)).Error; err != nil {
+	if err := Database.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("HelpRequest", gorm.Expr("help_request + ?", 1)).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func IncProblemStatGradedCorrect(problemID int) error {
-	if err := DB.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("GradedCorrect", gorm.Expr("graded_correct + ?", 1)).Error; err != nil {
+	if err := Database.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("GradedCorrect", gorm.Expr("graded_correct + ?", 1)).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func IncProblemStatGradedIncorrect(problemID int) error {
-	if err := DB.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("GradedIncorrect", gorm.Expr("graded_incorrect + ?", 1)).Error; err != nil {
+	if err := Database.Model(&ProblemStatistics{}).Where("problem_id = ?", problemID).UpdateColumn("GradedIncorrect", gorm.Expr("graded_incorrect + ?", 1)).Error; err != nil {
 		return err
 	}
 	return nil
@@ -434,7 +434,7 @@ func AddSubmissionComplete(problemID, studentID int, studentCode string, submiss
 		SnapshotID:         snapshotID,
 		Answer:             answer,
 	}
-	if err := DB.Create(&submission).Error; err != nil {
+	if err := Database.Create(&submission).Error; err != nil {
 		return err
 	}
 	return nil

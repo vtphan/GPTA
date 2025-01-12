@@ -85,7 +85,7 @@ func getCurrentUserVote(feedbackID int, userID int, userRole string) string {
 	var feedback MessageBackFeedback
 
 	// Query the database using GORM
-	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
+	err := Database.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
 		Select("useful").First(&feedback).Error
 
 	if err != nil {
@@ -103,7 +103,7 @@ func getMessageFeedbacks(messageID int, userID int, userRole string) []*Feedback
 	var feedbacks []MessageFeedback
 
 	// Query the database using GORM
-	err := DB.Where("message_id = ?", messageID).Find(&feedbacks).Error
+	err := Database.Where("message_id = ?", messageID).Find(&feedbacks).Error
 	if err != nil {
 		log.Printf("Error fetching message feedbacks: %v", err)
 		return nil
@@ -140,7 +140,7 @@ func getLatestSnapshot(studentID int, problemID int) *Snapshot {
 	var snapshot CodeSnapshot
 
 	// Get the latest snapshot for the given student and problem
-	err := DB.Model(&CodeSnapshot{}).
+	err := Database.Model(&CodeSnapshot{}).
 		Where("problem_id = ? AND student_id = ?", problemID, studentID).
 		Order("last_updated_at DESC").
 		First(&snapshot).Error
@@ -164,7 +164,7 @@ func getTeacherName(authorID int) string {
 	var name string
 
 	// Use GORM to fetch the teacher's name
-	err := DB.Model(&Teacher{}).
+	err := Database.Model(&Teacher{}).
 		Select("name").
 		Where("id = ?", authorID).
 		Scan(&name).Error
@@ -181,7 +181,7 @@ func getStudentName(studentID int) string {
 	var name string
 
 	// Use GORM to fetch the student's name
-	err := DB.Model(&Student{}).
+	err := Database.Model(&Student{}).
 		Select("name").
 		Where("id = ?", studentID).
 		Scan(&name).Error
@@ -197,7 +197,7 @@ func getStudentName(studentID int) string {
 func getBackFeedbackCount(feedbackID int, backFeedbackType string) int {
 	var voteCount int64
 
-	err := DB.Model(&MessageBackFeedback{}).
+	err := Database.Model(&MessageBackFeedback{}).
 		Where("useful = ? AND message_feedback_id = ?", backFeedbackType, feedbackID).
 		Count(&voteCount).Error
 
@@ -237,11 +237,11 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 			Event      string
 		}
 
-		err = DB.Table("messages").
-			Select("M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.code, C.event").
-			Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
-			Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
-			Scan(&rawMessages).Error
+		err := Database.Model(&Message{}). // Use the Message model
+							Select("m.id, m.snapshot_id, m.message, m.author_id, m.author_role, m.given_at, m.type, cs.code, cs.event").
+							Joins("JOIN ? cs ON m.snapshot_id = cs.id", &CodeSnapshot{}). // Join the CodeSnapshot model
+							Where("cs.problem_id = ? AND cs.student_id = ?", problemID, studentID).
+							Scan(&rawMessages).Error
 
 		if err != nil {
 			log.Printf("Error fetching messages: %v", err)
@@ -286,7 +286,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	var studentStatus DashBoardStudentInfo
-	err = DB.Model(&StudentStatus{}).
+	err = Database.Model(&StudentStatus{}).
 		Select("coding_stat, help_stat, submission_stat, tutoring_stat").
 		Where("problem_id = ? AND student_id = ?", problemID, studentID).
 		Scan(&studentStatus).Error
@@ -331,7 +331,7 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 	var submissions []*SubmissionInfo
 	_, ok := HelpEligibleStudents[problemID][uid]
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		err := Database.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 			Find(&submissions).Error
 		if err != nil {
 			log.Fatal(err)
@@ -378,7 +378,7 @@ func hasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who s
 	fmt.Print(feedbackID, userRole, uid)
 
 	var feedback MessageBackFeedback
-	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, userRole).
+	err := Database.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, userRole).
 		First(&feedback).Error
 	if err != nil {
 		if gorm.ErrRecordNotFound == err {
@@ -415,12 +415,16 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	var messages []*MessageDashBoard
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
 		var messageRecords []Message
-		err := DB.Joins("JOIN code_snapshots ON messages.snapshot_id = code_snapshots.id").
-			Where("code_snapshots.problem_id = ? AND code_snapshots.student_id = ?", problemID, studentID).
-			Select("messages.*, code_snapshots.code, code_snapshots.event").
+		err := Database.Model(&Message{}).
+			Joins("JOIN ? cs ON messages.snapshot_id = cs.id", &CodeSnapshot{}). // Join the CodeSnapshot model
+			Where("cs.problem_id = ? AND cs.student_id = ?", problemID, studentID).
+			Select("messages.*, cs.code, cs.event").
 			Find(&messageRecords).Error
+
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Error fetching messages: %v", err)
+			http.Error(w, "Error fetching messages", http.StatusInternalServerError)
+			return
 		}
 
 		for _, msg := range messageRecords {
@@ -469,7 +473,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	var submissions []*SubmissionInfo
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
 		var submissionRecords []Submission
-		err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		err := Database.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 			Find(&submissionRecords).Error
 		if err != nil {
 			log.Fatal(err)
@@ -518,7 +522,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	// Get student status from DB using GORM
 	var studentStats DashBoardStudentInfo
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && HelpEligibleStudents[problemID][uid]) {
-		err := DB.Model(&StudentStatus{}).
+		err := Database.Model(&StudentStatus{}).
 			Where("problem_id = ? AND student_id = ?", problemID, studentID).
 			Select("coding_stat, help_stat, submission_stat, tutoring_stat").
 			Take(&studentStats).Error

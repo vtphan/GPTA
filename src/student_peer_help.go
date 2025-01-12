@@ -117,7 +117,10 @@ func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	// If the message is marked as useful, update the student's thank status
 	if useful {
 		var studentID int
-		err := DB.Raw("SELECT student_id FROM help_messages WHERE id = ?", messageID).Scan(&studentID).Error
+		err := Database.Model(&HelpMessage{}). // Use the HelpMessage model
+							Where("id = ?", messageID).
+							Pluck("student_id", &studentID). // Retrieve the student_id
+							Error
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -148,7 +151,7 @@ func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who 
 
 	// Check if the feedback already exists for the given feedbackID, uid, and authorRole
 	var existingFeedback MessageBackFeedback
-	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, authorRole).First(&existingFeedback).Error
+	err := Database.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, uid, authorRole).First(&existingFeedback).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Fatal(err)
 	}

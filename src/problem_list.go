@@ -33,14 +33,11 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	role := r.FormValue("role")
 	password := r.FormValue("password")
 
-	// Fetch problems from the database
-	var problemsData []struct {
-		ID                int
-		Filename          string
-		ProblemUploadedAt time.Time
-		ProblemEndedAt    *time.Time
-	}
-	err := DB.Raw("SELECT id, filename, problem_uploaded_at, problem_ended_at FROM problems").Scan(&problemsData).Error
+	// Fetch problems from the database using GORM
+	var problemsData []Problem
+	err := Database.Model(&Problem{}).
+		Select("id, filename, problem_uploaded_at, problem_ended_at").
+		Scan(&problemsData).Error
 	if err != nil {
 		log.Fatal(err)
 	}
