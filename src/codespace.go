@@ -194,8 +194,8 @@ func getCodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, 
 	}
 	err = Database.Model(&CodeSnapshot{}). // Use the CodeSnapshot model
 						Select("F.id, F.feedback, F.author_id, F.author_role, F.given_at, C.code").
-						Joins("JOIN ? F ON C.id = F.snapshot_id", &SnapshotFeedback{}). // Join SnapshotFeedback model
-						Joins("JOIN ? FF ON FF.snapshot_id = C.id", &Feedback{}).       // Join Feedback model, if necessary for further filtering (e.g. for upvotes/downvotes)
+						Joins("JOIN snapshot_feedbacks F ON C.id = F.snapshot_id"). // Join the SnapshotFeedback model
+						Joins("JOIN feedbacks FF ON FF.snapshot_id = C.id").        // Join the Feedback model if necessary
 						Where("C.student_id = ? AND C.problem_id = ?", studentID, problemID).
 						Order("F.given_at DESC").
 						Scan(&feedbacks).Error

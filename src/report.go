@@ -71,7 +71,7 @@ func reportHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := Database.Model(&Score{}). // Use the Score model
 						Select("scores.score, scores.graded_submission_number, scores.student_id, students.name").
-						Joins("JOIN ? students ON scores.student_id = students.id", &Student{}). // Join the Student model
+						Joins("JOIN students ON scores.student_id = students.id"). // Join the Student model
 						Scan(&scores).Error; err != nil {
 		fmt.Println(err)
 		return
@@ -210,8 +210,8 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := Database.Model(&Problem{}).
 		Select("problems.id AS problem_id, problems.merit, problems.at, scores.points, scores.student_id").
-		Joins("JOIN ? AS s ON problems.id = s.problem_id", Database.Model(&Score{}).Name()).
-		Joins("JOIN ? AS st ON s.student_id = st.id", Database.Model(&Student{}).Name()).
+		Joins("JOIN scores AS s ON problems.id = s.problem_id"). // Join the Score model
+		Joins("JOIN students AS st ON s.student_id = st.id").    // Join the Student model
 		Where("problems.tag = ?", tagID).
 		Scan(&results).Error
 

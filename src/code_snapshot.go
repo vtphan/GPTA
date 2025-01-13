@@ -196,8 +196,8 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 	var snapshotDetails SnapshotMessage
 	err := Database.Model(&CodeSnapshot{}). // Use the CodeSnapshot model
 						Select("cs.student_id, cs.problem_id, cs.code, p.filename, m.type").
-						Joins("join ? p on cs.problem_id = p.id", &Problem{}).  // Join the Problem model
-						Joins("join ? m on m.snapshot_id = cs.id", &Message{}). // Join the Message model
+						Joins("JOIN problems p ON cs.problem_id = p.id").  // Join the Problem model
+						Joins("JOIN messages m ON m.snapshot_id = cs.id"). // Join the Message model
 						Where("m.id = ?", messageID).
 						Scan(&snapshotDetails).Error
 
