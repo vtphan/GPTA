@@ -21,11 +21,13 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		Filename  string
 		Score     int
 	}
-	if err := Database.Model(&Problem{}). // Use the Problem model
-						Select("scores.student_id, problems.filename, scores.score").
-						Joins("JOIN ? scores ON problems.id = scores.problem_id", &Score{}). // Use the Score model
-						Find(&scores).Error; err != nil {
-		log.Fatal(err)
+	if err := Database.Model(&Problem{}).
+		Select("scores.student_id, problems.filename, scores.score").
+		Joins("JOIN scores ON problems.id = scores.problem_id").
+		Find(&scores).Error; err != nil {
+		log.Println("Error fetching scores:", err)
+		http.Error(w, "Failed to fetch scores", http.StatusInternalServerError)
+		return
 	}
 
 	// Map data to organize scores by filename.

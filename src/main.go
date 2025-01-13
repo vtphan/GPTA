@@ -194,6 +194,9 @@ func main() {
 		inform_name_server()
 	}
 	init_database(Config.Database, Config.DBUserName, Config.DBPassWord, Config.DBServerIP)
+	if err := loadActiveProblems(); err != nil {
+		log.Fatalf("Error loading active problems: %v", err)
+	}
 	if teacher_file != "" {
 		add_multiple(teacher_file, "teacher")
 	}
@@ -216,4 +219,34 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to serve gem server at " + Config.Address)
 	}
+}
+
+func loadActiveProblems() error {
+	var problems []Problem
+	err := Database.Where("problem_ended_at IS NULL").Find(&problems).Error
+	if err != nil {
+		return fmt.Errorf("failed to load active problems: %v", err)
+	}
+
+	for _, problem := range problems {
+		problemInfo := &ProblemInfo{
+			Description: problem.ProblemDescription,
+			Filename:    problem.Filename,
+			Answer:      problem.Answer,
+			Merit:       problem.Merit,
+			Effort:      problem.Effort,
+			Attempts:    problem.Attempts,
+			Topic_id:    problem.TopicID,
+			Tag:         fmt.Sprintf("%d", problem.Tag),
+			Pid:         problem.ID,
+			ExactAnswer: false, // Update this if exact answer is stored in `Problem`
+		}
+		ActiveProblems[problem.Filename] = &ActiveProblem{
+			Info:     problemInfo,
+			Answers:  []string{},
+			Active:   true,
+			Attempts: make(map[int]int),
+		}
+	}
+	return nil
 }
