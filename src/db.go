@@ -20,6 +20,41 @@ func execSQL(s string) {
 
 // TODO - See migrations for pervios entries...that is change the table names from student to students
 func create_tables() {
+	// Function to check if a table exists and rename it if necessary
+	renameTableIfExists := func(oldName, newName string) {
+		// Check if the table with the old name exists
+		if checkIfTableExists(oldName) {
+			// Check if the new table already exists to avoid renaming to an existing table
+			if !checkIfTableExists(newName) {
+				// Rename the old table to the new name
+				Database.Exec(fmt.Sprintf("ALTER TABLE %s RENAME TO %s", oldName, newName))
+			}
+		}
+	}
+
+	// Rename singular tables to plural names if they exist
+	renameTableIfExists("teacher", "teachers")
+	renameTableIfExists("student", "students")
+	renameTableIfExists("attendance", "attendances")
+	renameTableIfExists("tag", "tags")
+	renameTableIfExists("problem", "problems")
+	renameTableIfExists("submission", "submissions")
+	renameTableIfExists("score", "scores")
+	renameTableIfExists("feedback", "feedbacks")
+	renameTableIfExists("test_case", "test_cases")
+	renameTableIfExists("code_explanation", "code_explanations")
+	renameTableIfExists("help_message", "help_messages")
+	renameTableIfExists("code_snapshot", "code_snapshots")
+	renameTableIfExists("snapshot_feedback", "snapshot_feedbacks")
+	renameTableIfExists("snapshot_back_feedback", "snapshot_back_feedbacks")
+	renameTableIfExists("message", "messages")
+	renameTableIfExists("message_feedback", "message_feedbacks")
+	renameTableIfExists("message_back_feedback", "message_back_feedbacks")
+	renameTableIfExists("help_eligible", "help_eligibles")
+	renameTableIfExists("user_event_log", "user_event_logs")
+	renameTableIfExists("student_status", "student_statuses")
+	renameTableIfExists("problem_statistic", "problem_statistics")
+
 	execSQL("create table if not exists students (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists teachers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists attendances (id INT AUTO_INCREMENT NOT NULL, student_id INT NOT NULL, attendance_at timestamp, PRIMARY KEY (`id`))")
@@ -42,6 +77,13 @@ func create_tables() {
 	execSQL("create table if not exists student_statuses (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, coding_stat VARCHAR(50), help_stat VARCHAR(50), submission_stat VARCHAR(50), tutoring_stat VARCHAR(50), last_updated_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists problem_statistics (id INT AUTO_INCREMENT NOT NULL, problem_id INT not null, active INT default 0, submission INT default 0, help_request INT default 0, graded_correct INT default 0, graded_incorrect INT default 0, PRIMARY KEY (`id`))")
 	// foreign key example: http://www.sqlitetutorial.net/sqlite-foreign-key/
+}
+
+func checkIfTableExists(tableName string) bool {
+	var count int
+	query := fmt.Sprintf("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '%s'", tableName)
+	Database.Raw(query).Scan(&count)
+	return count > 0
 }
 
 // -----------------------------------------------------------------
