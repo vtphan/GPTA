@@ -108,9 +108,15 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	authorRole := r.FormValue("role")
 	now := time.Now()
 
+	_, err := AddMessage(snapshotID, "", authorID, authorRole, now, 1)
+	if err != nil {
+		log.Fatal("Could not save feedback for error: ", err)
+		// fmt.Fprintf(w, "Could not save feedback")
+		return
+	}
 	// Retrieve snapshot details
 	var snapshot CodeSnapshot
-	err := Database.Where("id = ?", snapshotID).First(&snapshot).Error
+	err = Database.Where("id = ?", snapshotID).First(&snapshot).Error
 	if err != nil {
 		log.Fatal("Error fetching code snapshot: ", err)
 		http.Error(w, "Could not find snapshot", http.StatusNotFound)
