@@ -237,9 +237,9 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 			Event      string
 		}
 
-		err := Database.Model(&Message{}). // Use the Message model
+		err := Database.Table("messages AS m"). // Explicitly set alias 'm'
 							Select("m.id, m.snapshot_id, m.message, m.author_id, m.author_role, m.given_at, m.type, cs.code, cs.event").
-							Joins("JOIN code_snapshots cs ON m.snapshot_id = cs.id"). // Join the CodeSnapshot model
+							Joins("JOIN code_snapshots cs ON m.snapshot_id = cs.id"). // Correctly joins with alias
 							Where("cs.problem_id = ? AND cs.student_id = ?", problemID, studentID).
 							Scan(&rawMessages).Error
 
