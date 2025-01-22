@@ -481,3 +481,35 @@ func UpdateMessageBackFeedback(useful string, givenAt time.Time, feedbackID, aut
 	}
 	return nil
 }
+
+func GetSubmissions() ([]Submission, error) {
+	var submissions []Submission
+	if err := DB.Model(&Submission{}).Select("problem_id", "student_id", "code_submitted_at").Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	return submissions, nil
+}
+
+func GetProblemUploadTime(pid int) (time.Time, error) {
+	var problem struct {
+		ProblemUploadedAt time.Time `gorm:"column:problem_uploaded_at"`
+	}
+	if err := DB.Model(&Problem{}).
+		Where("id = ?", pid).
+		Select("problem_uploaded_at").
+		First(&problem).Error; err != nil {
+		return time.Time{}, fmt.Errorf("failed to retrieve upload time for problem %d: %w", pid, err)
+	}
+	return problem.ProblemUploadedAt, nil
+}
+
+func GetSubmissionsByProblemID(pid int) ([]Submission, error) {
+	var submissions []Submission
+	if err := DB.Model(&Submission{}).
+		Where("problem_id = ?", pid).
+		Select("student_id", "submission_category", "code_submitted_at", "completed").
+		Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve submissions for problem %d: %w", pid, err)
+	}
+	return submissions, nil
+}

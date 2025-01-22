@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -11,7 +9,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type DailyActivityData struct {
 	Pids     map[int]bool
 	Sids     map[int]bool
@@ -20,19 +18,22 @@ type DailyActivityData struct {
 	SidCount int
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	rows, _ := Database.Query("select problem_id, student_id, code_submitted_at from submission")
-	var at time.Time
-	var pid, sid int
+	submissions, err := GetSubmissions()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error retrieving submissions: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	data := make(map[int64]*DailyActivityData)
-	for rows.Next() {
-		rows.Scan(&pid, &sid, &at)
-		date := time.Date(at.Year(), at.Month(), at.Day(), 0, 0, 0, 0, at.Location()).UnixNano()
+
+	for _, submission := range submissions {
+		date := time.Date(submission.CodeSubmittedAt.Year(), submission.CodeSubmittedAt.Month(), submission.CodeSubmittedAt.Day(), 0, 0, 0, 0, submission.CodeSubmittedAt.Location()).UnixNano()
 		if _, ok := data[date]; !ok {
 			data[date] = &DailyActivityData{
 				Pids:  make(map[int]bool),
@@ -41,10 +42,10 @@ func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		data[date].Count++
-		data[date].Pids[pid] = true
-		data[date].Sids[sid] = true
+		data[date].Pids[submission.ProblemID] = true
+		data[date].Sids[submission.StudentID] = true
 	}
-	rows.Close()
+
 	for d, _ := range data {
 		data[d].PidCount = len(data[d].Pids)
 		data[d].SidCount = len(data[d].Sids)
@@ -60,7 +61,7 @@ func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 var ACTIVITY_VIEW_TEMPLATE = `
 <html>
   <head>
