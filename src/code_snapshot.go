@@ -20,17 +20,11 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 	if !ok {
 		idx = len(Snapshots)
 		StudentSnapshot[studentID][problemID] = idx
-		rows, err := Database.Query("select name from student where id=?", studentID)
-		defer rows.Close()
+		name, err := GetStudentName(studentID)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Could not retrieve student name: ", err)
 			return -1
 		}
-		name := ""
-		if rows.Next() {
-			rows.Scan(&name)
-		}
-		rows.Close()
 		problemName := ""
 		for _, problem := range ActiveProblems {
 			if problem.Active == true && problem.Info.Pid == problemID {
@@ -69,7 +63,7 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 			NumFeedback: Snapshots[idx].NumFeedback,
 		}
 	}
-	return int(snapshotID)
+	return snapshotID
 }
 
 func codeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
@@ -93,49 +87,50 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	mid, err := AddMessage(snapshotID, "", authorID, authorRole, now, 1)
 	if err != nil {
 		log.Fatal("Could not save feedback for error: ", err)
-		// fmt.Fprintf(w, "Could not save feedback")
 		return
 	}
-	rows, err := Database.Query("select student_id, problem_id, code, filename from code_snapshot cs, problem p where cs.problem_id=p.id and cs.id=?", snapshotID)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
 
-	messageID := mid
-	studentID := -1
-	code := ""
-	filename := ""
-	problemID := -1
-	for rows.Next() {
-		rows.Scan(&studentID, &problemID, &code, &filename)
+	// Use GetCodeSnapshot instead of raw SQL query
+	codeSnapshot, err := GetCodeSnapshot(snapshotID)
+	if err != nil {
+		log.Fatal("Failed to retrieve code snapshot: ", err)
+		return
 	}
-	rows.Close()
-	if authorRole == "student" && studentID == authorID {
+
+	// Check if the author is trying to give feedback on their own code
+	if authorRole == "student" && codeSnapshot.StudentID == authorID {
 		fmt.Fprintf(w, "You can not give feedback to your own code.")
 		return
 	}
-	idx := StudentSnapshot[studentID][problemID]
+
+	// Update feedback count
+	idx := StudentSnapshot[codeSnapshot.StudentID][codeSnapshot.ProblemID]
 	Snapshots[idx].NumFeedback++
+
+	// Add feedback message
+	messageID := mid
 	id, err := AddMessageFeedback(messageID, feedback, authorID, authorRole, now)
 	if err != nil {
 		log.Fatal("Could not save feedback for error: ", err)
 		return
 	}
 	feedbackID := id
-	Students[studentID].SnapShotFeedbackQueue = append(Students[studentID].SnapShotFeedbackQueue, &SnapShotFeedback{
+
+	// Append feedback to the student's queue
+	Students[codeSnapshot.StudentID].SnapShotFeedbackQueue = append(Students[codeSnapshot.StudentID].SnapShotFeedbackQueue, &SnapShotFeedback{
 		FeedbackID:  int(feedbackID),
-		Snapshot:    code,
+		Snapshot:    codeSnapshot.Code,
 		Feedback:    feedback,
-		ProblemName: filename,
+		ProblemName: codeSnapshot.Event, // Assuming Event holds the problem name
 		Provider:    getName(uid, authorRole),
 	})
-	addOrUpdateStudentStatus(studentID, problemID, "", "Been helped", "", "")
+
+	// Update student status
+	addOrUpdateStudentStatus(codeSnapshot.StudentID, codeSnapshot.ProblemID, "", "Been helped", "", "")
 	if authorRole == "student" {
-		addOrUpdateStudentStatus(authorID, problemID, "", "", "", "Tutoring")
+		addOrUpdateStudentStatus(authorID, codeSnapshot.ProblemID, "", "", "", "Tutoring")
 	}
 	fmt.Println("Feedback on code snapshot saved!")
-	// http.Redirect(w, r, "/get_codespace?uid="+strconv.Itoa(authorID)+"&role="+authorRole+"&password="+r.FormValue("password"), http.StatusSeeOther)
 }
 
 func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {

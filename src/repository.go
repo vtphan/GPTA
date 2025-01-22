@@ -513,3 +513,26 @@ func GetSubmissionsByProblemID(pid int) ([]Submission, error) {
 	}
 	return submissions, nil
 }
+
+func GetStudentName(studentID int) (string, error) {
+	var student Student
+	if err := DB.Model(&Student{}).
+		Where("id = ?", studentID).
+		Select("name").
+		First(&student).Error; err != nil {
+		return "", fmt.Errorf("failed to retrieve student name for student ID %d: %w", studentID, err)
+	}
+	return student.Name, nil
+}
+
+func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
+	var codeSnapshot CodeSnapshot
+	if err := DB.Table("code_snapshot cs").
+		Joins("join problem p on cs.problem_id = p.id").
+		Where("cs.id = ?", snapshotID).
+		Select("cs.student_id, cs.problem_id, cs.code, cs.filename").
+		First(&codeSnapshot).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve code snapshot for snapshot ID %d: %w", snapshotID, err)
+	}
+	return &codeSnapshot, nil
+}
