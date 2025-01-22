@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -15,7 +13,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type BulletinBoardMessage struct {
 	Code           string
 	I              int
@@ -37,7 +35,7 @@ type BulletinBoardMessage struct {
 	Authenticated bool
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_adds_bulletin_pageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	BulletinSem.Lock()
 	defer BulletinSem.Unlock()
@@ -45,7 +43,7 @@ func teacher_adds_bulletin_pageHandler(w http.ResponseWriter, r *http.Request, w
 	fmt.Fprintf(w, "Content added to bulletin board")
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
 	BulletinSem.Lock()
 	defer BulletinSem.Unlock()
@@ -59,7 +57,7 @@ func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 	BulletinSem.Lock()
 	defer BulletinSem.Unlock()
@@ -93,14 +91,10 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 	for i, key := range keys {
 		p := ActiveProblems[key]
 		if p.Active {
-			rows, err := Database.Query("select problem_uploaded_at from problem where id = ?", p.Info.Pid)
+			starting_time, err := GetProblemUploadTime(p.Info.Pid)
 			if err != nil {
 				fmt.Println("Error retrieving problem starting time", err)
 				return &BulletinBoardMessage{}
-			}
-			var starting_time time.Time
-			for rows.Next() {
-				rows.Scan(&starting_time)
 			}
 			duration := time.Since(starting_time).Minutes()
 			subs := len(p.Attempts)
@@ -111,14 +105,6 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 	}
 	active_problems := strings.Join(submissions, ". ")
 	fmt.Println(">", active_problems)
-
-	// for pid, p := range ActiveProblems {
-	// 	if p.Active {
-	// 		answers += len(p.Answers)
-	// 	}
-	// 	fmt.Println(">", pid, p)
-	// 	cur_submissions = append(cur_submissions, len(p.Attempts))
-	// }
 
 	data := &BulletinBoardMessage{
 		Code:           code,
@@ -133,18 +119,16 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 		P2Answered:     len(HelpSubmissions) - len(WorkingHelpSubs),
 		P2Unanswered:   len(WorkingHelpSubs),
 		ActiveProblems: active_problems,
-		// ActiveProblems: len(ActiveProblems),
-		BulletinItems: len(BulletinBoard),
-		AnswerCount:   answers,
-		Attendance:    len(Students),
-		Address:       Config.Address,
-		Authenticated: passcode == Passcode,
+		BulletinItems:  len(BulletinBoard),
+		AnswerCount:    answers,
+		Attendance:     len(Students),
+		Address:        Config.Address,
+		Authenticated:  passcode == Passcode,
 	}
-	// log.Println("bulletin: ", len(WorkingHelpSubs), len(HelpSubmissions))
 	return data
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func bulletin_board_dataHandler(w http.ResponseWriter, r *http.Request) {
 	data := get_bulletin_board_data(0, "")
 	js, _ := json.Marshal(data)
@@ -153,7 +137,7 @@ func bulletin_board_dataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func view_bulletin_boardHandler(w http.ResponseWriter, r *http.Request) {
 	i, err := strconv.Atoi(r.FormValue("i"))
 	passcode := r.FormValue("pc")
