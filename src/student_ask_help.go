@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -11,7 +9,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, filename := r.FormValue("content"), r.FormValue("filename")
 	need_help_with := r.FormValue("need_help_with")
@@ -38,12 +36,12 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 			snapshotID = addCodeSnapshot(uid, pid, content, 0, now, "at_ask_for_help")
 			var result sql.Result
 			// result, err = AddHelpSubmissionSQL.Exec(pid, uid, snapshotID, "", need_help_with, now)
-			result, err = AddMessageSQL.Exec(snapshotID, need_help_with, uid, "student", now, 0)
+			result, err = AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
 			if err != nil {
 				log.Fatal(err)
 			}
 			sid, _ = result.LastInsertId()
-			_, err = IncProblemStatHelpSQL.Exec(pid)
+			err = IncrementProblemStatHelp(pid)
 			if err != nil {
 				log.Fatal(err)
 			}

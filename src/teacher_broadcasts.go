@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,9 +10,9 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 // func insert_problems(uid int, problems []*ProblemInfo) {
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func insert_problem(uid int, problem *ProblemInfo) {
 	// Create new problem
 	pid := int64(0)
@@ -28,16 +26,16 @@ func insert_problem(uid int, problem *ProblemInfo) {
 		}
 		rows.Close()
 		if tagID == 0 {
-			result, err := AddTagSQL.Exec(problem.Tag)
+			result, err := AddTag(problem.Tag)
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				tagID, _ = result.LastInsertId()
+				tagID = int64(result.ID)
 			}
 		}
 
 		// Insert only real problems into database
-		result, err := AddProblemSQL.Exec(
+		result, err := AddProblem(
 			uid,
 			problem.Description,
 			problem.Answer,
@@ -46,14 +44,11 @@ func insert_problem(uid int, problem *ProblemInfo) {
 			problem.Effort,
 			problem.Attempts,
 			problem.Topic_id,
-			int(tagID),
-			time.Now(),
-		)
+			int(tagID))
 		if err != nil {
 			log.Fatal(err)
 		}
-		pid, _ = result.LastInsertId()
-		problem.Pid = int(pid)
+		problem.Pid = result.ID
 		ActiveProblems[problem.Filename] = &ActiveProblem{
 			Info:     problem,
 			Answers:  make([]string, 0),
@@ -61,16 +56,16 @@ func insert_problem(uid int, problem *ProblemInfo) {
 			Attempts: make(map[int]int),
 		}
 		HelpEligibleStudents[int(pid)] = map[int]bool{}
-		_, err = AddProblemStatisticsSQL.Exec(problem.Pid)
+		err = AddProblemStatistics(problem.Pid)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-//-----------------------------------------------------------------------------------
-// Teacher starts one or more problems.
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
+// TeacherMap starts one or more problems.
+// -----------------------------------------------------------------------------------
 func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content := r.FormValue("content")
 	answer := r.FormValue("answer")

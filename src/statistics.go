@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -26,7 +24,7 @@ type StatsData struct {
 	// Durations          map[string]float64
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
@@ -74,7 +72,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		participants := make(map[int]int)
 		for rows.Next() {
 			rows.Scan(&student_id, &score, &attempts, &prob_at, &prob_content, &sub_id, &sub_at, &sub_completed)
-			// Submission id is ordered descendingly.
+			// SubmissionStruct id is ordered descendingly.
 			// Therefore, only the last submission of student is looked at.
 			if _, ok := participants[student_id]; !ok {
 				participants[student_id] = sub_id
@@ -124,7 +122,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 var STATS_TEMPLATE = `
 <html>
   <head>

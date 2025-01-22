@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func add_multiple(filename, role string) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -34,26 +34,25 @@ func add_multiple(filename, role string) {
 	}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func add_user(name, role string, password string) {
 	var err error
-	var rows *sql.Rows
-	var result sql.Result
-	var id int64
+	var teacher Teacher
+	var student Student
+	var id int
 
 	if role == "teacher" {
-		rows, err = Database.Query("select name from teacher where name=?", name)
-		if err != nil {
+		teacher, err = FindTeacherByName(name)
+		if err != nil && err.Error() != RecordNotFound {
 			log.Fatal(err)
 		}
 	} else {
-		rows, err = Database.Query("select name from student where name=?", name)
-		if err != nil {
+		student, err = FindStudentByName(name)
+		if err != nil && err.Error() != RecordNotFound {
 			log.Fatal(err)
 		}
 	}
-	defer rows.Close()
-	for rows.Next() {
+	if err != nil && err.Error() == RecordNotFound {
 		fmt.Printf("%s already exists. Choose a different name.\n", name)
 		return
 	}
@@ -61,26 +60,27 @@ func add_user(name, role string, password string) {
 		password = RandStringRunes(12)
 	}
 	if role == "teacher" {
-		result, err = AddTeacherSQL.Exec(name, password)
+		teacher, err = AddTeacher(name, password)
 	} else {
-		result, err = AddStudentSQL.Exec(name, password)
+		student, err = AddStudent(name, password)
 	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	id, err = result.LastInsertId()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if role == "teacher" {
-		init_teacher(int(id), name, password)
+		id = teacher.ID
 	} else {
-		init_student(int(id), name, password)
+		id = student.ID
+	}
+	if role == "teacher" {
+		init_teacher(id, name, password) //todo - map
+	} else {
+		init_student(id, name, password) //todo - map
 	}
 	fmt.Printf("|%s| is added. Must complete registeration.\n", name)
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	role := r.FormValue("role")

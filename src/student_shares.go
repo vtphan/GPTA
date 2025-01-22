@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,13 +10,13 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, filename := r.FormValue("content"), r.FormValue("filename")
 	answer := r.FormValue("answer")
 	test_cases := r.FormValue("testcases")
 	priority, _ := strconv.Atoi(r.FormValue("priority"))
-	sid := int64(0)
+	sid := 0
 	correct_answer := ""
 	complete := false
 	var err error
@@ -61,7 +59,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 					scoring_mesg = add_or_update_score("correct", pid, uid, 0, -1)
 					ActiveProblems[filename].Attempts[uid] = 0 // This prevents further submission
 					complete = true
-					_, err = IncProblemStatGradedCorrectSQL.Exec(pid)
+					err = IncrementProblemStatGradedCorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -70,7 +68,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 					decision = "incorrect"
 					scoring_mesg = add_or_update_score("incorrect", pid, uid, 0, -1)
 					complete = true
-					_, err = IncProblemStatGradedIncorrectSQL.Exec(pid)
+					err = IncrementProblemStatGradedIncorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -86,24 +84,24 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			// Add submitted but not graded code to code snapshot.
 			snapshotID = addCodeSnapshot(uid, pid, content, 1, now, "at_submission")
 
-			var result sql.Result
+			var result Submission
 			if complete {
-				result, err = AddSubmissionCompleteSQL.Exec(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
+				result, err = AddSubmissionComplete(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
 			} else {
-				result, err = AddSubmissionSQL.Exec(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
+				result, err = AddSubmission(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
 			}
 			if err != nil {
 
 				log.Fatal(err)
 			}
-			sid, _ = result.LastInsertId()
+			sid = result.ID
 
-			_, err = IncProblemStatSubmissionSQL.Exec(pid)
+			err = IncrementProblemStatSubmission(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
 			if complete {
-				_, err := CompleteSubmissionSQL.Exec(time.Now(), decision, sid)
+				err := CompleteSubmission(time.Now(), decision, sid)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -120,9 +118,9 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 				}
 				rows.Close()
 				if tc_id != 0 {
-					_, err = UpdateTestCaseSQL.Exec(test_cases, now, tc_id)
+					err = UpdateTestCase(test_cases, now, tc_id)
 				} else {
-					_, err = AddTestCaseSQL.Exec(pid, uid, test_cases, now)
+					_, err = AddTestCase(pid, uid, test_cases, now)
 				}
 				if err != nil {
 					log.Fatal(err)
@@ -137,7 +135,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 						// fmt.Fprintf(w, "You are now elligible to help you friends. To help please click on 'Help Friends' button.")
 						msg = msg + "\nYou are now elligible to help you friends. To help please click on 'Help Friends' button."
 
-						_, err = AddHelpEligibleSQL.Exec(pid, uid, now)
+						_, err = AddHelpEligible(pid, uid, now)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -151,7 +149,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 	if !complete {
 		SubSem.Lock()
 		defer SubSem.Unlock()
-		sub := &Submission{
+		sub := &SubmissionStruct{
 			Sid:           int(sid),
 			Uid:           uid,
 			Pid:           pid,

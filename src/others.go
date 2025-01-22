@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -10,7 +8,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	fmt.Fprintf(w, Passcode)
 }
@@ -19,7 +17,7 @@ func student_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who st
 	fmt.Fprintf(w, Passcode)
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	// Show content of boards
 	fmt.Println("Students:", len(Students))
@@ -75,5 +73,5 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 }
 
 func logEvent(eventName string, userID int, userType, eventType, otherInfo string) {
-	AddUserEventLogSQL.Exec(eventName, userID, userType, eventType, otherInfo, time.Now())
+	_, _ = AddUserEventLog(eventName, userID, userType, eventType, otherInfo, time.Now())
 }

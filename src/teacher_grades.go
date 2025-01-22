@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,7 +10,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func extract_partial_credits(content string) int {
 	re := regexp.MustCompile(`(\d)+ for effort`)
 	result := re.FindSubmatch([]byte(content))
@@ -24,7 +22,7 @@ func extract_partial_credits(content string) int {
 	}
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, decision := r.FormValue("content"), r.FormValue("decision")
 	sid, _ := strconv.Atoi(r.FormValue("sid"))
@@ -41,7 +39,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 	if changed == "True" {
 		// If the original file is changed, there's feedback.  Copy it to whiteboard.
 		if prob, ok := ActiveProblems[sub.Filename]; ok {
-			_, err := AddFeedbackSQL.Exec(uid, student_id, content, time.Now(), sub.Sid)
+			_, err := AddFeedback(uid, student_id, content, time.Now(), sub.Sid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -72,7 +70,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		Students[sub.Uid].SubmissionStatus = append(Students[sub.Uid].SubmissionStatus, subStat)
 
 		ActiveProblems[sub.Filename].Attempts[student_id] += 1
-		fmt.Fprintf(w, "Submission dismissed.")
+		fmt.Fprintf(w, "SubmissionStruct dismissed.")
 	} else if decision == "ungraded" {
 		// Students[student_id].SubmissionStatus = 5
 		subStat := &StudentSubmissionStatus{
@@ -107,7 +105,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 					HelpEligibleStudents[pid][sub.Uid] = true
 					SeenHelpSubmissions[sub.Uid] = map[int]bool{}
 					// Add eligible timestamp to datbase
-					_, err := AddHelpEligibleSQL.Exec(pid, sub.Uid, now)
+					_, err := AddHelpEligible(pid, sub.Uid, now)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -118,7 +116,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 
 			// Add the correct submission to codesnapshot.
 			// addCodeSnapshot(sub.Uid, pid, content, 3, now)
-			_, err := IncProblemStatGradedCorrectSQL.Exec(pid)
+			err := IncrementProblemStatGradedCorrect(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -135,7 +133,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 
 			// Add the incorrect submission to codesnapshot.
 			// addCodeSnapshot(sub.Uid, sub.Pid, content, 2, time.Now())
-			_, err := IncProblemStatGradedIncorrectSQL.Exec(sub.Pid)
+			err := IncrementProblemStatGradedIncorrect(sub.Pid)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -143,7 +141,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		}
 
 		// Update submission complete time
-		_, err := CompleteSubmissionSQL.Exec(time.Now(), decision, sid)
+		err := CompleteSubmission(time.Now(), decision, sid)
 		if err != nil {
 			log.Fatal(err)
 		}

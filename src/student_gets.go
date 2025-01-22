@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -9,7 +7,7 @@ import (
 	"net/http"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func student_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	var js []byte
 	var err error
@@ -22,7 +20,7 @@ func student_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		for _, b := range Students[uid].Boards {
 			if b.Pid != 0 {
 				addOrUpdateStudentStatus(uid, b.Pid, "Working", "", "", "")
-				IncProblemStatActiveSQL.Exec(b.Pid)
+				_ = IncrementProblemStatActive(b.Pid)
 			}
 		}
 		Students[uid].Boards = []*Board{}

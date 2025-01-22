@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -12,7 +10,7 @@ import (
 	"time"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
 	pid := 0
@@ -72,11 +70,11 @@ func student_return_without_feedbackHandler(w http.ResponseWriter, r *http.Reque
 func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionID, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
-	res, err := AddHelpMessageSQL.Exec(submissionID, uid, message, time.Now())
+	res, err := AddHelpMessage(submissionID, uid, message, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
-	messageID, _ := res.LastInsertId()
+	messageID := res.ID // todo test this ID coming correctly
 	// student_id := 0
 	// rows, _ := Database.Query("select student_id from code_explanation where id=?", submission_id)
 	// for rows.Next() {
@@ -103,7 +101,7 @@ func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, wh
 func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	messageID, _ := strconv.Atoi(r.FormValue("message_id"))
 	useful := r.FormValue("useful")
-	_, err := UpdateHelpMessageSQL.Exec(useful, time.Now(), messageID)
+	err := UpdateHelpMessage(useful, time.Now(), messageID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,13 +129,13 @@ func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who 
 	}
 	if rows.Next() {
 		rows.Close()
-		_, err = UpdateMessageBackFeedbackSQL.Exec(backFeedback, time.Now(), feedbackID, uid, authorRole)
+		err = UpdateMessageBackFeedback(backFeedback, time.Now(), feedbackID, uid, authorRole)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		rows.Close()
-		_, err = AddMessageBackFeedbackSQL.Exec(feedbackID, uid, authorRole, backFeedback, time.Now())
+		err = AddMessageBackFeedback(feedbackID, uid, authorRole, backFeedback)
 		if err != nil {
 			log.Fatal(err)
 		}
