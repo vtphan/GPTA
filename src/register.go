@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -85,41 +84,36 @@ func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	role := r.FormValue("role")
 	course_id := r.FormValue("course_id")
+
+	// Check course ID
 	if course_id != Config.CourseId {
 		fmt.Fprintf(w, "Failed")
 		return
 	}
-	var err error
-	var rows *sql.Rows
+
+	var msg string
+
 	if role == "teacher" {
-		rows, err = Database.Query("select id, password from teacher where name=?", name)
-		defer rows.Close()
+		teacher, err := GetTeacherByName(name)
+		if err != nil {
+			fmt.Fprintf(w, "Failed")
+			return
+		}
+		msg = fmt.Sprintf("%d,%s", teacher.ID, teacher.Password)
 	} else if role == "student" {
-		rows, err = Database.Query("select id, password from student where name=?", name)
-		defer rows.Close()
+		student, err := GetStudentByName(name)
+		if err != nil {
+			fmt.Fprintf(w, "Failed")
+			return
+		}
+		msg = fmt.Sprintf("%d,%s", student.ID, student.Password)
 	} else {
 		fmt.Fprintf(w, "Failed")
 		return
 	}
-	if err != nil {
-		fmt.Fprintf(w, "Failed")
-		// log.Fatal(err)
-	}
-	var password string
-	var id int
-	for rows.Next() {
-		rows.Scan(&id, &password)
-		msg := fmt.Sprintf("%d,%s", id, password)
-		// msg := ""
-		// if Config.NameServer != "" {
-		// 	msg = fmt.Sprintf("%d,%s,%s,%s", id, password, Config.CourseId, Config.NameServer)
-		// } else {
-		// 	msg = fmt.Sprintf("%d,%s,%s", id, password, Config.CourseId)
-		// }
-		fmt.Fprintf(w, msg)
-		return
-	}
-	fmt.Fprintf(w, "Failed")
+
+	// Respond with the appropriate message
+	fmt.Fprintf(w, msg)
 }
 
 //-----------------------------------------------------------------

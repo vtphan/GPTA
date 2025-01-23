@@ -2,8 +2,6 @@ package main
 
 import (
 	"html/template"
-	"log"
-	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -62,8 +60,12 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	// Retrieve all students
 	students := GetAllStudents()
 
-	// Query to retrieve the last updated time for each student for the given problem
+	// Retrieve code snapshots for the problem
 	codeSnapshots, err := GetCodeSnapshotsByProblemID(problemID)
+	if err != nil {
+		http.Error(w, "Error fetching code snapshots", http.StatusInternalServerError)
+		return
+	}
 
 	// Initialize map for storing the last update for each student
 	lastUpdateMap := make(map[int]time.Time)
@@ -77,40 +79,37 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		}
 	}
 
-	rows, err = Database.Query("select problem_description, problem_ended_at from problem where id=?", problemID)
-	defer rows.Close()
+	// Retrieve problem description and end time
+	code, problemEndedAt, err := GetProblemDetail(problemID)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Error fetching problem details", http.StatusInternalServerError)
+		return
 	}
-	var code string
-	var problemEndedAt time.Time
-	if rows.Next() {
-		rows.Scan(&code, &problemEndedAt)
-	}
-	rows.Close()
+
+	// Retrieve latest submission times for the problem
 	latestSubmissionTime := GetLatestSubmissionTime(problemID)
-	rows, err = Database.Query("select student_id, coding_stat, help_stat, submission_stat, tutoring_stat from student_status where problem_id=?", problemID)
-	defer rows.Close()
+
+	// Retrieve student statuses for the problem
+	studentStatuses, err := GetStudentStatusesByProblemID(problemID)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Error fetching student statuses", http.StatusInternalServerError)
+		return
 	}
-	var codingStat, submissionStat, helpStat, tutoringStat string
+
 	var studentInfo []*DashBoardStudentInfo
-	for rows.Next() {
-		rows.Scan(&studentID, &codingStat, &helpStat, &submissionStat, &tutoringStat)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	for _, status := range studentStatuses {
+		if role == "teacher" || uid == status.StudentID || (PeerTutorAllowed && ok) {
 			studentInfo = append(studentInfo, &DashBoardStudentInfo{
-				StudentID:      studentID,
-				StudentName:    students[studentID],
-				LastUpdatedAt:  lastUpdateMap[studentID],
-				CodingStat:     codingStat,
-				HelpStat:       helpStat,
-				SubmissionStat: submissionStat,
-				TutoringStat:   tutoringStat,
+				StudentID:      status.StudentID,
+				StudentName:    students[status.StudentID],
+				LastUpdatedAt:  lastUpdateMap[status.StudentID],
+				CodingStat:     status.CodingStat,
+				HelpStat:       status.HelpStat,
+				SubmissionStat: status.SubmissionStat,
+				TutoringStat:   status.TutoringStat,
 			})
 		}
 	}
-	rows.Close()
 
 	sort.SliceStable(studentInfo, func(i, j int) bool {
 		if studentInfo[i].SubmissionStat == "submitted" && studentInfo[j].SubmissionStat == "submitted" {
@@ -135,29 +134,11 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 
 	var answerStats []*AnswerStatInfo
 	if role != "student" {
-		rows, err = Database.Query("select answer, count(*) as cnt from submission where problem_id = ? and answer is not NULL and LENGTH(answer)>0 group by answer", problemID)
-		defer rows.Close()
+		answerStats, err = GetAnswerStats(problemID)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, "Error fetching answer stats", http.StatusInternalServerError)
+			return
 		}
-		var ans string
-		var c int
-		var total int
-		for rows.Next() {
-			rows.Scan(&ans, &c)
-			if ans != "" {
-				answerStats = append(answerStats, &AnswerStatInfo{
-					Answer: ans,
-					Count:  c,
-				})
-			}
-			total += c
-		}
-		for i, answer := range answerStats {
-			answerStats[i].Percent = float64(answer.Count) * 100.0 / float64(total)
-			answerStats[i].Percent = math.Round(answerStats[i].Percent*100) / 100
-		}
-		rows.Close()
 	}
 
 	dashBoardData := &DashBoardInfo{
@@ -177,16 +158,19 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		Password:           password,
 		Username:           getName(uid, role),
 	}
+
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"formatTimeSince": formatTimeSince}
 	t, err := temp.Funcs(ownFuncs).Parse(PROBLEM_DASHBOARD_TEMPLATE)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Error parsing template", http.StatusInternalServerError)
+		return
 	}
+
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, dashBoardData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		return
 	}
 }

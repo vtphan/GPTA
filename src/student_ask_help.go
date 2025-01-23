@@ -2,7 +2,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +17,6 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 		need_help_with = "None."
 	}
 
-	var err error
 	msg := "your help message has been sent"
 
 	pid := 0
@@ -34,13 +32,13 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 			}
 			now := time.Now()
 			snapshotID = addCodeSnapshot(uid, pid, content, 0, now, "at_ask_for_help")
-			var result sql.Result
+
 			// result, err = AddHelpSubmissionSQL.Exec(pid, uid, snapshotID, "", need_help_with, now)
-			result, err = AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
+			result, err := AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
 			if err != nil {
 				log.Fatal(err)
 			}
-			sid, _ = result.LastInsertId()
+			sid = int64(result)
 			err = IncrementProblemStatHelp(pid)
 			if err != nil {
 				log.Fatal(err)

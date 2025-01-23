@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"log"
+	"math"
 	"time"
 )
 
@@ -753,4 +754,188 @@ func GetCodeSnapshotsByProblemID(problemID int) ([]CodeSnapshot, error) {
 		log.Fatalf("Failed to fetch code snapshots: %v", err)
 	}
 	return codeSnapshots, err
+}
+
+func GetProblemDetail(problemID int) (string, time.Time, error) {
+	var problem struct {
+		Description    string
+		ProblemEndedAt time.Time
+	}
+	err := DB.Table("problem").
+		Select("problem_description as description, problem_ended_at").
+		Where("id = ?", problemID).
+		Scan(&problem).Error
+	return problem.Description, problem.ProblemEndedAt, err
+}
+
+func GetStudentStatusesByProblemID(problemID int) ([]StudentStatus, error) {
+	var statuses []StudentStatus
+	err := DB.Where("problem_id = ?", problemID).Find(&statuses).Error
+	return statuses, err
+}
+
+func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
+	var stats []struct {
+		Answer string
+		Count  int
+	}
+	err := DB.Table("submission").
+		Select("answer, COUNT(*) as count").
+		Where("problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0", problemID).
+		Group("answer").
+		Scan(&stats).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	var answerStats []*AnswerStatInfo
+	var total int
+	for _, stat := range stats {
+		total += stat.Count
+	}
+	for _, stat := range stats {
+		percent := float64(stat.Count) * 100.0 / float64(total)
+		percent = math.Round(percent*100) / 100
+		answerStats = append(answerStats, &AnswerStatInfo{
+			Answer:  stat.Answer,
+			Count:   stat.Count,
+			Percent: percent,
+		})
+	}
+
+	return answerStats, nil
+}
+
+// GetProblems fetches all problems from the database with the specified fields.
+func GetProblems() ([]Problem, error) {
+	var problems []Problem
+
+	// Query the database to fetch the required fields for all problems
+	if err := DB.Select("id, filename, problem_uploaded_at, problem_ended_at").Find(&problems).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch problems: %w", err)
+	}
+
+	return problems, nil
+}
+
+func GetTeacherByName(name string) (Teacher, error) {
+	var teacher Teacher
+	if err := DB.Where("name = ?", name).First(&teacher).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return teacher, fmt.Errorf("teacher not found")
+		}
+		return teacher, fmt.Errorf("failed to fetch teacher: %w", err)
+	}
+	return teacher, nil
+}
+
+func GetStudentByName(name string) (Student, error) {
+	var student Student
+	if err := DB.Where("name = ?", name).First(&student).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return student, fmt.Errorf("student not found")
+		}
+		return student, fmt.Errorf("failed to fetch student: %w", err)
+	}
+	return student, nil
+}
+
+func GetTags() (map[int]string, error) {
+	var tags []Tag
+	if err := DB.Find(&tags).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve tags: %w", err)
+	}
+
+	tagMap := make(map[int]string)
+	for _, tag := range tags {
+		tagMap[tag.ID] = tag.TopicDescription
+	}
+
+	return tagMap, nil
+}
+
+func GetStudentScores() (map[int]*ScoreEntry, error) {
+	var scores []struct {
+		Score                  int
+		GradedSubmissionNumber int
+		StudentID              int
+		StudentName            string
+	}
+
+	if err := DB.Table("score").
+		Joins("join student on score.student_id = student.id").
+		Select("score.score, score.graded_submission_number, score.student_id, student.name").
+		Find(&scores).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve scores: %w", err)
+	}
+
+	scoreEntries := make(map[int]*ScoreEntry)
+	for _, score := range scores {
+		if _, ok := scoreEntries[score.StudentID]; !ok {
+			scoreEntries[score.StudentID] = &ScoreEntry{Name: score.StudentName}
+		}
+		scoreEntries[score.StudentID].Points += score.Score
+		scoreEntries[score.StudentID].Attempts += score.GradedSubmissionNumber
+		scoreEntries[score.StudentID].Count++
+	}
+
+	return scoreEntries, nil
+}
+
+func GetTagDescriptionByID(tagID int) (string, error) {
+	var tag Tag
+	if err := DB.Where("id = ?", tagID).First(&tag).Error; err != nil {
+		return "", fmt.Errorf("failed to retrieve tag description: %w", err)
+	}
+	return tag.TopicDescription, nil
+}
+
+func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error) {
+	var results []struct {
+		Pid       int
+		Merit     int
+		At        time.Time
+		Points    int
+		StudentID int
+	}
+
+	if err := DB.Table("problems").
+		Joins("join scores on problems.id = scores.problem_id").
+		Joins("join students on scores.student_id = students.id").
+		Where("problems.tag = ?", tagID).
+		Select("problems.id, problems.merit, problems.at, scores.points, scores.student_id").
+		Find(&results).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve problem performance: %w", err)
+	}
+
+	record := make(map[int]*ProblemPerformance)
+	for _, result := range results {
+		if _, ok := record[result.Pid]; !ok {
+			record[result.Pid] = &ProblemPerformance{
+				Pid:       result.Pid,
+				Timestamp: result.At.UnixNano(),
+				Correct:   0,
+				Incorrect: 0,
+				Activity:  0,
+				PC:        Passcode,
+			}
+		}
+		if result.Merit == result.Points {
+			record[result.Pid].Correct++
+		} else {
+			record[result.Pid].Incorrect++
+		}
+		record[result.Pid].Activity += 1.0
+	}
+
+	return record, nil
+}
+
+func GetStudentCount() (float32, error) {
+	var count int64 // Use int64 instead of int
+	if err := DB.Table("student").Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("failed to get student count: %w", err)
+	}
+	return float32(count), nil
 }

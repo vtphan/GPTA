@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -8,10 +6,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"net/http"
-	"time"
+	"strconv"
 )
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type ScoreEntry struct {
 	Name     string
 	Points   int
@@ -26,55 +24,37 @@ type TagsViewData struct {
 	PC              string
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func reportHandler(w http.ResponseWriter, r *http.Request) {
+	// Check passcode
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	rows, _ := Database.Query("select id, topic_description from tag")
-	record := &TagsViewData{
-		Tags:            make(map[int]string),
-		SubmissionCount: make(map[string]int),
-		Scores:          make(map[int]*ScoreEntry),
-		PC:              Passcode,
-	}
 
-	var id int
-	var des string
-	for rows.Next() {
-		rows.Scan(&id, &des)
-		record.Tags[id] = des
-	}
-	rows.Close()
-
-	rows, _ = Database.Query("select code_submitted_at from submission")
-	var at time.Time
-	for rows.Next() {
-		rows.Scan(&at)
-		date := fmt.Sprintf("%d.%d.%d", at.Month(), at.Day(), at.Year())
-		record.SubmissionCount[date]++
-	}
-	rows.Close()
-
-	rows, err := Database.Query("select score.score, score.graded_submission_number, score.student_id, student.name from score join student on score.student_id=student.id")
+	// Fetch tags
+	tags, err := GetTags()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	var points, attempts, student_id int
-	var stname string
-	for rows.Next() {
-		rows.Scan(&points, &attempts, &student_id, &stname)
-		if _, ok := record.Scores[student_id]; !ok {
-			record.Scores[student_id] = &ScoreEntry{Name: stname}
-		}
-		record.Scores[student_id].Points += points
-		record.Scores[student_id].Attempts += attempts
-		record.Scores[student_id].Count += 1
-	}
-	rows.Close()
 
+	// Fetch student scores
+	scores, err := GetStudentScores()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Prepare the data for rendering
+	record := &TagsViewData{
+		Tags:            tags,
+		Scores:          scores,
+		SubmissionCount: make(map[string]int), // You can add logic to fill this if needed
+		PC:              Passcode,
+	}
+
+	// Render the view
 	w.Header().Set("Content-Type", "text/html")
 	t, _ := template.New("").Parse(TAGS_VIEW_TEMPLATE)
 	err = t.Execute(w, record)
@@ -149,7 +129,7 @@ var TAGS_VIEW_TEMPLATE = `
 </html>
 `
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 type ProblemPerformance struct {
 	Pid       int
 	Timestamp int64
@@ -165,65 +145,54 @@ type TagData struct {
 	Performance map[int]*ProblemPerformance
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func report_tagHandler(w http.ResponseWriter, r *http.Request) {
+	// Check passcode
 	if r.FormValue("pc") != Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	tag_id := r.FormValue("tag_id")
-	row, _ := Database.Query("select topic_description from tag where id=? limit 1", tag_id)
-	tag_description := ""
-	for row.Next() {
-		row.Scan(&tag_description)
-	}
-	row.Close()
 
-	query := "select problem.id, problem.merit, problem.at, score.points, score.student_id from problem join score on problem.id=score.problem_id join student where problem.tag=?"
-	rows, err := Database.Query(query, tag_id)
+	// Get tag_id from request
+	tag_id := r.FormValue("tag_id")
+	tagID, err := strconv.Atoi(tag_id)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error converting tag_id to int:", err)
 		return
 	}
-	var pid, merit, points, student_id int
-	var at time.Time
-	record := make(map[int]*ProblemPerformance)
-	for rows.Next() {
-		rows.Scan(&pid, &merit, &at, &points, &student_id)
-		if _, ok := record[pid]; !ok {
-			record[pid] = &ProblemPerformance{
-				Pid:       pid,
-				Timestamp: at.UnixNano(),
-				Correct:   0,
-				Incorrect: 0,
-				Activity:  0,
-				PC:        Passcode,
-			}
-		}
-		if merit == points {
-			record[pid].Correct++
-		} else {
-			record[pid].Incorrect++
-		}
-		record[pid].Activity += 1.0
-	}
-	rows.Close()
 
-	var student_count float32
-	rows, err = Database.Query("select count(*) from student")
-	for rows.Next() {
-		rows.Scan(&student_count)
+	// Get the tag description using GORM
+	tagDescription, err := GetTagDescriptionByID(tagID)
+	if err != nil {
+		fmt.Println("Error retrieving tag description:", err)
+		return
 	}
-	rows.Close()
+	fmt.Println("Tag Description:", tagDescription)
 
+	// Get problem performance data by tag ID
+	record, err := GetProblemPerformanceByTagID(tagID)
+	if err != nil {
+		fmt.Println("Error retrieving problem performance:", err)
+		return
+	}
+
+	// Get the student count
+	studentCount, err := GetStudentCount()
+	if err != nil {
+		fmt.Println("Error retrieving student count:", err)
+		return
+	}
+
+	// Calculate success and activity for each problem
 	for pid, _ := range record {
 		record[pid].Success = float32(record[pid].Correct) / float32(record[pid].Correct+record[pid].Incorrect)
-		record[pid].Activity = record[pid].Activity / student_count
+		record[pid].Activity = record[pid].Activity / studentCount
 	}
 
+	// Render the template with the tag description and performance data
 	w.Header().Set("Content-Type", "text/html")
 	t, _ := template.New("").Parse(TAG_REPORT_TEMPLATE)
-	err = t.Execute(w, &TagData{Description: tag_description, Performance: record})
+	err = t.Execute(w, &TagData{Description: tagDescription, Performance: record})
 	if err != nil {
 		fmt.Println(err)
 	}
