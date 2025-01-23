@@ -163,3 +163,12 @@ type MessageBackFeedback struct {
 	Useful            string `gorm:"size:50"`
 	GivenAt           time.Time
 }
+
+type SnapshotBackFeedback struct {
+	ID                 int `gorm:"primaryKey;autoIncrement"`
+	SnapshotFeedbackID int
+	AuthorID           int
+	AuthorRole         string `gorm:"size:50"`
+	IsHelpful          string `gorm:"size:50"`
+	GivenAt            time.Time
+}

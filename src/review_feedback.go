@@ -13,14 +13,14 @@ func getFeedbackData(rows *sql.Rows, uid int, role string) []*FeedbackData {
 	var feedbacks []*FeedbackData
 	feedbackID, feedback, authorID, authorRole, givenAt, code := 0, "", 0, "", time.Now(), ""
 
-	upvote, downvote := 0, 0
+	upvote, downvote := int64(0), int64(0)
 	currentUserVote := ""
 
 	for rows.Next() {
 		rows.Scan(&feedbackID, &feedback, &authorID, &authorRole, &givenAt, &code)
 
-		upvote = getVoteCount(feedbackID, "yes")
-		downvote = getVoteCount(feedbackID, "no")
+		upvote, _ = GetVoteCount(feedbackID, "yes")
+		downvote, _ = GetVoteCount(feedbackID, "no")
 		rows2, err := Database.Query("select is_helpful from snapshot_back_feedback where snapshot_feedback_id=? and author_id=? and author_role=?", feedbackID, uid, role)
 		defer rows2.Close()
 		if err != nil {

@@ -174,6 +174,14 @@ type ActiveProblem struct {
 	Attempts map[int]int
 }
 
+type CodeSnapshotMessageDetails struct {
+	StudentID   int    `gorm:"column:student_id"`
+	ProblemID   int    `gorm:"column:problem_id"`
+	Code        string `gorm:"column:code"`
+	Filename    string `gorm:"column:filename"`
+	MessageType string `gorm:"column:message_type"`
+}
+
 var ActiveProblems = make(map[string]*ActiveProblem)
 
 //---------------------------------------------------------

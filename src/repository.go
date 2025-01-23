@@ -530,9 +530,32 @@ func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
 	if err := DB.Table("code_snapshot cs").
 		Joins("join problem p on cs.problem_id = p.id").
 		Where("cs.id = ?", snapshotID).
-		Select("cs.student_id, cs.problem_id, cs.code, cs.filename").
+		Select("cs.student_id, cs.problem_id, cs.code, p.filename").
 		First(&codeSnapshot).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve code snapshot for snapshot ID %d: %w", snapshotID, err)
 	}
 	return &codeSnapshot, nil
+}
+
+func GetCodeSnapshotMessageDetails(messageID int) ([]CodeSnapshotMessageDetails, error) {
+	var details []CodeSnapshotMessageDetails
+	if err := DB.Table("code_snapshot cs").
+		Select("cs.student_id AS student_id, cs.problem_id AS problem_id, cs.code AS code, p.filename AS filename, m.type AS message_type").
+		Joins("JOIN problem p ON cs.problem_id = p.id").
+		Joins("JOIN message m ON m.snapshot_id = cs.id").
+		Where("m.id = ?", messageID).
+		Find(&details).Error; err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	return details, nil
+}
+
+func GetVoteCount(feedbackID int, voteType string) (int64, error) {
+	var count int64
+	if err := DB.Model(&SnapshotBackFeedback{}).
+		Where("is_helpful = ? AND snapshot_feedback_id = ?", voteType, feedbackID).
+		Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("failed to execute query: %w", err)
+	}
+	return count, nil
 }
