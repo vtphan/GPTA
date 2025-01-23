@@ -10,7 +10,6 @@ import (
 	// "math"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type StatsData struct {
@@ -36,21 +35,12 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Unknown problem")
 		return
 	}
-	if pid <= 0 { // select the last problem (max id)
-		// for _, p := range ActiveProblems {
-		// 	if pid < p.Info.Pid {
-		// 		pid = p.Info.Pid
-		// 	}
-		// }
-		row, err := Database.Query("select id from problem order by id desc limit 1")
+	if pid <= 0 { // Select the last problem (max id)
+		pid, err = GetLatestProblemID()
 		if err != nil {
-			fmt.Println("Error retrieving latest problem", err)
+			fmt.Println("Error retrieving latest problem:", err)
 			return
 		}
-		for row.Next() {
-			row.Scan(&pid)
-		}
-		row.Close()
 	}
 	data := &StatsData{
 		Performance: make(map[string]int),
@@ -60,54 +50,30 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		PrevPid:     pid - 1,
 	}
 	if pid > 0 {
-		rows, err := Database.Query("select score.student_id, score.score, score.graded_submission_number, problem.problem_uploaded_at, problem.problem_description, submission.id, submission.code_submitted_at, submission.completed from score join problem on score.problem_id=problem.id join submission on score.problem_id=submission.problem_id and score.student_id=submission.student_id where problem.id=? order by submission.id desc", pid)
+		participants, probContent, probAt, performance, durations, err := GetProblemStatistics(pid)
 		if err != nil {
 			fmt.Println("Error retrieving problem statistics", pid, err)
 			return
 		}
-		var student_id, score, attempts, sub_id int
-		var prob_at, sub_at, sub_completed time.Time
-		var prob_content string
-		var prob_duration float64
-		participants := make(map[int]int)
-		for rows.Next() {
-			rows.Scan(&student_id, &score, &attempts, &prob_at, &prob_content, &sub_id, &sub_at, &sub_completed)
-			// SubmissionStruct id is ordered descendingly.
-			// Therefore, only the last submission of student is looked at.
-			if _, ok := participants[student_id]; !ok {
-				participants[student_id] = sub_id
-				prob_duration = sub_at.Sub(prob_at).Minutes()
-				key := fmt.Sprintf("%d points", score)
-				data.Performance[key]++
-				if _, ok := data.Durations[key]; !ok {
-					data.Durations[key] = make([]float64, 0)
-				}
-				data.Durations[key] = append(data.Durations[key], prob_duration)
-				// fmt.Println(data.Performance)
-				// fmt.Println(data.Durations)
-			}
+
+		// Extracting the date for attendance query
+		theDate := probAt.Format("2006-01-02")
+
+		// Fetching attendance data using the Attendance model
+		attendants, err := GetAttendanceByDate(theDate)
+		if err != nil {
+			fmt.Println("Error retrieving attendance for date", theDate, err)
+			return
 		}
-		rows.Close()
 
-		data.ProblemDescription = prob_content
+		// Calculating inactive participants
+		performance["Inactive"] = len(attendants) - len(participants)
 
-		the_date := prob_at.Format("2006-01-02")
-		rows, err = Database.Query("select student_id, attendance_at from attendance where DATE(at) = ?", the_date)
-		var at time.Time
-		attendants := make(map[int]int)
-		for rows.Next() {
-			rows.Scan(&student_id, &at)
-			attendants[student_id] = 0
-		}
-		rows.Close()
-
-		data.Performance["Inactive"] = len(attendants) - len(participants)
-		data.Date = the_date
-		// data.Performance["Inactive"] = len(Students) - count - 1
-		// if data.Performance["Inactive"] < 0 {
-		// 	// something is wrong.
-		// 	data.Performance["Inactive"] = 0
-		// }
+		// Populating `data` (assuming it is a struct instance in the outer scope)
+		data.ProblemDescription = probContent
+		data.Performance = performance
+		data.Durations = durations
+		data.Date = theDate
 	}
 
 	w.Header().Set("Content-Type", "text/html")

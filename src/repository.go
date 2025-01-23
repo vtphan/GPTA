@@ -939,3 +939,80 @@ func GetStudentCount() (float32, error) {
 	}
 	return float32(count), nil
 }
+
+func GetLatestProblemID() (int, error) {
+	var problem Problem
+	// Retrieve the latest problem based on the highest ID
+	if err := DB.Order("id desc").First(&problem).Error; err != nil {
+		return 0, fmt.Errorf("failed to retrieve the latest problem ID: %w", err)
+	}
+	return problem.ID, nil
+}
+
+func GetProblemStatistics(pid int) (map[int]int, string, time.Time, map[string]int, map[string][]float64, error) {
+	var results []struct {
+		StudentID          int
+		Score              int
+		Attempts           int
+		ProblemUploadedAt  time.Time
+		ProblemDescription string
+		SubmissionID       int
+		CodeSubmittedAt    time.Time
+		Completed          time.Time
+	}
+
+	participants := make(map[int]int)
+	performance := make(map[string]int)
+	durations := make(map[string][]float64)
+	var probContent string
+	var probAt time.Time
+
+	err := DB.Table("scores").
+		Joins("join problems on scores.problem_id = problems.id").
+		Joins("join submissions on scores.problem_id = submissions.problem_id and scores.student_id = submissions.student_id").
+		Where("problems.id = ?", pid).
+		Order("submissions.id desc").
+		Select(`scores.student_id, scores.score, scores.graded_submission_number, 
+                problems.problem_uploaded_at, problems.problem_description, 
+                submissions.id as submission_id, submissions.code_submitted_at, 
+                submissions.completed`).
+		Scan(&results).Error
+	if err != nil {
+		return nil, "", time.Time{}, nil, nil, fmt.Errorf("failed to retrieve problem statistics: %w", err)
+	}
+
+	for _, result := range results {
+		if _, ok := participants[result.StudentID]; !ok {
+			participants[result.StudentID] = result.SubmissionID
+			probAt = result.ProblemUploadedAt
+			probContent = result.ProblemDescription
+
+			probDuration := result.CodeSubmittedAt.Sub(probAt).Minutes()
+			key := fmt.Sprintf("%d points", result.Score)
+			performance[key]++
+			if _, ok := durations[key]; !ok {
+				durations[key] = make([]float64, 0)
+			}
+			durations[key] = append(durations[key], probDuration)
+		}
+	}
+
+	return participants, probContent, probAt, performance, durations, nil
+}
+
+func GetAttendanceByDate(theDate string) (map[int]int, error) {
+	var attendances []Attendance
+	attendants := make(map[int]int)
+
+	err := DB.Where("DATE(attendance_at) = ?", theDate).
+		Find(&attendances).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve attendance: %w", err)
+	}
+
+	for _, att := range attendances {
+		attendants[att.StudentID] = 0
+	}
+
+	return attendants, nil
+}
