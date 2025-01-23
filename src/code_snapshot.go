@@ -20,7 +20,7 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 	if !ok {
 		idx = len(Snapshots)
 		StudentSnapshot[studentID][problemID] = idx
-		name, err := GetStudentName(studentID)
+		name := GetStudentName(studentID)
 		if err != nil {
 			log.Fatal("Could not retrieve student name: ", err)
 			return -1

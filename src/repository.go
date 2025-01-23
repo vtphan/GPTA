@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -517,15 +518,15 @@ func GetSubmissionsByProblemID(pid int) ([]Submission, error) {
 	return submissions, nil
 }
 
-func GetStudentName(studentID int) (string, error) {
+func GetStudentName(studentID int) string {
 	var student Student
 	if err := DB.Model(&Student{}).
 		Where("id = ?", studentID).
 		Select("name").
 		First(&student).Error; err != nil {
-		return "", fmt.Errorf("failed to retrieve student name for student ID %d: %w", studentID, err)
+		return ""
 	}
-	return student.Name, nil
+	return student.Name
 }
 
 func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
@@ -1088,4 +1089,335 @@ func GetTeacherName(authorID int) string {
 	}
 
 	return teacher.Name
+}
+
+func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole string) (*MessageBackFeedback, error) {
+	var feedback MessageBackFeedback
+	err := DB.Table("message_back_feedback").
+		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
+		First(&feedback).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, fmt.Errorf("failed to fetch existing message back feedback: %w", err)
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	return &feedback, nil
+}
+
+func FetchExistingTestCase(studentID, problemID int) (int, error) {
+	var testCaseID int
+	err := DB.Table("test_case").
+		Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Select("id").
+		First(&testCaseID).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return 0, fmt.Errorf("failed to fetch existing test case: %w", err)
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return 0, nil
+	}
+
+	return testCaseID, nil
+}
+
+func FetchTagIDByDescription(description string) (int64, error) {
+	var tagID int64
+	err := DB.Table("tags").
+		Where("topic_description = ?", description).
+		Select("id").
+		First(&tagID).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return 0, fmt.Errorf("failed to fetch tag ID: %w", err)
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return 0, nil
+	}
+
+	return tagID, nil
+}
+
+func CheckMessageBackFeedback(feedbackID, authorID int, authorRole string) (bool, error) {
+	var count int64
+	err := DB.Model(&MessageBackFeedback{}).
+		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
+		Count(&count).Error
+
+	if err != nil {
+		return false, fmt.Errorf("failed to check message back feedback: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+func GetStudentIDByMessageID(messageID int) (int, error) {
+	var studentID int
+	err := DB.Model(&HelpMessage{}).
+		Select("student_id").
+		Where("id = ?", messageID).
+		Scan(&studentID).Error
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to retrieve student ID: %w", err)
+	}
+
+	return studentID, nil
+}
+
+func FetchScores() (map[string]map[int]int, error) {
+	type ScoreData struct {
+		StudentID int
+		Filename  string
+		Score     int
+	}
+
+	var results []ScoreData
+	err := DB.Table("problems as P").
+		Select("S.student_id, P.filename, S.score").
+		Joins("join scores as S on P.id = S.problem_id").
+		Scan(&results).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch scores: %w", err)
+	}
+
+	// Organize data into a nested map: filename -> studentID -> score
+	data := make(map[string]map[int]int)
+	for _, result := range results {
+		if data[result.Filename] == nil {
+			data[result.Filename] = make(map[int]int)
+		}
+		data[result.Filename][result.StudentID] = result.Score
+	}
+
+	return data, nil
+}
+
+func FetchStudentReport(uid int) ([]*StudentReport, error) {
+	type ReportData struct {
+		Points   int
+		Date     time.Time
+		Filename string
+	}
+
+	var results []ReportData
+	err := DB.Table("scores").
+		Select("scores.score as points, scores.score_given_at as date, problems.filename").
+		Joins("join problems on problems.id = scores.problem_id").
+		Where("student_id = ?", uid).
+		Scan(&results).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch student report: %w", err)
+	}
+
+	// Convert to []*StudentReport
+	report := make([]*StudentReport, len(results))
+	for i, result := range results {
+		report[i] = &StudentReport{
+			Points:   result.Points,
+			Filename: result.Filename,
+			Date:     result.Date.Unix(),
+		}
+	}
+
+	return report, nil
+}
+
+func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error) {
+	var studentStatus StudentStatus
+	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).First(&studentStatus).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // No record found
+		}
+		return nil, fmt.Errorf("failed to fetch student status: %w", err)
+	}
+
+	return &DashBoardStudentInfo{
+		CodingStat:     studentStatus.CodingStat,
+		HelpStat:       studentStatus.HelpStat,
+		SubmissionStat: studentStatus.SubmissionStat,
+		TutoringStat:   studentStatus.TutoringStat,
+	}, nil
+}
+
+func FetchSubmissions(problemID, studentID int) ([]*SubmissionInfo, error) {
+	var submissions []Submission
+	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).Find(&submissions).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch submissions: %w", err)
+	}
+
+	// Map the fetched submissions to the SubmissionInfo format
+	var submissionInfos []*SubmissionInfo
+	for _, submission := range submissions {
+		submissionInfos = append(submissionInfos, &SubmissionInfo{
+			ID:          submission.ID,
+			SnapshotID:  submission.SnapshotID,
+			Code:        submission.StudentCode,
+			Grade:       submission.Verdict,
+			SubmittedAt: submission.CodeSubmittedAt,
+		})
+	}
+
+	// Sort submissions according to the grading and submission time logic
+	sort.SliceStable(submissionInfos, func(i, j int) bool {
+		if submissionInfos[i].Grade == "" && submissionInfos[j].Grade == "" {
+			return submissionInfos[i].SubmittedAt.After(submissionInfos[j].SubmittedAt)
+		}
+		if submissionInfos[i].Grade == "" {
+			return true
+		}
+		if submissionInfos[j].Grade == "" {
+			return false
+		}
+		return submissionInfos[i].SubmittedAt.After(submissionInfos[j].SubmittedAt)
+	})
+
+	return submissionInfos, nil
+}
+
+func FetchMessages(problemID, studentID, uid int, role string, students map[int]string) ([]*MessageDashBoard, error) {
+	var messages []*MessageDashBoard // Use slice of pointers
+
+	// Fetch messages and their associated code snapshots
+	var results []struct {
+		MessageID   int
+		SnapshotID  int
+		Message     string
+		AuthorID    int
+		AuthorRole  string
+		MessageType int
+		Code        string
+		Event       string
+		GivenAt     time.Time
+	}
+
+	err := DB.Table("messages M").
+		Select("M.id as message_id, M.snapshot_id, M.message, M.author_id, M.author_role, M.type as message_type, C.code, C.event, M.given_at").
+		Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
+		Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
+		Scan(&results).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch messages: %w", err)
+	}
+
+	// Process results into MessageDashBoard
+	for _, result := range results {
+		var name string
+		if result.AuthorRole == "teacher" {
+			name = GetTeacherName(result.AuthorID)
+		} else {
+			name = students[result.AuthorID]
+		}
+
+		// Append pointer to MessageDashBoard
+		messages = append(messages, &MessageDashBoard{
+			ID:         result.MessageID,
+			Name:       name,
+			Role:       result.AuthorRole,
+			Message:    result.Message,
+			Type:       result.MessageType,
+			Event:      result.Event,
+			GivenAt:    result.GivenAt,
+			SnapshotID: result.SnapshotID,
+			Code:       result.Code,
+			Feedbacks:  GetMessageFeedbacks(result.MessageID, uid, role),
+		})
+	}
+
+	return messages, nil
+}
+
+func FetchSubmission(studentID, problemID int) ([]Submission, error) {
+	var submissions []Submission
+	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Order("verdict, code_submitted_at ASC").
+		Find(&submissions).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch submissions: %w", err)
+	}
+
+	return submissions, nil
+}
+
+// FetchMessagesForStudent retrieves messages for a given problem ID and student ID
+func FetchMessagesForStudent(students map[int]string, problemID, studentID int) ([]*MessageDashBoard, error) {
+	var result []struct {
+		MessageID   int
+		SnapshotID  int
+		Message     string
+		AuthorID    int
+		AuthorRole  string
+		GivenAt     time.Time
+		MessageType int
+		Code        string
+		Event       string
+	}
+
+	// Execute the query to fetch messages and associated code snapshots
+	err := DB.Table("messages M").
+		Select("M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.Code, C.event").
+		Joins("join code_snapshots C on M.snapshot_id = C.id").
+		Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
+		Scan(&result).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the result into MessageDashBoard slices
+	var messages []*MessageDashBoard
+	for _, r := range result {
+		name := ""
+		if r.AuthorRole == "teacher" {
+			name = GetTeacherName(r.AuthorID)
+		} else {
+			name = students[r.AuthorID]
+		}
+
+		messages = append(messages, &MessageDashBoard{
+			ID:         r.MessageID,
+			Name:       name,
+			Role:       r.AuthorRole,
+			Message:    r.Message,
+			Type:       r.MessageType,
+			Event:      r.Event,
+			GivenAt:    r.GivenAt,
+			SnapshotID: r.SnapshotID,
+			Code:       r.Code,
+			Feedbacks:  GetMessageFeedbacks(r.MessageID, studentID, "student"), // Adjusted based on your context
+		})
+	}
+
+	return messages, nil
+}
+
+func FetchStudentStatuses(problemID, studentID int) (*DashBoardStudentInfo, error) {
+	var result StudentStatus
+
+	// Execute the query using the StudentStatus struct
+	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).
+		First(&result).Error // Use `First` to get the first matching result
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the result into DashBoardStudentInfo format
+	studentStats := &DashBoardStudentInfo{
+		CodingStat:     result.CodingStat,
+		HelpStat:       result.HelpStat,
+		SubmissionStat: result.SubmissionStat,
+		TutoringStat:   result.TutoringStat,
+	}
+
+	return studentStats, nil
 }

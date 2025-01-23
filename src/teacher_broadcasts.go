@@ -18,20 +18,16 @@ func insert_problem(uid int, problem *ProblemInfo) {
 	pid := int64(0)
 	if problem.Merit > 0 {
 		// Find Tag id
-		rows, _ := Database.Query("select id from tag where topic_description=?", problem.Tag)
-		tagID := int64(0)
-		for rows.Next() {
-			rows.Scan(&tagID)
-			break
+		tagID, err := FetchTagIDByDescription(problem.Tag)
+		if err != nil {
+			log.Fatal(err)
 		}
-		rows.Close()
 		if tagID == 0 {
-			result, err := AddTag(problem.Tag)
+			tag, err := AddTag(problem.Tag)
 			if err != nil {
-				fmt.Println(err)
-			} else {
-				tagID = int64(result.ID)
+				log.Fatal(err)
 			}
+			tagID = int64(tag.ID)
 		}
 
 		// Insert only real problems into database

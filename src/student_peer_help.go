@@ -75,13 +75,6 @@ func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, wh
 		log.Fatal(err)
 	}
 	messageID := res.ID // todo test this ID coming correctly
-	// student_id := 0
-	// rows, _ := Database.Query("select student_id from code_explanation where id=?", submission_id)
-	// for rows.Next() {
-	// 	rows.Scan(&student_id)
-	// 	break
-	// }
-	// rows.Close()
 	helpSub := HelpSubmissions[submissionID]
 	studentID := helpSub.Uid
 	message = helpSub.Content + "\n\nFeedback: " + message
@@ -106,14 +99,17 @@ func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		log.Fatal(err)
 	}
 	if useful == "yes" {
-		studentID := 0
-		rows, _ := Database.Query("select student_id from help_message where id=?", messageID)
-		for rows.Next() {
-			rows.Scan(&studentID)
-			break
+		studentID, err := GetStudentIDByMessageID(messageID)
+		if err != nil {
+			log.Printf("Error retrieving student ID: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
 		}
-		rows.Close()
-		Students[studentID].ThankStatus = 1
+
+		// Update the in-memory Students map
+		if student, exists := Students[studentID]; exists {
+			student.ThankStatus = 1
+		}
 	}
 
 }
@@ -122,19 +118,18 @@ func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who 
 	backFeedback := r.FormValue("feedback")
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	authorRole := r.FormValue("role")
-	rows, err := Database.Query("select * from message_back_feedback where message_feedback_id = ? and author_id = ? and author_role = ?", feedbackID, uid, authorRole)
-	defer rows.Close()
+
+	existingFeedback, err := FetchExistingMessageBackFeedback(feedbackID, uid, authorRole)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if rows.Next() {
-		rows.Close()
+
+	if existingFeedback != nil {
 		err = UpdateMessageBackFeedback(backFeedback, time.Now(), feedbackID, uid, authorRole)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		rows.Close()
 		err = AddMessageBackFeedback(feedbackID, uid, authorRole, backFeedback)
 		if err != nil {
 			log.Fatal(err)

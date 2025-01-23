@@ -2,7 +2,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -107,25 +106,20 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 				}
 			}
 			if test_cases != "" {
-				rows, err := Database.Query("select id from test_case where student_id=? and problem_id=?", uid, pid)
-				if err != nil {
-					log.Fatal(err)
-				}
-				tc_id := 0
-				for rows.Next() {
-					rows.Scan(&tc_id)
-					break
-				}
-				rows.Close()
-				if tc_id != 0 {
-					err = UpdateTestCase(test_cases, now, tc_id)
-				} else {
-					_, err = AddTestCase(pid, uid, test_cases, now)
-				}
+				existingTestCaseID, err := FetchExistingTestCase(uid, pid)
 				if err != nil {
 					log.Fatal(err)
 				}
 
+				if existingTestCaseID != 0 {
+					err = UpdateTestCase(test_cases, now, existingTestCaseID)
+				} else {
+					_, err = AddTestCase(pid, uid, test_cases, now)
+				}
+
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 			if ActiveProblems[filename].Attempts[uid] == 0 {
 				if PeerTutorAllowed {
