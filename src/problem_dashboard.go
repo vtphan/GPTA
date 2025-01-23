@@ -54,114 +54,29 @@ func getName(uid int, role string) string {
 	return name
 }
 
-func getCurrentStudents() []int {
-	rows, err := Database.Query("select student_id from attendance where DATE(attendance_at) = ?", time.Now().Format("2022-01-18"))
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var studentID int
-	var currentStudents []int
-	for rows.Next() {
-		rows.Scan(&studentID)
-		currentStudents = append(currentStudents, studentID)
-	}
-	rows.Close()
-	return currentStudents
-}
-
-func getAllStudents() map[int]string {
-	rows, err := Database.Query("select id, name from student")
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var ID int
-	var name string
-	var students = make(map[int]string)
-	for rows.Next() {
-		rows.Scan(&ID, &name)
-		students[ID] = name
-	}
-	rows.Close()
-	return students
-}
-
-func getProblemStats(problemID int) (int, int, int, int, int) {
-	rows, err := Database.Query("select active, submission, help_request, graded_correct, graded_incorrect from problem_statistics where problem_id = ?", problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var active, sub, help, correct, incorrect int
-	if rows.Next() {
-		rows.Scan(&active, &sub, &help, &correct, &incorrect)
-	}
-	rows.Close()
-	return active, help, sub - correct - incorrect, correct, incorrect
-}
-
-func getProblemNameFromID(problemID int) string {
-	rows, err := Database.Query("Select filename from problem where id = ?", problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var problemName string
-	if rows.Next() {
-		rows.Scan(&problemName)
-	}
-	rows.Close()
-	return problemName
-}
-
-func getLatestSubmissionTime(problemID int) map[int]time.Time {
-	var latestSubmissions = make(map[int]time.Time)
-	rows, err := Database.Query("select student_id, max(code_submitted_at) from submission where problem_id=? group by student_id", problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var studentID int
-	var submissionTimeStr string
-	var submissionTime time.Time
-	layout := "2006-01-02 15:04:05-07:00"
-	for rows.Next() {
-		rows.Scan(&studentID, &submissionTimeStr)
-		submissionTime, _ = time.Parse(layout, submissionTimeStr)
-		latestSubmissions[studentID] = submissionTime
-	}
-	rows.Close()
-	return latestSubmissions
-}
-
 func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	role := r.FormValue("role")
 	password := r.FormValue("password")
-	students := getAllStudents()
-	rows, err := Database.Query("select student_id, max(last_updated_at) from code_snapshot where problem_id=? group by student_id", problemID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// currentStudents := getCurrentStudents()
-	var lastUpdateMap = make(map[int]time.Time)
 
-	var studentID int
-	var lastUpdateString string
-	var lastUpdate time.Time
-	layout := "2006-01-02 15:04:05-07:00"
+	// Retrieve all students
+	students := GetAllStudents()
+
+	// Query to retrieve the last updated time for each student for the given problem
+	codeSnapshots, err := GetCodeSnapshotsByProblemID(problemID)
+
+	// Initialize map for storing the last update for each student
+	lastUpdateMap := make(map[int]time.Time)
 
 	_, ok := HelpEligibleStudents[problemID][uid]
-	for rows.Next() {
-		rows.Scan(&studentID, &lastUpdateString)
-		if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-			lastUpdate, _ = time.Parse(layout, lastUpdateString)
-			lastUpdateMap[studentID] = lastUpdate
+
+	// Populate the map based on the role or eligibility
+	for _, snapshot := range codeSnapshots {
+		if role == "teacher" || uid == snapshot.StudentID || (PeerTutorAllowed && ok) {
+			lastUpdateMap[snapshot.StudentID] = snapshot.LastUpdatedAt
 		}
 	}
-	rows.Close()
+
 	rows, err = Database.Query("select problem_description, problem_ended_at from problem where id=?", problemID)
 	defer rows.Close()
 	if err != nil {
@@ -173,7 +88,7 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		rows.Scan(&code, &problemEndedAt)
 	}
 	rows.Close()
-	latestSubmissionTime := getLatestSubmissionTime(problemID)
+	latestSubmissionTime := GetLatestSubmissionTime(problemID)
 	rows, err = Database.Query("select student_id, coding_stat, help_stat, submission_stat, tutoring_stat from student_status where problem_id=?", problemID)
 	defer rows.Close()
 	if err != nil {
@@ -216,7 +131,7 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		return true
 	})
 
-	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problemID)
+	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := GetProblemStats(problemID)
 
 	var answerStats []*AnswerStatInfo
 	if role != "student" {
@@ -248,7 +163,7 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	dashBoardData := &DashBoardInfo{
 		StudentInfo:        studentInfo,
 		ProblemID:          problemID,
-		ProblemName:        getProblemNameFromID(problemID),
+		ProblemName:        GetProblemNameFromID(problemID),
 		Code:               code,
 		IsActive:           problemEndedAt.IsZero(),
 		NumActive:          nActive,

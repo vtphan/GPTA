@@ -133,22 +133,21 @@ func add_or_update_score(decision string, pid, student_id, teacher_id, partial_c
 	// Find score information for this student (student_id) for this problem (pid)
 
 	score_id, current_points, current_attempts, current_tid := 0, 0, 0, 0
-	rows, _ := Database.Query("select id, score, graded_submission_number, teacher_id from score where problem_id=? and student_id=?", pid, student_id)
-	for rows.Next() {
-		rows.Scan(&score_id, &current_points, &current_attempts, &current_tid)
-		break
+	score, _ := GetScoreDetails(pid, student_id)
+	if score != nil {
+		// Assign values from the returned Score object
+		score_id = score.ID
+		current_points = score.Score
+		current_attempts = score.GradedSubmissionNumber
+		current_tid = score.TeacherID
 	}
-	rows.Close()
-
 	// Find merit points and effort points for this problem (pid)
 	merit, effort := 0, 0
-	rows, _ = Database.Query("select merit, effort from problem where id=?", pid)
-	for rows.Next() {
-		rows.Scan(&merit, &effort)
-		break
+	problem, _ := GetProblemDetails(pid)
+	if problem != nil {
+		merit = problem.Merit
+		effort = problem.Effort
 	}
-	rows.Close()
-
 	// Determine points for this student
 	points, teacher := 0, teacher_id
 	if decision == "correct" {
@@ -191,44 +190,44 @@ func add_or_update_score(decision string, pid, student_id, teacher_id, partial_c
 	return mesg
 }
 
-func addOrUpdateStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, tutoringStat string) {
-	rows, err := Database.Query("select * from student_status where student_id = ? and problem_id = ?", studentID, problemID)
-	defer rows.Close()
+func addOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
+	status, err := GetStudentStatus(studentID, problemID)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error retrieving student status: %v", err)
 	}
-	if rows.Next() {
-		now := time.Now()
-		rows.Close()
+
+	now := time.Now()
+	if status != nil {
+		// Record exists: Update fields
 		if codingStat != "" {
 			err = UpdateStudentCodingStat(codingStat, now, studentID, problemID)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Error updating coding stat: %v", err)
 			}
 		}
 		if helpStat != "" {
 			err = UpdateStudentHelpStat(helpStat, now, studentID, problemID)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Error updating help stat: %v", err)
 			}
 		}
 		if submissionStat != "" {
 			err = UpdateStudentSubmissionStat(submissionStat, now, studentID, problemID)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Error updating submission stat: %v", err)
 			}
 		}
 		if tutoringStat != "" {
 			err = UpdateStudentTutoringStat(tutoringStat, now, studentID, problemID)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("Error updating tutoring stat: %v", err)
 			}
 		}
 	} else {
-		rows.Close()
-		_, err = AddStudentStatus(studentID, problemID, codingStat, helpStat, submissionStat, tutoringStat, time.Now())
+		// No record exists: Insert new record
+		_, err = AddStudentStatus(studentID, problemID, codingStat, helpStat, submissionStat, tutoringStat, now)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Error adding student status: %v", err)
 		}
 	}
 }
@@ -282,39 +281,31 @@ func init_student(student_id int, name string, password string) {
 }
 
 // -----------------------------------------------------------------
-func load_and_authorize_student(student_id int, password string) bool {
-	var pw, name string
-	found := false
-	rows, err := Database.Query("select name, password from student where id=?", student_id)
-	defer rows.Close()
+func load_and_authorize_student(studentID int, password string) bool {
+	student, err := GetStudentByID(studentID)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error retrieving student: %v", err)
 	}
-	for rows.Next() {
-		rows.Scan(&name, &pw)
-		found = true
-		break
-	}
-	if !found || pw != password {
+	if student == nil || student.Password != password {
 		return false
 	}
-	init_student(student_id, name, password)
+	init_student(studentID, student.Name, password)
 	return true
 }
 
 // -----------------------------------------------------------------
 func load_teachers() {
-	rows, _ := Database.Query("select id,name, password from teacher")
-	defer rows.Close()
-	var password string
-	var name string
-	var id int
-	for rows.Next() {
-		rows.Scan(&id, &name, &password)
-		TeacherMap[id] = password
-		TeacherPass[name] = password
-		TeacherNameToId[name] = id
-		TeacherIdToName[id] = name
+	teachers, err := GetAllTeachers()
+	if err != nil {
+		log.Fatalf("Error loading teachers: %v", err)
 	}
+
+	for _, teacher := range teachers {
+		TeacherMap[teacher.ID] = teacher.Password
+		TeacherPass[teacher.Name] = teacher.Password
+		TeacherNameToId[teacher.Name] = teacher.ID
+		TeacherIdToName[teacher.ID] = teacher.Name
+	}
+
 	Passcode = RandStringRunes(20)
 }

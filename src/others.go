@@ -49,27 +49,33 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("file_name")
-	rows, err := Database.Query("select id from problem where filename=?", filename)
-	problem_id := 0
-	for rows.Next() {
-		rows.Scan(&problem_id)
-		break
-	}
-	rows.Close()
-	rows, err = Database.Query("select test_cases from test_case where problem_id=?", problem_id)
-	defer rows.Close()
+
+	// Get Problem ID
+	problemID, err := GetProblemIDByFilename(filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error fetching problem ID: %v", err)
 	}
-	var test_cases = ""
-	for rows.Next() {
-		var tc = ""
-		rows.Scan(&tc)
+	if problemID == 0 {
+		http.Error(w, "Problem not found", http.StatusNotFound)
+		return
+	}
+
+	// Get Test Cases
+	testCases, err := GetTestCasesByProblemID(problemID)
+	if err != nil {
+		log.Fatalf("Error fetching test cases: %v", err)
+	}
+
+	// Format Test Cases
+	var formattedTestCases string
+	for _, tc := range testCases {
 		if tc != "" {
-			test_cases += tc[1 : len(tc)-1]
+			formattedTestCases += tc[1 : len(tc)-1]
 		}
 	}
-	fmt.Fprintf(w, "["+test_cases+"]")
+
+	// Respond with Test Cases
+	fmt.Fprintf(w, "["+formattedTestCases+"]")
 }
 
 func logEvent(eventName string, userID int, userType, eventType, otherInfo string) {

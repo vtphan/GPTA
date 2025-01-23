@@ -172,3 +172,12 @@ type SnapshotBackFeedback struct {
 	IsHelpful          string `gorm:"size:50"`
 	GivenAt            time.Time
 }
+
+type SnapshotFeedback struct {
+	ID         int `gorm:"primaryKey;autoIncrement"`
+	SnapshotID int
+	Feedback   string `gorm:"type:text"`
+	AuthorID   int
+	AuthorRole string `gorm:"size:50"`
+	GivenAt    time.Time
+}

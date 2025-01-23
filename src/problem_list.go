@@ -58,13 +58,13 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	rows.Close()
 
 	for i := 0; i < len(problemIDs); i++ {
-		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := getProblemStats(problemIDs[i])
+		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := GetProblemStats(problemIDs[i])
 		problems = append(problems, &ProblemData{
 			ID:                 problemIDs[i],
 			Filename:           filenameList[i],
 			UploadedAt:         uploadTimeList[i],
 			IsActive:           endTimeList[i].IsZero(),
-			Attendance:         len(getCurrentStudents()),
+			Attendance:         len(GetCurrentStudents()),
 			NumActive:          nActive,
 			NumHelpRequest:     nHelp,
 			NumGradedCorrect:   nCorrect,

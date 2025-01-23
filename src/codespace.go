@@ -132,19 +132,6 @@ func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid in
 	}
 }
 
-func getNumberOfReply(snapshotID int) int {
-	rows, err := Database.Query("select count(*) from snapshot_feedback where snapshot_id = ?", snapshotID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	c := 0
-	if rows.Next() {
-		rows.Scan(&c)
-	}
-	return c
-}
-
 func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	temp := template.New("")
@@ -159,7 +146,7 @@ func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, 
 	if role == "student" {
 		for _, s := range HelpSubmissions {
 			if _, ok := HelpEligibleStudents[s.Pid][uid]; ok || s.Uid == uid {
-				numReply = getNumberOfReply(s.SnapshotID)
+				numReply, _ = GetNumberOfReply(s.SnapshotID)
 				helpRequests = append(helpRequests, &HelpRequest{
 					ID:          s.Sid,
 					NumReply:    numReply,
@@ -173,7 +160,7 @@ func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, 
 		}
 	} else {
 		for _, s := range HelpSubmissions {
-			numReply = getNumberOfReply(s.SnapshotID)
+			numReply, _ = GetNumberOfReply(s.SnapshotID)
 			helpRequests = append(helpRequests, &HelpRequest{
 				ID:          s.Sid,
 				NumReply:    numReply,

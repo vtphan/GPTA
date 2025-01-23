@@ -69,7 +69,7 @@ type SubmissionDashboard struct {
 }
 
 type TemplateDate struct {
-	Feedback   	   FeedbackProvisionDashBoard
+	Feedback       FeedbackProvisionDashBoard
 	Submission     SubmissionDashboard
 	Status         DashBoardStudentInfo
 	ChatgptaServer string
@@ -77,7 +77,7 @@ type TemplateDate struct {
 	UserRole       string
 	Password       string
 	Username       string
-	CourseName	   string
+	CourseName     string
 }
 
 func getCurrentUserVote(feedbackID int, userID int, userRole string) string {
@@ -144,7 +144,7 @@ func getLatestSnapshot(studentID int, problemID int) *Snapshot {
 	rows.Close()
 	return &Snapshot{
 		ID:          ID,
-		ProblemName: getProblemNameFromID(problemID),
+		ProblemName: GetProblemNameFromID(problemID),
 		Code:        code,
 		LastUpdated: lastUpdate,
 	}
@@ -199,7 +199,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		log.Fatal(err)
 	}
-	students := getAllStudents()
+	students := GetAllStudents()
 	var messages = make([]*MessageDashBoard, 0)
 	_, ok := HelpEligibleStudents[problemID][uid]
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
@@ -344,7 +344,7 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 	// sort.Slice(helpRequests, func(i, j int) bool { return helpRequests[i].GivenAt.Before(helpRequests[j].GivenAt) })
 	data := &SubmissionDashboard{
 		StudentName: getStudentName(studentID),
-		ProblemName: getProblemNameFromID(problemID),
+		ProblemName: GetProblemNameFromID(problemID),
 		Submissions: submissions,
 		StudentID:   studentID,
 		ProblemID:   problemID,
@@ -386,7 +386,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	if err != nil {
 		log.Fatal(err)
 	}
-	students := getAllStudents()
+	students := GetAllStudents()
 
 	// Get latest snapshot from DB
 	latestSnapshot := &Snapshot{}
@@ -492,7 +492,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 
 	submission := &SubmissionDashboard{
 		StudentName: getStudentName(studentID),
-		ProblemName: getProblemNameFromID(problemID),
+		ProblemName: GetProblemNameFromID(problemID),
 		Submissions: submissions,
 		StudentID:   studentID,
 		ProblemID:   problemID,
@@ -531,7 +531,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		UserRole:       role,
 		Password:       r.FormValue("password"),
 		Username:       getName(uid, role),
-		CourseName:		Config.CourseName,
+		CourseName:     Config.CourseName,
 	}
 
 	w.Header().Set("Content-Type", "text/html")
