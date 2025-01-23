@@ -530,8 +530,8 @@ func GetStudentName(studentID int) (string, error) {
 
 func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
 	var codeSnapshot CodeSnapshot
-	if err := DB.Table("code_snapshot cs").
-		Joins("join problem p on cs.problem_id = p.id").
+	if err := DB.Table("code_snapshots cs").
+		Joins("join problems p on cs.problem_id = p.id").
 		Where("cs.id = ?", snapshotID).
 		Select("cs.student_id, cs.problem_id, cs.code, p.filename").
 		First(&codeSnapshot).Error; err != nil {
@@ -542,10 +542,10 @@ func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
 
 func GetCodeSnapshotMessageDetails(messageID int) ([]CodeSnapshotMessageDetails, error) {
 	var details []CodeSnapshotMessageDetails
-	if err := DB.Table("code_snapshot cs").
+	if err := DB.Table("code_snapshots cs").
 		Select("cs.student_id AS student_id, cs.problem_id AS problem_id, cs.code AS code, p.filename AS filename, m.type AS message_type").
-		Joins("JOIN problem p ON cs.problem_id = p.id").
-		Joins("JOIN message m ON m.snapshot_id = cs.id").
+		Joins("JOIN problems p ON cs.problem_id = p.id").
+		Joins("JOIN messages m ON m.snapshot_id = cs.id").
 		Where("m.id = ?", messageID).
 		Find(&details).Error; err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
@@ -863,9 +863,9 @@ func GetStudentScores() (map[int]*ScoreEntry, error) {
 		StudentName            string
 	}
 
-	if err := DB.Table("score").
-		Joins("join student on score.student_id = student.id").
-		Select("score.score, score.graded_submission_number, score.student_id, student.name").
+	if err := DB.Table("scores").
+		Joins("join students on score.student_id = student.id").
+		Select("scores.score, scores.graded_submission_number, scores.student_id, students.name").
 		Find(&scores).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve scores: %w", err)
 	}
@@ -933,7 +933,7 @@ func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error
 }
 
 func GetStudentCount() (float32, error) {
-	var count int64 // Use int64 instead of int
+	var count int64
 	if err := DB.Table("student").Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to get student count: %w", err)
 	}
