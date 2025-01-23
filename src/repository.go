@@ -676,14 +676,12 @@ func GetAllStudents() map[int]string {
 	var students []Student
 	studentMap := make(map[int]string)
 
-	// Fetch all students' IDs and Names
 	if err := DB.Model(&Student{}).
 		Select("id, name").
 		Find(&students).Error; err != nil {
 		return nil
 	}
 
-	// Populate the map with student IDs as keys and names as values
 	for _, student := range students {
 		studentMap[student.ID] = student.Name
 	}
@@ -694,16 +692,12 @@ func GetAllStudents() map[int]string {
 func GetProblemStats(problemID int) (int, int, int, int, int) {
 	var stats ProblemStatistics
 
-	// Fetch problem statistics for the given problemID
 	if err := DB.Where("problem_id = ?", problemID).First(&stats).Error; err != nil {
-		// Return zero values if there’s an error, maintaining the original function signature
 		return 0, 0, 0, 0, 0
 	}
 
-	// Calculate the derived statistics
 	ungraded := stats.Submission - stats.GradedCorrect - stats.GradedIncorrect
 
-	// Return the statistics
 	return stats.Active, stats.HelpRequest, ungraded, stats.GradedCorrect, stats.GradedIncorrect
 }
 
@@ -711,7 +705,6 @@ func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 	var latestSubmissions = make(map[int]time.Time)
 	var submissions []Submission
 
-	// Query the latest submission time for each student for the given problemID
 	if err := DB.Model(&Submission{}).
 		Select("student_id, max(code_submitted_at) as code_submitted_at").
 		Where("problem_id = ?", problemID).
@@ -720,7 +713,6 @@ func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 		log.Fatal(err)
 	}
 
-	// Populate the map with student IDs and their latest submission time
 	for _, submission := range submissions {
 		latestSubmissions[submission.StudentID] = submission.CodeSubmittedAt
 	}
@@ -731,7 +723,6 @@ func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 func GetProblemNameFromID(problemID int) string {
 	var problem Problem
 
-	// Query to get the filename (problem name) for the given problemID
 	if err := DB.Model(&Problem{}).
 		Select("filename").
 		Where("id = ?", problemID).
@@ -739,7 +730,6 @@ func GetProblemNameFromID(problemID int) string {
 		return ""
 	}
 
-	// Return the filename (problem name)
 	return problem.Filename
 }
 
@@ -1063,4 +1053,39 @@ func GetMessageFeedbacksByMessageID(messageID int) ([]MessageFeedback, error) {
 		return nil, fmt.Errorf("Error retrieving message feedbacks: %v", err)
 	}
 	return messageFeedbacks, nil
+}
+
+func GetLatestSnapshot(studentID int, problemID int) (*Snapshot, error) {
+	var snapshot CodeSnapshot
+
+	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Order("last_updated_at DESC").
+		First(&snapshot).Error
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving latest snapshot for student %d, problem %d: %v", studentID, problemID, err)
+	}
+
+	return &Snapshot{
+		ID:          snapshot.ID,
+		StudentID:   snapshot.StudentID,
+		ProblemID:   snapshot.ProblemID,
+		ProblemName: GetProblemNameFromID(problemID),
+		Code:        snapshot.Code,
+		LastUpdated: snapshot.LastUpdatedAt,
+	}, nil
+}
+
+func GetTeacherName(authorID int) string {
+	var teacher Teacher
+
+	err := DB.Where("id = ?", authorID).First(&teacher).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ""
+		}
+		log.Printf("Error retrieving teacher with ID %d: %v", authorID, err)
+		return ""
+	}
+
+	return teacher.Name
 }

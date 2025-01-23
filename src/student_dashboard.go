@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"html/template"
 	"log"
 	"net/http"
@@ -80,19 +81,19 @@ type TemplateDate struct {
 	CourseName     string
 }
 
-func getFeedbackDashboard(messageID int, userID int, userRole string) ([]*FeedbackDashBaord, error) {
+func getMessageFeedbacks(messageID int, userID int, userRole string) []*FeedbackDashBaord {
 	messageFeedbacks, err := GetMessageFeedbacksByMessageID(messageID)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	var feedbacks []*FeedbackDashBaord
 	for _, feedback := range messageFeedbacks {
 		name := ""
 		if feedback.AuthorRole == "teacher" {
-			name = getTeacherName(feedback.AuthorID)
+			name = GetTeacherName(feedback.AuthorID)
 		} else {
-			name = getStudentName(feedback.AuthorID)
+			name, _ = GetStudentName(feedback.AuthorID)
 		}
 
 		feedbacks = append(feedbacks, &FeedbackDashBaord{
@@ -107,54 +108,7 @@ func getFeedbackDashboard(messageID int, userID int, userRole string) ([]*Feedba
 		})
 	}
 
-	return feedbacks, nil
-}
-
-func getLatestSnapshot(studentID int, problemID int) *Snapshot {
-	rows, err := Database.Query("select id, code, max(last_updated_at) from code_snapshot where problem_id = ? and student_id=? group by problem_id, student_id", problemID, studentID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var ID int
-	var code string
-	var lastUpdate time.Time
-	if rows.Next() {
-		rows.Scan(&ID, &code, &lastUpdate)
-	}
-	rows.Close()
-	return &Snapshot{
-		ID:          ID,
-		ProblemName: GetProblemNameFromID(problemID),
-		Code:        code,
-		LastUpdated: lastUpdate,
-	}
-}
-
-func getTeacherName(authorID int) string {
-	rows, err := Database.Query("select name from teacher where id = ?", authorID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var name string
-	if rows.Next() {
-		rows.Scan(&name)
-	}
-	return name
-}
-
-func getStudentName(studentID int) string {
-	rows, err := Database.Query("select name from student where id = ?", studentID)
-	defer rows.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	var name string
-	if rows.Next() {
-		rows.Scan(&name)
-	}
-	return name
+	return feedbacks
 }
 
 func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
@@ -183,7 +137,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 			rows.Scan(&messageID, &snapshotID, &message, &authorID, &authorRole, &givenAt, &messageType, &code, &event)
 			name := ""
 			if authorRole == "teacher" {
-				name = getTeacherName(authorID)
+				name = GetTeacherName(authorID)
 			} else {
 				name = students[authorID]
 			}
@@ -215,7 +169,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	if _, ok := StudentSnapshot[studentID][problemID]; ok {
 		latestSnapshot = Snapshots[StudentSnapshot[studentID][problemID]]
 	} else {
-		latestSnapshot = getLatestSnapshot(studentID, problemID)
+		latestSnapshot, _ = GetLatestSnapshot(studentID, problemID)
 	}
 
 	// Get student status
@@ -361,7 +315,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	if _, ok := StudentSnapshot[studentID][problemID]; ok {
 		latestSnapshot = Snapshots[StudentSnapshot[studentID][problemID]]
 	} else {
-		latestSnapshot = getLatestSnapshot(studentID, problemID)
+		latestSnapshot, _ = GetLatestSnapshot(studentID, problemID)
 	}
 
 	// Get all student messages from DB
@@ -380,7 +334,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 			rows.Scan(&messageID, &snapshotID, &message, &authorID, &authorRole, &messageType, &code, &event, &givenAt)
 			name := ""
 			if authorRole == "teacher" {
-				name = getTeacherName(authorID)
+				name = GetTeacherName(authorID)
 			} else {
 				name = students[authorID]
 			}
