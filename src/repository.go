@@ -1016,3 +1016,51 @@ func GetAttendanceByDate(theDate string) (map[int]int, error) {
 
 	return attendants, nil
 }
+
+func GetAttendanceByStudentID(uid int) ([]Attendance, error) {
+	var attendances []Attendance
+	err := DB.Where("student_id = ?", uid).
+		Select("attendance_at").
+		Find(&attendances).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve attendance for student ID %d: %w", uid, err)
+	}
+	return attendances, nil
+}
+
+func GetCurrentUserVote(feedbackID int, userID int, userRole string) string {
+	var feedback MessageBackFeedback
+
+	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
+		First(&feedback).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ""
+		}
+		return ""
+	}
+
+	return feedback.Useful
+}
+
+func GetBackFeedbackCount(feedbackID int, backFeedbackType string) int {
+	var count int64
+
+	err := DB.Model(&MessageBackFeedback{}).
+		Where("useful = ? AND message_feedback_id = ?", backFeedbackType, feedbackID).
+		Count(&count).Error
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return int(count)
+}
+
+func GetMessageFeedbacksByMessageID(messageID int) ([]MessageFeedback, error) {
+	var messageFeedbacks []MessageFeedback
+	err := DB.Where("message_id = ?", messageID).Find(&messageFeedbacks).Error
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving message feedbacks: %v", err)
+	}
+	return messageFeedbacks, nil
+}

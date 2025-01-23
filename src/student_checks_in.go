@@ -1,6 +1,4 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
@@ -8,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 )
 
 //-----------------------------------------------------------------
@@ -16,23 +13,33 @@ import (
 func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// attendance is taken automatically by authorization when this handler is called.
 	// Next: return student attendance report
-	rows, err := Database.Query("select attendance_at from attendance where student_id=?", uid)
-	defer rows.Close()
+	attendances, err := GetAttendanceByStudentID(uid)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Failed to retrieve attendance records", http.StatusInternalServerError)
+		log.Printf("Error retrieving attendance for student ID %d: %v", uid, err)
+		return
 	}
+
+	// Converting attendance timestamps to Unix format
 	dates := make([]int64, 0)
-	var t time.Time
-	for rows.Next() {
-		rows.Scan(&t)
-		dates = append(dates, t.Unix())
+	for _, att := range attendances {
+		dates = append(dates, att.AttendanceAt.Unix())
 	}
-	js, _ := json.Marshal(dates)
+
+	// Marshalling dates into JSON
+	js, err := json.Marshal(dates)
+	if err != nil {
+		http.Error(w, "Failed to encode attendance records", http.StatusInternalServerError)
+		log.Printf("Error marshalling attendance records: %v", err)
+		return
+	}
+
+	// Sending the JSON response
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
 func student_periodic_updateHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionStat := &StudentSubmissionStatus{}
 	if len(Students[uid].SubmissionStatus) > 0 {
