@@ -100,7 +100,7 @@ func AddSubmissionComplete(problemID, studentID int, studentCode string, submiss
 		SubmissionCategory: submissionCategory,
 		AttemptNumber:      attemptNumber,
 		CodeSubmittedAt:    codeSubmittedAt,
-		Completed:          completedAt,
+		Completed:          &completedAt,
 		SnapshotID:         snapshotID,
 		Answer:             answer,
 	}
@@ -1345,18 +1345,17 @@ func FetchSubmission(studentID, problemID int) ([]SubmissionTable, error) {
 	return submissions, nil
 }
 
-// FetchMessagesForStudent retrieves messages for a given problem ID and student ID
-func FetchMessagesForStudent(students map[int]string, problemID, studentID int) ([]*MessageDashBoard, error) {
+func FetchMessagesForStudent(students map[int]string, problemID, studentID int, role string) ([]*MessageDashBoard, error) {
 	var result []struct {
-		MessageID   int
-		SnapshotID  int
-		Message     string
-		AuthorID    int
-		AuthorRole  string
-		GivenAt     time.Time
-		MessageType int
-		Code        string
-		Event       string
+		MessageID   int       `gorm:"column:id"`
+		SnapshotID  int       `gorm:"column:snapshot_id"`
+		Message     string    `gorm:"column:message"`
+		AuthorID    int       `gorm:"column:author_id"`
+		AuthorRole  string    `gorm:"column:author_role"`
+		GivenAt     time.Time `gorm:"column:given_at"`
+		MessageType int       `gorm:"column:type"`
+		Code        string    `gorm:"column:code"`
+		Event       string    `gorm:"column:event"`
 	}
 
 	// Execute the query to fetch messages and associated code snapshots
@@ -1390,7 +1389,7 @@ func FetchMessagesForStudent(students map[int]string, problemID, studentID int) 
 			GivenAt:    r.GivenAt,
 			SnapshotID: r.SnapshotID,
 			Code:       r.Code,
-			Feedbacks:  GetMessageFeedbacks(r.MessageID, studentID, "student"), // Adjusted based on your context
+			Feedbacks:  GetMessageFeedbacks(r.MessageID, studentID, role),
 		})
 	}
 
@@ -1404,7 +1403,7 @@ func FetchStudentStatuses(problemID, studentID int) (*DashBoardStudentInfo, erro
 	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).
 		First(&result).Error // Use `First` to get the first matching result
 
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 

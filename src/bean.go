@@ -37,7 +37,7 @@ type SubmissionTable struct {
 	SnapshotID         int    `gorm:"default:0"`
 	SubmissionCategory int
 	CodeSubmittedAt    time.Time
-	Completed          time.Time
+	Completed          *time.Time `gorm:"default:null"`
 	Verdict            string
 	AttemptNumber      int
 	Answer             string

@@ -262,14 +262,3 @@ func getLinesOfCode(code string) int {
 var PeerTutorAllowed = false
 
 var ChatGPTServerAddress = "http://141.225.10.71:8000"
-
-type StudentSubmissionData struct {
-	StudentID       int
-	Score           int
-	Attempts        int
-	ProblemUploaded time.Time
-	ProblemContent  string
-	SubmissionID    int
-	CodeSubmittedAt time.Time
-	CompletedAt     time.Time
-}

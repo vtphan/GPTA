@@ -159,7 +159,7 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 		filename := detail.Filename
 		messageType := detail.MessageType
 
-		if studentID == authorID {
+		if authorRole == "student" && studentID == authorID {
 			fmt.Fprintf(w, "You cannot give feedback to your own code.")
 			return
 		}

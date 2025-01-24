@@ -125,7 +125,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	_, ok := HelpEligibleStudents[problemID][uid]
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
 		// Fetch messages using the new function
-		messages, err = FetchMessagesForStudent(students, problemID, studentID)
+		messages, err = FetchMessagesForStudent(students, problemID, studentID, role)
 		if err != nil {
 			log.Fatal(err)
 		}
