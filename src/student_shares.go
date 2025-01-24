@@ -83,7 +83,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			// Add submitted but not graded code to code snapshot.
 			snapshotID = addCodeSnapshot(uid, pid, content, 1, now, "at_submission")
 
-			var result Submission
+			var result SubmissionTable
 			if complete {
 				result, err = AddSubmissionComplete(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
 			} else {
@@ -143,7 +143,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 	if !complete {
 		SubSem.Lock()
 		defer SubSem.Unlock()
-		sub := &SubmissionStruct{
+		sub := &Submission{
 			Sid:           int(sid),
 			Uid:           uid,
 			Pid:           pid,

@@ -29,7 +29,7 @@ type Problem struct {
 	ProblemEndedAt     *time.Time `gorm:"default:null"`
 }
 
-type Submission struct {
+type SubmissionTable struct {
 	ID                 int    `gorm:"primaryKey;autoIncrement"`
 	ProblemID          int    `gorm:"not null"`
 	StudentID          int    `gorm:"not null"`
@@ -41,6 +41,10 @@ type Submission struct {
 	Verdict            string
 	AttemptNumber      int
 	Answer             string
+}
+
+func (SubmissionTable) TableName() string {
+	return "submissions"
 }
 
 type Score struct {

@@ -18,7 +18,7 @@ func teacher_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	BoardsSem.Lock()
 	defer BoardsSem.Unlock()
 
-	selected := &SubmissionStruct{}
+	selected := &Submission{}
 
 	if index >= 0 {
 		// Try to select by index first

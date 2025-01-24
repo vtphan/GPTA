@@ -75,8 +75,8 @@ func AddProblem(teacherID int, problemDescription, answer, filename string, meri
 	return problem, nil
 }
 
-func AddSubmission(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt time.Time, snapshotID int, answer string) (Submission, error) {
-	submission := Submission{
+func AddSubmission(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt time.Time, snapshotID int, answer string) (SubmissionTable, error) {
+	submission := SubmissionTable{
 		ProblemID:          problemID,
 		StudentID:          studentID,
 		StudentCode:        studentCode,
@@ -92,8 +92,8 @@ func AddSubmission(problemID, studentID int, studentCode string, submissionCateg
 	return submission, nil
 }
 
-func AddSubmissionComplete(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt, completedAt time.Time, snapshotID int, answer string) (Submission, error) {
-	submission := Submission{
+func AddSubmissionComplete(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt, completedAt time.Time, snapshotID int, answer string) (SubmissionTable, error) {
+	submission := SubmissionTable{
 		ProblemID:          problemID,
 		StudentID:          studentID,
 		StudentCode:        studentCode,
@@ -111,7 +111,7 @@ func AddSubmissionComplete(problemID, studentID int, studentCode string, submiss
 }
 
 func CompleteSubmission(completed time.Time, verdict string, submissionID int) error {
-	if err := DB.Model(&Submission{}).
+	if err := DB.Model(&SubmissionTable{}).
 		Where("id = ?", submissionID).
 		Updates(map[string]interface{}{
 			"completed": completed,
@@ -486,9 +486,9 @@ func UpdateMessageBackFeedback(useful string, givenAt time.Time, feedbackID, aut
 	return nil
 }
 
-func GetSubmissions() ([]Submission, error) {
-	var submissions []Submission
-	if err := DB.Model(&Submission{}).Select("problem_id", "student_id", "code_submitted_at").Find(&submissions).Error; err != nil {
+func GetSubmissions() ([]SubmissionTable, error) {
+	var submissions []SubmissionTable
+	if err := DB.Model(&SubmissionTable{}).Select("problem_id", "student_id", "code_submitted_at").Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	return submissions, nil
@@ -507,9 +507,9 @@ func GetProblemUploadTime(pid int) (time.Time, error) {
 	return problem.ProblemUploadedAt, nil
 }
 
-func GetSubmissionsByProblemID(pid int) ([]Submission, error) {
-	var submissions []Submission
-	if err := DB.Model(&Submission{}).
+func GetSubmissionsByProblemID(pid int) ([]SubmissionTable, error) {
+	var submissions []SubmissionTable
+	if err := DB.Model(&SubmissionTable{}).
 		Where("problem_id = ?", pid).
 		Select("student_id", "submission_category", "code_submitted_at", "completed").
 		Find(&submissions).Error; err != nil {
@@ -704,9 +704,9 @@ func GetProblemStats(problemID int) (int, int, int, int, int) {
 
 func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 	var latestSubmissions = make(map[int]time.Time)
-	var submissions []Submission
+	var submissions []SubmissionTable
 
-	if err := DB.Model(&Submission{}).
+	if err := DB.Model(&SubmissionTable{}).
 		Select("student_id, max(code_submitted_at) as code_submitted_at").
 		Where("problem_id = ?", problemID).
 		Group("student_id").
@@ -1246,7 +1246,7 @@ func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error)
 
 func FetchSubmissions(problemID, studentID int) ([]*SubmissionInfo, error) {
 	var submissionInfos = make([]*SubmissionInfo, 0)
-	var submissions []Submission
+	var submissions []SubmissionTable
 	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).Find(&submissions).Error
 	if err != nil {
 		return submissionInfos, fmt.Errorf("failed to fetch submissions: %w", err)
@@ -1302,7 +1302,7 @@ func FetchMessages(problemID, studentID, uid int, role string, students map[int]
 		Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
 		Scan(&results).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch messages: %w", err)
+		return messages, fmt.Errorf("failed to fetch messages: %w", err)
 	}
 
 	// Process results into MessageDashBoard
@@ -1332,8 +1332,8 @@ func FetchMessages(problemID, studentID, uid int, role string, students map[int]
 	return messages, nil
 }
 
-func FetchSubmission(studentID, problemID int) ([]Submission, error) {
-	var submissions []Submission
+func FetchSubmission(studentID, problemID int) ([]SubmissionTable, error) {
+	var submissions []SubmissionTable
 	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Order("verdict, code_submitted_at ASC").
 		Find(&submissions).Error

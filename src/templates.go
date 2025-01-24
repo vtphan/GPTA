@@ -718,7 +718,7 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 		<div class="row status">
 			<span>Coding Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
-			<span>SubmissionStruct Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
+			<span>Submission Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
 			<span>Tutoring Status: <strong>{{ .Status.TutoringStat }} </strong></span>
 		</div>
 
@@ -737,7 +737,7 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 				{{range .Messages}}
 					<article class="message" style="margin-left: 25px; padding-bottom: 20px;">
 						<div class="message-header">
-						<p>{{if eq .Type 0}}{{.Name}} asked for help{{else if eq .Event "at_submission"}} SubmissionStruct Snapshot taken {{else}} Regular Snapshot taken {{end}} at ({{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}})</p>
+						<p>{{if eq .Type 0}}{{.Name}} asked for help{{else if eq .Event "at_submission"}} Submission Snapshot taken {{else}} Regular Snapshot taken {{end}} at ({{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}})</p>
 						</div>
 						<div class="message-body">
 							{{.Message}}
@@ -945,7 +945,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 					<th>Active</th>
 					<th>Coding Status</th>
 					<th>Help Status</th>
-					<th>SubmissionStruct Status</th>
+					<th>Submission Status</th>
 					<th>Tutoring Status</th>
 				</tr>
 			</thead>
@@ -1836,7 +1836,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		<div class="row status">
 			<span>Coding Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
-			<span>SubmissionStruct Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
+			<span>Submission Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
 			<span>Tutoring Status: <strong>{{ .Status.TutoringStat }} </strong></span>
 		</div>
 
@@ -1881,7 +1881,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 						<div class="box" style="padding: 0px; margin-bottom: 3.5rem; border: 5px solid; border-radius: 10px;">
 							<div class="message-header">
 								<div class="column is-two-thirds">
-									<p>{{if eq .Type 0}}{{.Name}} asked for help{{else if eq .Event "at_submission"}} SubmissionStruct Snapshot taken {{else}} Regular Snapshot taken {{end}} at {{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}}</p>
+									<p>{{if eq .Type 0}}{{.Name}} asked for help{{else if eq .Event "at_submission"}} Submission Snapshot taken {{else}} Regular Snapshot taken {{end}} at {{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 									{{ if not (eq (len .Feedbacks) 0) }}
 										<span class="tag is-success">Responded ({{ len .Feedbacks}})</span>
 									{{ end }}
@@ -1914,10 +1914,10 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		</div>
 		{{ end }}
 		{{ if ne .UserRole "student"}}
-		{{ if .SubmissionStruct.Submissions}}
+		{{ if .Submission.Submissions}}
 		<h3>Student's submissions: </h3> 
 		<div id="submission">
-			{{range $index, $el := .SubmissionStruct.Submissions}}
+			{{range $index, $el := .Submission.Submissions}}
 				{{ if eq .Grade "" }}
 				<div class="box" style="padding: 0px; margin-bottom: 3.5rem; border: 5px solid; border-radius: 10px;">
 				
@@ -1974,7 +1974,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 				document.querySelectorAll('.help-check').forEach(function(button) {
 					button.classList.add("is-hidden");
 				});
-				// SubmissionStruct feedback button
+				// Submission feedback button
 				document.querySelectorAll('.sub-check').forEach(function(button) {
 					button.classList.add("is-hidden")
 				});
@@ -2197,7 +2197,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					return
 				}
 
-				runNLP(submittedCode, code, {{ .SubmissionStruct.UserID }}, '#sub-feedback-block-'+i );
+				runNLP(submittedCode, code, {{ .Submission.UserID }}, '#sub-feedback-block-'+i );
 				subfeedbackCounter++;
 				// document.getElementById("sub-submit-"+i).removeAttribute("disabled");
 				document.getElementById("sub-check-"+i).classList.add('is-hidden')
@@ -2223,11 +2223,11 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 				
 				if (subfeedbackCounter != 0 && code !== undefined ) {
 					if (grade !== undefined ) {
-						$.post("/teacher_grades", {content: submittedCode, changed: "", decision: grade, sid: submission_id, uid: {{ .SubmissionStruct.UserID}}, role: {{ .SubmissionStruct.UserRole}}{{if ne .SubmissionStruct.Password ""}}, password: {{ .SubmissionStruct.Password}}{{end}}  }, function(data, status){
+						$.post("/teacher_grades", {content: submittedCode, changed: "", decision: grade, sid: submission_id, uid: {{ .Submission.UserID}}, role: {{ .Submission.UserRole}}{{if ne .Submission.Password ""}}, password: {{ .Submission.Password}}{{end}}  }, function(data, status){
 								// Save and send feedback if the code is changed
 								if (code !== undefined) {
-									runNLP(submittedCode, code, {{ .SubmissionStruct.UserID }}, '#sub-feedback-block-'+i );
-									$.post("/save_snapshot_feedback", {snapshot_id: snapshot_id, feedback: code, uid: {{ .SubmissionStruct.UserID}}, role: {{ .SubmissionStruct.UserRole}}{{if ne .SubmissionStruct.Password ""}}, password: {{ .SubmissionStruct.Password}}{{end}} }, function(data1, status1){
+									runNLP(submittedCode, code, {{ .Submission.UserID }}, '#sub-feedback-block-'+i );
+									$.post("/save_snapshot_feedback", {snapshot_id: snapshot_id, feedback: code, uid: {{ .Submission.UserID}}, role: {{ .Submission.UserRole}}{{if ne .Submission.Password ""}}, password: {{ .Submission.Password}}{{end}} }, function(data1, status1){
 										alert("Graded successfully! Feedback posted successfully! ");
 										window.location.reload();
 									})
@@ -2244,8 +2244,8 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 							alert("Could not grade the submission. Please try again!");
 						});
 					} else {
-						runNLP(submittedCode, code, {{ .SubmissionStruct.UserID }}, '#sub-feedback-block-'+i );
-						$.post("/save_snapshot_feedback", {snapshot_id: snapshot_id, feedback: code, uid: {{ .SubmissionStruct.UserID}}, role: {{ .SubmissionStruct.UserRole}}{{if ne .SubmissionStruct.Password ""}}, password: {{ .SubmissionStruct.Password}}{{end}} }, function(data1, status1){
+						runNLP(submittedCode, code, {{ .Submission.UserID }}, '#sub-feedback-block-'+i );
+						$.post("/save_snapshot_feedback", {snapshot_id: snapshot_id, feedback: code, uid: {{ .Submission.UserID}}, role: {{ .Submission.UserRole}}{{if ne .Submission.Password ""}}, password: {{ .Submission.Password}}{{end}} }, function(data1, status1){
 							alert("Feedback posted successfully! ");
 							window.location.reload();
 						})
@@ -2257,7 +2257,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 
 				if ( code === undefined ){
 					if (grade !== undefined ) {
-						$.post("/teacher_grades", {content: submittedCode, changed: "", decision: grade, sid: submission_id, uid: {{ .SubmissionStruct.UserID}}, role: {{ .SubmissionStruct.UserRole}}{{if ne .SubmissionStruct.Password ""}}, password: {{ .SubmissionStruct.Password}}{{end}}  }, function(data, status){
+						$.post("/teacher_grades", {content: submittedCode, changed: "", decision: grade, sid: submission_id, uid: {{ .Submission.UserID}}, role: {{ .Submission.UserRole}}{{if ne .Submission.Password ""}}, password: {{ .Submission.Password}}{{end}}  }, function(data, status){
 							alert("Graded successfully!");
 							window.location.reload();
 						})

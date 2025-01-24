@@ -14,7 +14,7 @@ func teacher_puts_backHandler(w http.ResponseWriter, r *http.Request, who string
 	defer SubSem.Unlock()
 	if _, ok := Submissions[sid]; ok {
 		WorkingSubs = append(WorkingSubs, Submissions[sid])
-		fmt.Fprintf(w, "SubmissionStruct has been put back into the queue.")
+		fmt.Fprintf(w, "Submission has been put back into the queue.")
 	} else {
 		fmt.Fprintf(w, "Unknown submission.")
 	}

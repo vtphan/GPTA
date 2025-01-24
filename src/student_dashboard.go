@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -204,7 +203,7 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 			log.Fatal(err)
 		}
 
-		// Convert Submission to SubmissionInfo and append to submissionInfos
+		// Convert SubmissionTable to SubmissionInfo and append to submissionInfos
 		var submissionInfos []*SubmissionInfo
 		for _, submission := range submissionRecords {
 			submissionInfos = append(submissionInfos, &SubmissionInfo{
@@ -299,10 +298,9 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
 		messages, err = FetchMessages(problemID, studentID, uid, role, students)
 		if err != nil {
-			log.Printf("Error fetching messages: %v\n", err)
-			http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
-			return
+			log.Fatal(err) // Consider graceful error handling
 		}
+		// Process `messages` as needed
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
@@ -334,17 +332,6 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-
-		// Return submissions as JSON
-		js, err := json.Marshal(submissions)
-		if err != nil {
-			log.Printf("Error marshalling submissions: %v\n", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
 	} else {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
@@ -364,19 +351,19 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	// Get student status
 	studentStats, err := FetchStudentStatus(problemID, studentID)
 	if err != nil {
-		log.Printf("Error fetching student status: %v\n", err)
+		log.Fatal(err) // Consider handling the error gracefully instead of terminating the program
 	}
 
-	// Ensure studentStats is not nil and user has permission to view stats
-	if studentStats != nil && !(role == "teacher" || uid == studentID || (PeerTutorAllowed && ok)) {
-		// Clear studentStats if the user is unauthorized
-		studentStats = nil
+	// Apply role-based authorization
+	if !(role == "teacher" || uid == studentID || (PeerTutorAllowed && ok)) {
+		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
+		return
 	}
 
 	data := TemplateDate{
 		Submission:     *submission,
 		Feedback:       *feedback,
-		Status:         DashBoardStudentInfo{},
+		Status:         *studentStats,
 		ChatgptaServer: Config.ChatgptaServer,
 		UserID:         uid,
 		UserRole:       role,
@@ -384,9 +371,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		Username:       getName(uid, role),
 		CourseName:     Config.CourseName,
 	}
-	if studentStats != nil {
-		data.Status = *studentStats
-	}
+
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, data)
 	if err != nil {

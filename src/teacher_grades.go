@@ -70,7 +70,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		Students[sub.Uid].SubmissionStatus = append(Students[sub.Uid].SubmissionStatus, subStat)
 
 		ActiveProblems[sub.Filename].Attempts[student_id] += 1
-		fmt.Fprintf(w, "SubmissionStruct dismissed.")
+		fmt.Fprintf(w, "Submission dismissed.")
 	} else if decision == "ungraded" {
 		// Students[student_id].SubmissionStatus = 5
 		subStat := &StudentSubmissionStatus{

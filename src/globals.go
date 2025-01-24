@@ -110,7 +110,7 @@ var Students = make(map[int]*StudenInfo)
 var BulletinBoard = make([]string, 0)
 
 // ---------------------------------------------------------
-type SubmissionStruct struct {
+type Submission struct {
 	Sid           int // submission id
 	Uid           int // student id
 	Pid           int // problem id
@@ -123,8 +123,8 @@ type SubmissionStruct struct {
 	SnapshotID    int
 }
 
-var WorkingSubs = make([]*SubmissionStruct, 0)
-var Submissions = make(map[int]*SubmissionStruct)
+var WorkingSubs = make([]*Submission, 0)
+var Submissions = make(map[int]*Submission)
 
 //---------------------------------------------------------
 
