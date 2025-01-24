@@ -752,7 +752,7 @@ func GetProblemDetail(problemID int) (string, time.Time, error) {
 		Description    string
 		ProblemEndedAt time.Time
 	}
-	err := DB.Table("problem").
+	err := DB.Table("problems").
 		Select("problem_description as description, problem_ended_at").
 		Where("id = ?", problemID).
 		Scan(&problem).Error
@@ -770,7 +770,7 @@ func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
 		Answer string
 		Count  int
 	}
-	err := DB.Table("submission").
+	err := DB.Table("submissions").
 		Select("answer, COUNT(*) as count").
 		Where("problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0", problemID).
 		Group("answer").
@@ -1059,12 +1059,9 @@ func GetMessageFeedbacksByMessageID(messageID int) ([]MessageFeedback, error) {
 func GetLatestSnapshot(studentID int, problemID int) (*Snapshot, error) {
 	var snapshot CodeSnapshot
 
-	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+	_ = DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Order("last_updated_at DESC").
 		First(&snapshot).Error
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving latest snapshot for student %d, problem %d: %v", studentID, problemID, err)
-	}
 
 	return &Snapshot{
 		ID:          snapshot.ID,
@@ -1093,7 +1090,7 @@ func GetTeacherName(authorID int) string {
 
 func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole string) (*MessageBackFeedback, error) {
 	var feedback MessageBackFeedback
-	err := DB.Table("message_back_feedback").
+	err := DB.Table("message_back_feedbacks").
 		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
 		First(&feedback).Error
 
@@ -1110,10 +1107,10 @@ func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole strin
 
 func FetchExistingTestCase(studentID, problemID int) (int, error) {
 	var testCaseID int
-	err := DB.Table("test_case").
+	err := DB.Table("test_cases").
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Select("id").
-		First(&testCaseID).Error
+		Scan(&testCaseID).Error
 
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return 0, fmt.Errorf("failed to fetch existing test case: %w", err)
@@ -1131,7 +1128,7 @@ func FetchTagIDByDescription(description string) (int64, error) {
 	err := DB.Table("tags").
 		Where("topic_description = ?", description).
 		Select("id").
-		First(&tagID).Error
+		Scan(&tagID).Error // Use Scan instead of First
 
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return 0, fmt.Errorf("failed to fetch tag ID: %w", err)
@@ -1234,9 +1231,9 @@ func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error)
 	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).First(&studentStatus).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, nil // No record found
+			return &DashBoardStudentInfo{}, nil // No record found
 		}
-		return nil, fmt.Errorf("failed to fetch student status: %w", err)
+		return &DashBoardStudentInfo{}, fmt.Errorf("failed to fetch student status: %w", err)
 	}
 
 	return &DashBoardStudentInfo{
@@ -1248,14 +1245,14 @@ func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error)
 }
 
 func FetchSubmissions(problemID, studentID int) ([]*SubmissionInfo, error) {
+	var submissionInfos = make([]*SubmissionInfo, 0)
 	var submissions []Submission
 	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).Find(&submissions).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch submissions: %w", err)
+		return submissionInfos, fmt.Errorf("failed to fetch submissions: %w", err)
 	}
 
 	// Map the fetched submissions to the SubmissionInfo format
-	var submissionInfos []*SubmissionInfo
 	for _, submission := range submissions {
 		submissionInfos = append(submissionInfos, &SubmissionInfo{
 			ID:          submission.ID,

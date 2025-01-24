@@ -1351,69 +1351,143 @@ var SUBMISSION_VIEW_TEMPLATE = `
 var TEACHER_LOGIN = `
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>TeacherMap Login</title>
-      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.0/css/bulma.min.css">
-	  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-   </head>
-   <body>
-   <div class="container">
-      <section class="section">      
-       <div class="columns">
-       <div class="column is-4 is-offset-4">
-		  <div class="field">
-		  <p class="control has-icons-left has-icons-right">
-		    <input id="name" class="input" type="email" placeholder="Name">
-		    <span class="icon is-small is-left">
-		      <i class="fa fa-user"></i>
-		    </span>
-		    <span class="icon is-small is-right">
-		      <i class="fa fa-check"></i>
-		    </span>
-		  </p>
-		</div>
-		<div class="field">
-		  <p class="control has-icons-left">
-		    <input id="password" class="input" type="password" placeholder="Password">
-		    <span class="icon is-small is-left">
-		      <i class="fa fa-lock"></i>
-		    </span>
-		  </p>
-		</div>
-		<div class="field">
-		  <p class="control">
-		    <button id="login" class="button is-success" style="color: #292929;">
-		      Login
-		    </button>
-		  </p>
-		</div>
-      </div>         
-       </div>
-      </section>
-	</div>
-	  <script>
-	  	$(document).ready(function(){
-			$('#login').click(function(){
-				var name = $('#name').val().trim();
-				var pass = $('#password').val().trim();
-				if(name == "" || pass == "") {
-					alert("Please enter both name and password!");
-				} else {
-					$.post("/teacher_signin_complete", {username: name, password: pass}, function(data, status){
-						if (status == "success"){
-							window.location.replace("/view_exercises?role=teacher&uid="+data);
-						} else {
-							alert("Unauthorized access");
-						}
-					});
-				}
-			});
-		});
-	  </script>
-   </body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teacher Login</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        font-family: "Arial", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+      }
+      .login-box {
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      .login-box .title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .login-box .subtitle {
+        font-size: 1rem;
+        color: #777;
+        margin-bottom: 30px;
+      }
+      .login-box .field {
+        margin-bottom: 20px;
+      }
+      .login-box input {
+        border-radius: 25px;
+        padding: 10px 20px;
+      }
+      .login-box .button {
+        border-radius: 25px;
+        padding: 10px 20px;
+        background: #6a11cb;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+      .login-box .button:hover {
+        background: #2575fc;
+        transform: translateY(-2px);
+      }
+      .forgot-password {
+        display: block;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #6a11cb;
+        text-decoration: none;
+      }
+      .forgot-password:hover {
+        text-decoration: underline;
+      }
+      .illustration {
+        max-width: 100px;
+        margin: 0 auto 20px;
+      }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+  <body>
+    <div class="login-box">
+      <h1 class="title">Welcome Back!</h1>
+      <p class="subtitle">Sign in to manage your classes</p>
+      <div class="field">
+        <p class="control has-icons-left">
+          <input
+            id="name"
+            class="input is-medium"
+            type="email"
+            placeholder="Enter your email"
+          />
+          <span class="icon is-left">
+            <i class="fas fa-envelope"></i>
+          </span>
+        </p>
+      </div>
+      <div class="field">
+        <p class="control has-icons-left">
+          <input
+            id="password"
+            class="input is-medium"
+            type="password"
+            placeholder="Enter your password"
+          />
+          <span class="icon is-left">
+            <i class="fas fa-lock"></i>
+          </span>
+        </p>
+      </div>
+      <button id="login" class="button is-medium">Login</button>
+      <a href="#" class="forgot-password">Forgot your password?</a>
+    </div>
+    <script>
+      $(document).ready(function () {
+        $('#login').click(function () {
+          var name = $('#name').val().trim();
+          var pass = $('#password').val().trim();
+          if (name == '' || pass == '') {
+            alert('Please enter both email and password!');
+          } else {
+            $.post(
+              '/teacher_signin_complete',
+              { username: name, password: pass },
+              function (data, status) {
+                if (status == 'success') {
+                  window.location.replace(
+                    '/view_exercises?role=teacher&uid=' + data
+                  );
+                } else {
+                  alert('Unauthorized access');
+                }
+              }
+            );
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
 `
 var PROBLEM_FILE_UPLOAD_VIEW = `

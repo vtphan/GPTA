@@ -51,30 +51,33 @@ func add_user(name, role string, password string) {
 			log.Fatal(err)
 		}
 	}
-	if err != nil && err.Error() == RecordNotFound {
+	if err == nil {
 		fmt.Printf("%s already exists. Choose a different name.\n", name)
 		return
 	}
-	if role != "teacher" {
-		password = RandStringRunes(12)
-	}
-	if role == "teacher" {
-		teacher, err = AddTeacher(name, password)
-	} else {
-		student, err = AddStudent(name, password)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	if role == "teacher" {
-		id = teacher.ID
-	} else {
-		id = student.ID
-	}
-	if role == "teacher" {
-		init_teacher(id, name, password) //todo - map
-	} else {
-		init_student(id, name, password) //todo - map
+	if err.Error() == RecordNotFound {
+
+		if role != "teacher" {
+			password = RandStringRunes(12)
+		}
+		if role == "teacher" {
+			teacher, err = AddTeacher(name, password)
+		} else {
+			student, err = AddStudent(name, password)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if role == "teacher" {
+			id = teacher.ID
+		} else {
+			id = student.ID
+		}
+		if role == "teacher" {
+			init_teacher(id, name, password) //todo - map
+		} else {
+			init_student(id, name, password) //todo - map
+		}
 	}
 	fmt.Printf("|%s| is added. Must complete registeration.\n", name)
 }
