@@ -12,13 +12,13 @@ import (
 	"strconv"
 )
 
-func GetMessageFeedbacks(messageID int, userID int, userRole string) []*models.FeedbackDashBaord {
+func GetMessageFeedbacks(messageID int, userID int, userRole string) []*models.FeedbackDashBoard {
 	messageFeedbacks, err := repository.GetMessageFeedbacksByMessageID(messageID)
 	if err != nil {
 		return nil
 	}
 
-	var feedbacks []*models.FeedbackDashBaord
+	var feedbacks []*models.FeedbackDashBoard
 	for _, feedback := range messageFeedbacks {
 		name := ""
 		if feedback.AuthorRole == "teacher" {
@@ -27,7 +27,7 @@ func GetMessageFeedbacks(messageID int, userID int, userRole string) []*models.F
 			name = repository.GetStudentName(feedback.AuthorID)
 		}
 
-		feedbacks = append(feedbacks, &models.FeedbackDashBaord{
+		feedbacks = append(feedbacks, &models.FeedbackDashBoard{
 			Name:            name,
 			Role:            feedback.AuthorRole,
 			Feedback:        feedback.Feedback,

@@ -297,7 +297,7 @@ type DashBoardInfo struct {
 	Username           string
 }
 
-type FeedbackDashBaord struct {
+type FeedbackDashBoard struct {
 	Name            string
 	Role            string
 	Feedback        string
@@ -318,7 +318,7 @@ type MessageDashBoard struct {
 	GivenAt    time.Time
 	Code       string
 	SnapshotID int
-	Feedbacks  []*FeedbackDashBaord
+	Feedbacks  []*FeedbackDashBoard
 }
 
 type FeedbackProvisionDashBoard struct {
