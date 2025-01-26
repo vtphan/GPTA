@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func teacher_puts_backHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherPutsBackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	sid, _ := strconv.Atoi(r.FormValue("sid"))
 	models.SubSem.Lock()
 	defer models.SubSem.Unlock()

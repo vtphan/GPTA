@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package frontEnd
 
 var STUDENT_MESSAGING_TEMPLATE = `
 <html>
@@ -2278,4 +2278,377 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 
 	</body>
 	</html>
+`
+
+var ACTIVITY_VIEW_TEMPLATE = `
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar','line']});
+      google.charts.setOnLoadCallback(drawStudentCount);
+      google.charts.setOnLoadCallback(drawExerciseCount);
+
+      function drawStudentCount() {
+	      var data = google.visualization.arrayToDataTable([
+	        ['Time', 'Student Count'],
+			{{ range $day, $val := . }}
+				[  new Date({{$day}} / 1000000), {{$val.SidCount}} ],
+			{{ end }}
+	      ]);
+	      var options = {
+	        title: 'Daily student participation',
+        	height: 350,
+	        vAxis: { textStyle: { fontSize: 20} },
+            hAxis: { title: '', textStyle: { fontSize: 20} },
+        	fontSize: 24,
+	      };
+        var chart = new google.charts.Bar(document.getElementById('chart1_div'));
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+
+      function drawExerciseCount() {
+	      var data = google.visualization.arrayToDataTable([
+	        ['Time', 'Excercise Count'],
+			{{ range $day, $val := . }}
+				[  new Date({{$day}} / 1000000), {{$val.PidCount}} ],
+			{{ end }}
+	      ]);
+	      var options = {
+	        title: 'Daily exercise',
+        	height: 350,
+	        vAxis: { textStyle: { fontSize: 20} },
+            hAxis: { title: '', textStyle: { fontSize: 20} },
+        	fontSize: 24,
+	      };
+        var chart = new google.charts.Bar(document.getElementById('chart2_div'));
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+    </script>
+    <style>
+    #chart1_div,#chart2_div{ margin: auto; width:75%; }
+    .spacer{ width:100%; height:40px; }
+    </style>
+  </head>
+
+  <body>
+    <div id="chart1_div"></div>
+    <div class="spacer"></div>
+    <div id="chart2_div"></div>
+  </body>
+</html>
+`
+
+var VIEW_ANSWERS_TEMPLATE = `
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar']});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ["Answer", "Count", {role: 'annotation'}],
+          	{{$total := .Total}}
+			{{ range $key, $value := .Counts }}
+				[{{ $key }}, {{ $value }}, Math.round(100 * {{$value}} / {{ $total }})  + '%'],
+			{{ end }}
+		]);
+        var options = {
+        	'title':'Total votes: {{ .Total }}',
+        	'height':300,
+        	'legend': {position: "none"},
+        	'fontSize': 24,
+            vAxis: { textStyle: { fontSize: 20} },
+            hAxis: { title: "", textStyle: { fontSize: 20} },
+        };
+        var chart = new google.charts.Bar(document.getElementById('chart_div'));
+        chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+    </script>
+    <style>
+    #chart_div{ margin: auto; width:70%; }
+    pre{ margin: auto; width:60%}
+    .spacer{ width:100%; height:40px; }
+    </style>
+  </head>
+
+  <body>
+    <div id="chart_div"></div>
+    <div class="spacer"></div>
+    <pre id="content">{{ .Content }}</pre>
+    <div class="spacer"></div>
+  </body>
+</html>
+`
+
+var ANALYZE_SUBMISSIONS_TEMPLATE = `
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart','bar']});
+      google.charts.setOnLoadCallback(drawWaitingTime);
+      google.charts.setOnLoadCallback(drawResponseTime);
+      google.charts.setOnLoadCallback(drawAttempts);
+
+      function drawResponseTime() {
+        var data = google.visualization.arrayToDataTable([
+			['Student', 'Duration'],
+			{{ range $sid, $rec := . }}
+				{{ range $rec }}
+				[  String({{$sid}}), ({{.At}} - {{.Start}})/1e9],
+				{{ end }}
+			{{ end }}
+        ]);
+
+        var options = {
+          title: 'Student response time',
+          legend: { position: 'none' },
+        };
+
+        var chart = new google.visualization.Histogram(document.getElementById('response'));
+        chart.draw(data, options);
+      }
+
+      //---------------------------------------------------
+      function drawWaitingTime() {
+        var data = google.visualization.arrayToDataTable([
+			['Student', 'Waiting time'],
+			{{ range $sid, $rec := . }}
+				{{ range $rec }}
+				[  String({{$sid}}), ({{.Completed}} - {{.At}})/1e9],
+				{{ end }}
+			{{ end }}
+        ]);
+
+        var options = {
+          title: 'Waiting for teacher',
+          legend: { position: 'none' },
+        };
+
+        var chart = new google.visualization.Histogram(document.getElementById('waiting'));
+        chart.draw(data, options);
+      }
+
+      //---------------------------------------------------
+      function drawAttempts() {
+        var data = google.visualization.arrayToDataTable([
+			['Student', 'Attempts'],
+			{{ range $sid, $rec := . }}
+				{{ $length := len $rec }}
+				[  String({{$sid}}), {{$length}} ],
+			{{ end }}
+        ]);
+
+        var options = {
+			title: 'Solution attempts',
+			legend: { position: 'none' },
+	        hAxis: {
+	            viewWindowMode:'explicit',
+		        viewWindow: { min:1 }
+	        },
+        };
+
+        var chart = new google.visualization.Histogram(document.getElementById('attempts'));
+        chart.draw(data, options);
+      }
+
+
+      //---------------------------------------------------
+    </script>
+    <style>
+    .spacer{ width:100%; height:40px; }
+    .row{
+	    display:flex;
+	    flex-direction:row;
+	    justify-content: space-around;
+    }
+    #attempts,#response,#waiting{
+	    width:420px; height:400px;
+	    display:flex;
+	    flex-direction:column;
+    }
+    </style>
+  </head>
+  <body>
+  	<div class="row">
+    <div id="attempts"></div>
+    <div id="response"></div>
+    <div id="waiting"></div>
+	</div>
+  </body>
+</html>
+`
+
+var TAGS_VIEW_TEMPLATE = `
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart', 'table']});
+      google.charts.setOnLoadCallback(drawActivity);
+      google.charts.setOnLoadCallback(drawScores);
+
+      function drawActivity() {
+	      var data = google.visualization.arrayToDataTable([
+	        ['Date', 'Total submissions'],
+			{{ range $day, $val := .SubmissionCount }}
+				[  {{$day}}, {{$val}} ],
+			{{ end }}
+	      ]);
+	      var options = {
+	        title: '',
+        	height: 350,
+            hAxis: { title: 'Total submissions' },
+	        legend: { position: 'none' },
+	      };
+        var chart = new google.visualization.SteppedAreaChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+
+      function drawScores() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Name');
+        data.addColumn('number', 'Points');
+        data.addColumn('number', 'Attempts');
+        data.addRows([
+			{{ range $student_id, $entry := .Scores }}
+				[{{$entry.Name}},{{$entry.Points}},{{$entry.Attempts}}],
+			{{ end }}
+        ]);
+        var table = new google.visualization.Table(document.getElementById('scores_div'));
+        table.draw(data, {showRowNumber: true, width: '400px'});
+      }
+    </script>
+    <style>
+    body { margin:auto; width:90%; font-size:16pt;}
+    #chart_div,#scores_div{ margin:auto; }
+    .spacer{ width:100%; height:30px; }
+    </style>
+  </head>
+  <body>
+  	<div class="spacer"></div>
+  	<h4>Activities</h4>
+  	<div id="chart_div"></div>
+  	<div class="spacer"></div>
+  	<h4>Learning objectives</h4>
+  	<ul>
+	{{$pc := .PC}}
+	{{ range $tag_id, $tag_des := .Tags }}
+	<li><a href="report_tag?pc={{$pc}}&tag_id={{$tag_id}}" target="_blank">{{$tag_des}}</a></li>
+	{{ end }}
+	</ul>
+	<h4>Points</h4>
+	<div id="scores_div"></div>
+  	<div class="spacer"></div>
+  </body>
+</html>
+`
+
+var TAG_REPORT_TEMPLATE = `
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['bar','scatter']});
+      google.charts.setOnLoadCallback(draw_success);
+      google.charts.setOnLoadCallback(draw_participation);
+
+      function draw_success() {
+	      var data = google.visualization.arrayToDataTable([
+	        ['Time', 'Success'],
+			{{ range $pid, $rec := .Performance }}
+				[ new Date({{$rec.Timestamp}} / 1000000), {{$rec.Success}} ],
+			{{ end }}
+	      ]);
+	      var options = {
+	        title: 'Success', legend: {position: 'none'},
+	        vAxis: {
+	        	textStyle: { fontSize: 18},
+	            viewWindowMode:'explicit',
+    	        viewWindow: { min:0, max:1.05 }
+	        },
+            hAxis: { title: '', textStyle: {fontSize: 18} },
+        	fontSize: 24,
+	      };
+        var chart = new google.charts.Scatter(document.getElementById('success'));
+        chart.draw(data, google.charts.Scatter.convertOptions(options));
+      }
+
+      function draw_participation() {
+	      var data = google.visualization.arrayToDataTable([
+	        ['Time', 'Participation'],
+			{{ range $pid, $rec := .Performance }}
+				[ new Date({{$rec.Timestamp}} / 1000000), {{$rec.Activity}} ],
+			{{ end }}
+	      ]);
+	      var options = {
+	        title: 'Participation', legend: {position: 'none'},
+	        vAxis: {
+	        	textStyle: {fontSize: 18},
+	            viewWindowMode:'explicit',
+    	        viewWindow: { min:0, max:1.05 }
+	        },
+            hAxis: { title: '', textStyle: {fontSize: 18} },
+        	fontSize: 24,
+	      };
+        var chart = new google.charts.Scatter(document.getElementById('participation'));
+        chart.draw(data, google.charts.Scatter.convertOptions(options));
+      }
+      </script>
+    <style>
+    body{ margin: auto; width:75%; }
+    .row{
+	    display:flex;
+	    flex-direction:row;
+	    justify-content: space-around;
+    }
+    #success,#participation{
+	    width:450px; height:400px;
+	    display:flex;
+	    flex-direction:column;
+    }
+    .spacer{ width:100%; height:40px; }
+    #problem_ids{
+    	margin:auto;
+    	height:100px;
+    	padding-top:20px;
+		overflow-x: scroll;
+	    white-space: nowrap;
+    	text-align: center;
+		vertical-align: middle;
+    }
+    .problem_id{
+		padding: 15px 20px 15px 20px;
+    	text-align: center;
+    	font-size: 110%;
+    	border:2px solid #dedede;
+		display: inline-block;
+    }
+    .problem_id a{
+    	text-decoration: none;
+    }
+    </style>
+  </head>
+
+  <body>
+  	<div class="spacer"><h2>{{.Description}}</h2></div>
+	<div class="row">
+	    <div id="success"></div>
+	    <div id="participation"></div>
+    </div>
+	<div class="spacer"></div>
+    <div id="problem_ids">
+	{{ range $pid, $rec := .Performance }}
+		<div class="problem_id"><a href="analyze_submissions?pid={{$pid}}&pc={{$rec.PC}}" target="_blank">{{$pid}}</a></div>
+	{{ end }}
+	</div>
+  </body>
+</html>
 `

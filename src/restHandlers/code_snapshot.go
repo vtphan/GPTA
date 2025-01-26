@@ -1,4 +1,4 @@
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func addCodeSnapshot(studentID int, problemID int, code string, status int, lastUpdate time.Time, event string) int {
+func AddCodeSnapshot(studentID int, problemID int, code string, status int, lastUpdate time.Time, event string) int {
 	result, err := repository.AddCodeSnapshot(studentID, problemID, code, status, lastUpdate, event)
 	if err != nil {
 		log.Fatal("Could not save the snapshot for error: ", err)
@@ -68,7 +68,7 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 	return snapshotID
 }
 
-func codeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func CodeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	code := r.FormValue("code")
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	studentID, _ := strconv.Atoi(r.FormValue("uid"))
@@ -76,10 +76,10 @@ func codeSnapshotHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	if snapshotEvent == "" {
 		snapshotEvent = "at_regular_interval"
 	}
-	addCodeSnapshot(studentID, problemID, code, 0, time.Now(), snapshotEvent)
+	AddCodeSnapshot(studentID, problemID, code, 0, time.Now(), snapshotEvent)
 }
 
-func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func CodeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	snapshotID, _ := strconv.Atoi(r.FormValue("snapshot_id"))
 	feedback := r.FormValue("feedback")
 	authorID, _ := strconv.Atoi(r.FormValue("uid"))
@@ -124,7 +124,7 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 		Snapshot:    codeSnapshot.Code,
 		Feedback:    feedback,
 		ProblemName: codeSnapshot.Event, // Assuming Event holds the problem name
-		Provider:    getName(uid, authorRole),
+		Provider:    GetName(uid, authorRole),
 	})
 
 	// Update student status
@@ -135,7 +135,7 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	fmt.Println("Feedback on code snapshot saved!")
 }
 
-func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func MessageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	messageID, _ := strconv.Atoi(r.FormValue("message_id"))
 	feedback := r.FormValue("feedback")
 	authorID, _ := strconv.Atoi(r.FormValue("uid"))
@@ -180,13 +180,13 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 			Snapshot:    code,
 			Feedback:    feedback,
 			ProblemName: filename,
-			Provider:    getName(uid, authorRole),
+			Provider:    GetName(uid, authorRole),
 		})
 		fmt.Println("Feedback on message saved!")
 	}
 }
 
-func getSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func GetSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	feedfback := models.Students[uid].SnapShotFeedbackQueue[0]
 	models.Students[uid].SnapShotFeedbackQueue = models.Students[uid].SnapShotFeedbackQueue[1:]
 	js, err := json.Marshal(feedfback)

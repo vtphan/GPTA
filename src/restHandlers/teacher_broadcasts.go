@@ -1,8 +1,9 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -64,7 +65,7 @@ func insert_problem(uid int, problem *models.ProblemInfo) {
 // -----------------------------------------------------------------------------------
 // TeacherMap starts one or more problems.
 // -----------------------------------------------------------------------------------
-func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherBroadcastsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content := r.FormValue("content")
 	answer := r.FormValue("answer")
 	merit, _ := strconv.Atoi(r.FormValue("merit"))
@@ -114,9 +115,9 @@ func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who strin
 
 //-----------------------------------------------------------------------------------
 
-func teacherWebBroadcastHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherWebBroadcastHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	temp := template.New("")
-	t, err := temp.Parse(PROBLEM_FILE_UPLOAD_VIEW)
+	t, err := temp.Parse(frontEnd.PROBLEM_FILE_UPLOAD_VIEW)
 	if err != nil {
 		log.Fatal(err)
 	}

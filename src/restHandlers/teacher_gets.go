@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 // -----------------------------------------------------------------------------------
 // Return a submission by index or priority
 // -----------------------------------------------------------------------------------
-func teacher_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherGetsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	index, _ := strconv.Atoi(r.FormValue("index"))
 	priority, _ := strconv.Atoi(r.FormValue("priority"))
 
@@ -76,7 +76,7 @@ func teacher_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 }
 
 // -----------------------------------------------------------------------------------
-func teacher_gets_queueHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherGetsQueueHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	js, err := json.Marshal(models.WorkingSubs)
 	if err != nil {
 		fmt.Println(err.Error())

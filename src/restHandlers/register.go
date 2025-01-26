@@ -1,4 +1,4 @@
-package main
+package restHandlers
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 )
 
 // -----------------------------------------------------------------
-func add_multiple(filename, role string) {
+func AddMultiple(filename, role string) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -85,7 +85,7 @@ func add_user(name, role string, password string) {
 }
 
 // -----------------------------------------------------------------
-func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
+func CompleteRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	role := r.FormValue("role")
 	course_id := r.FormValue("course_id")

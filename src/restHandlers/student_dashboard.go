@@ -1,7 +1,8 @@
-package main
+package restHandlers
 
 import (
 	"fmt"
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -41,13 +42,13 @@ func GetMessageFeedbacks(messageID int, userID int, userRole string) []*models.F
 	return feedbacks
 }
 
-func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	studentID, _ := strconv.Atoi(r.FormValue("student_id"))
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode}
-	t, err := temp.Funcs(ownFuncs).Parse(FEEDBACK_PROVISION_TEMPLATE)
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.FEEDBACK_PROVISION_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -104,7 +105,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 		UserRole:     role,
 		Password:     r.FormValue("password"),
 		Status:       *studentStats,
-		Username:     getName(uid, role),
+		Username:     GetName(uid, role),
 	}
 	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, data)
@@ -114,13 +115,13 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	studentID, _ := strconv.Atoi(r.FormValue("student_id"))
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode}
-	t, err := temp.Funcs(ownFuncs).Parse(SUBMISSION_VIEW_TEMPLATE)
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.SUBMISSION_VIEW_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -183,7 +184,7 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 	}
 }
 
-func hasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func HasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	userRole := r.FormValue("role")
 
@@ -203,13 +204,13 @@ func hasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who s
 	}
 }
 
-func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	studentID, _ := strconv.Atoi(r.FormValue("student_id"))
 	temp := template.New("")
 	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode}
-	t, err := temp.Funcs(ownFuncs).Parse(CODE_SNAPSHOT_TAB_TEMPLATE)
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.CODE_SNAPSHOT_TAB_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -276,7 +277,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		UserID:      uid,
 		UserRole:    role,
 		Password:    r.FormValue("password"),
-		Username:    getName(uid, role),
+		Username:    GetName(uid, role),
 	}
 
 	// Get student status
@@ -299,7 +300,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		UserID:         uid,
 		UserRole:       role,
 		Password:       r.FormValue("password"),
-		Username:       getName(uid, role),
+		Username:       GetName(uid, role),
 		CourseName:     models.Config.CourseName,
 	}
 

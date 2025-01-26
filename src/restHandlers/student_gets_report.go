@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func student_gets_reportHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentGetsReportHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// Fetch report data
 	report, err := repository.FetchStudentReport(uid)
 	if err != nil {

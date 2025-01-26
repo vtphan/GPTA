@@ -1,6 +1,7 @@
-package main
+package restHandlers
 
 import (
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -31,7 +32,7 @@ type ProblemListData struct {
 	Username         string
 }
 
-func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func ProblemListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	password := r.FormValue("password")
 
@@ -68,12 +69,12 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 		UserID:           uid,
 		UserRole:         role,
 		Password:         password,
-		Username:         getName(uid, role),
+		Username:         GetName(uid, role),
 	}
 
 	// Render the template
 	temp := template.New("")
-	t, err := temp.Parse(PROBLEM_LIST_TEMPLATE)
+	t, err := temp.Parse(frontEnd.PROBLEM_LIST_TEMPLATE)
 	if err != nil {
 		log.Fatalf("Error parsing template: %v", err)
 	}

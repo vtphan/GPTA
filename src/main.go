@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
+	"github.com/GPTA/src/restHandlers"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -21,83 +22,83 @@ import (
 
 // -----------------------------------------------------------------
 func init_handlers() {
-	http.HandleFunc("/test", testHandler)
+	http.HandleFunc("/test", restHandlers.TestHandler)
 
 	// Analytics
 	// http.HandleFunc("/learning_report", learning_reportHandler)
-	http.HandleFunc("/analyze_submissions", analyze_submissionsHandler)
-	http.HandleFunc("/view_activities", view_activitiesHandler)
-	http.HandleFunc("/report", reportHandler)
-	http.HandleFunc("/report_tag", report_tagHandler)
-	http.HandleFunc("/view_answers", view_answersHandler)
-	http.HandleFunc("/statistics", statisticsHandler)
+	http.HandleFunc("/analyze_submissions", restHandlers.AnalyzeSubmissionsHandler)
+	http.HandleFunc("/view_activities", restHandlers.ViewActivitiesHandler)
+	http.HandleFunc("/report", restHandlers.ReportHandler)
+	http.HandleFunc("/report_tag", restHandlers.ReportTagHandler)
+	http.HandleFunc("/view_answers", restHandlers.ViewAnswersHandler)
+	http.HandleFunc("/statistics", restHandlers.StatisticsHandler)
 
 	// Others
-	http.HandleFunc("/student_periodic_update", Authorize(student_periodic_updateHandler, "student"))
+	http.HandleFunc("/student_periodic_update", Authorize(restHandlers.StudentPeriodicUpdateHandler, "student"))
 
-	http.HandleFunc("/student_gets_report", Authorize(student_gets_reportHandler, "student"))
-	http.HandleFunc("/student_checks_in", Authorize(student_checks_inHandler, "student"))
-	http.HandleFunc("/student_shares", Authorize(student_sharesHandler, "student"))
-	http.HandleFunc("/student_gets", Authorize(student_getsHandler, "student"))
-	http.HandleFunc("/view_bulletin_board", view_bulletin_boardHandler)
-	http.HandleFunc("/remove_bulletin_page", remove_bulletin_pageHandler)
-	http.HandleFunc("/bulletin_board_data", bulletin_board_dataHandler)
-	http.HandleFunc("/complete_registration", complete_registrationHandler)
+	http.HandleFunc("/student_gets_report", Authorize(restHandlers.StudentGetsReportHandler, "student"))
+	http.HandleFunc("/student_checks_in", Authorize(restHandlers.StudentChecksInHandler, "student"))
+	http.HandleFunc("/student_shares", Authorize(restHandlers.StudentSharesHandler, "student"))
+	http.HandleFunc("/student_gets", Authorize(restHandlers.StudentGetsHandler, "student"))
+	http.HandleFunc("/view_bulletin_board", restHandlers.ViewBulletinBoardHandler)
+	http.HandleFunc("/remove_bulletin_page", restHandlers.RemoveBulletinPageHandler)
+	http.HandleFunc("/bulletin_board_data", restHandlers.BulletinBoardDataHandler)
+	http.HandleFunc("/complete_registration", restHandlers.CompleteRegistrationHandler)
 
-	http.HandleFunc("/student_ask_help", Authorize(studentAskHelpHandler, "student"))
-	http.HandleFunc("/student_get_help_code", Authorize(studentGetHelpCode, "student"))
-	http.HandleFunc("/student_return_without_feedback", Authorize(student_return_without_feedbackHandler, "student"))
-	http.HandleFunc("/student_send_help_message", Authorize(student_send_help_messageHandler, "student"))
-	http.HandleFunc("/student_send_thank_you", Authorize(sendThankYouHandler, "student"))
+	http.HandleFunc("/student_ask_help", Authorize(restHandlers.StudentAskHelpHandler, "student"))
+	http.HandleFunc("/student_get_help_code", Authorize(restHandlers.StudentGetHelpCode, "student"))
+	http.HandleFunc("/student_return_without_feedback", Authorize(restHandlers.StudentReturnWithoutFeedbackHandler, "student"))
+	http.HandleFunc("/student_send_help_message", Authorize(restHandlers.StudentSendHelpMessageHandler, "student"))
+	http.HandleFunc("/student_send_thank_you", Authorize(restHandlers.SendThankYouHandler, "student"))
 
-	http.HandleFunc("/teacher_get_help_code", Authorize(teacherGetHelpCode, "teacher"))
-	http.HandleFunc("/teacher_return_without_feedback", Authorize(teacher_return_without_feedbackHandler, "teacher"))
-	http.HandleFunc("/teacher_send_help_message", Authorize(teacher_send_help_messageHandler, "teacher"))
+	http.HandleFunc("/teacher_get_help_code", Authorize(restHandlers.TeacherGetHelpCode, "teacher"))
+	http.HandleFunc("/teacher_return_without_feedback", Authorize(restHandlers.TeacherReturnWithoutFeedbackHandler, "teacher"))
+	http.HandleFunc("/teacher_send_help_message", Authorize(restHandlers.TeacherSendHelpMessageHandler, "teacher"))
 
-	http.HandleFunc("/teacher_gets_queue", Authorize(teacher_gets_queueHandler, "teacher"))
-	http.HandleFunc("/teacher_adds_bulletin_page", Authorize(teacher_adds_bulletin_pageHandler, "teacher"))
-	http.HandleFunc("/teacher_clears_submissions", Authorize(teacher_clears_submissionsHandler, "teacher"))
-	http.HandleFunc("/teacher_deactivates_problems", Authorize(teacher_deactivates_problemsHandler, "teacher"))
-	http.HandleFunc("/teacher_grades", Authorize(teacher_gradesHandler, "teacher"))
-	http.HandleFunc("/teacher_puts_back", Authorize(teacher_puts_backHandler, "teacher"))
-	http.HandleFunc("/teacher_gets", Authorize(teacher_getsHandler, "teacher"))
-	http.HandleFunc("/teacher_broadcasts", Authorize(teacher_broadcastsHandler, "teacher"))
-	http.HandleFunc("/teacher_gets_passcode", Authorize(teacher_gets_passcodeHandler, "teacher"))
-	http.HandleFunc("/student_gets_passcode", Authorize(student_gets_passcodeHandler, "student"))
+	http.HandleFunc("/teacher_gets_queue", Authorize(restHandlers.TeacherGetsQueueHandler, "teacher"))
+	http.HandleFunc("/teacher_adds_bulletin_page", Authorize(restHandlers.TeacherAddsBulletinPageHandler, "teacher"))
+	http.HandleFunc("/teacher_clears_submissions", Authorize(restHandlers.TeacherClearsSubmissionsHandler, "teacher"))
+	http.HandleFunc("/teacher_deactivates_problems", Authorize(restHandlers.TeacherDeactivatesProblemsHandler, "teacher"))
+	http.HandleFunc("/teacher_grades", Authorize(restHandlers.TeacherGradesHandler, "teacher"))
+	http.HandleFunc("/teacher_puts_back", Authorize(restHandlers.TeacherPutsBackHandler, "teacher"))
+	http.HandleFunc("/teacher_gets", Authorize(restHandlers.TeacherGetsHandler, "teacher"))
+	http.HandleFunc("/teacher_broadcasts", Authorize(restHandlers.TeacherBroadcastsHandler, "teacher"))
+	http.HandleFunc("/teacher_gets_passcode", Authorize(restHandlers.TeacherGetsPasscodeHandler, "teacher"))
+	http.HandleFunc("/student_gets_passcode", Authorize(restHandlers.StudentGetsPasscodeHandler, "student"))
 
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "pong") })
 
-	http.HandleFunc("/get_testcase", Authorize(testcase_getsHandler, ""))
+	http.HandleFunc("/get_testcase", Authorize(restHandlers.Testcase_getsHandler, ""))
 
-	http.HandleFunc("/code_snapshot", Authorize(codeSnapshotHandler, ""))
-	http.HandleFunc("/get_global_info", Authorize(globalInfoHandler, ""))
+	http.HandleFunc("/code_snapshot", Authorize(restHandlers.CodeSnapshotHandler, ""))
+	http.HandleFunc("/get_global_info", Authorize(restHandlers.GlobalInfoHandler, ""))
 
 	// http.HandleFunc("/get_codespace", Authorize(codespaceHandler))
 	// http.HandleFunc("/get_snapshot", Authorize(getCodeSnapshotHandler))
-	http.HandleFunc("/save_snapshot_feedback", Authorize(codeSnapshotFeedbackHandler, ""))
-	http.HandleFunc("/get_snapshot_feedback", Authorize(getSnapshotFeedbackHandler, ""))
-	http.HandleFunc("/save_snapshot_back_feedback", Authorize(studentSendBackFeedbackHandler, ""))
+	http.HandleFunc("/save_snapshot_feedback", Authorize(restHandlers.CodeSnapshotFeedbackHandler, ""))
+	http.HandleFunc("/get_snapshot_feedback", Authorize(restHandlers.GetSnapshotFeedbackHandler, ""))
+	http.HandleFunc("/save_snapshot_back_feedback", Authorize(restHandlers.StudentSendBackFeedbackHandler, ""))
 	// http.HandleFunc("/student_views_feedback", Authorize(studentViewsFeedbackHandler))
 	// http.HandleFunc("/teacher_views_feedback", Authorize(teacherViewsFeedbackHandler))
 
 	// http.HandleFunc("/help_requests", Authorize(helpRequestListHandler))
 	// http.HandleFunc("/view_help_request", Authorize(viewHelpRequestHandler))
-	http.HandleFunc("/set_peer_tutor", Authorize(setPeerTutorHandler, "teacher"))
+	http.HandleFunc("/set_peer_tutor", Authorize(restHandlers.SetPeerTutorHandler, "teacher"))
 
-	http.HandleFunc("/view_exercises", Authorize(problemListHandler, ""))
-	http.HandleFunc("/problem_dashboard", Authorize(problemDashboardHandler, ""))
-	http.HandleFunc("/student_dashboard_feedback_provision", Authorize(studentDashboardFeedbackProvisionHandler, ""))
-	http.HandleFunc("/save_message_feedback", Authorize(messageFeedbackHandler, ""))
-	http.HandleFunc("/student_dashboard_submissions", Authorize(studentDashboardSubmissionHandler, ""))
-	http.HandleFunc("/has_message_feedback", Authorize(hasMessageBackFeedbackHandler, ""))
-	http.HandleFunc("/teacher_signin_complete", teacherSigninCompleteHandler)
-	http.HandleFunc("/teacher_signin", teacherSigninHandler)
-	http.HandleFunc("/teacher_web_broadcast", Authorize(teacherWebBroadcastHandler, "teacher"))
-	http.HandleFunc("/student_dashboard_code_snapshot", Authorize(studentDashboardCodeSpaceHandler, ""))
-	http.HandleFunc("/teacher_exports_point", Authorize(exportPointsHandler, "teacher"))
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/index", indexHandler)
-	http.HandleFunc("/peer_tutoring", Authorize(peerTutorHandler, "student"))
+	http.HandleFunc("/view_exercises", Authorize(restHandlers.ProblemListHandler, ""))
+	http.HandleFunc("/problem_dashboard", Authorize(restHandlers.ProblemDashboardHandler, ""))
+	http.HandleFunc("/student_dashboard_feedback_provision", Authorize(restHandlers.StudentDashboardFeedbackProvisionHandler, ""))
+	http.HandleFunc("/save_message_feedback", Authorize(restHandlers.MessageFeedbackHandler, ""))
+	http.HandleFunc("/student_dashboard_submissions", Authorize(restHandlers.StudentDashboardSubmissionHandler, ""))
+	http.HandleFunc("/has_message_feedback", Authorize(restHandlers.HasMessageBackFeedbackHandler, ""))
+	http.HandleFunc("/teacher_signin_complete", restHandlers.TeacherSigninCompleteHandler)
+	http.HandleFunc("/teacher_signin", restHandlers.TeacherSigninHandler)
+	http.HandleFunc("/teacher_web_broadcast", Authorize(restHandlers.TeacherWebBroadcastHandler, "teacher"))
+	http.HandleFunc("/student_dashboard_code_snapshot", Authorize(restHandlers.StudentDashboardCodeSpaceHandler, ""))
+	http.HandleFunc("/teacher_exports_point", Authorize(restHandlers.ExportPointsHandler, "teacher"))
+	http.HandleFunc("/", restHandlers.IndexHandler)
+	http.HandleFunc("/index", restHandlers.IndexHandler)
+	http.HandleFunc("/peer_tutoring", Authorize(restHandlers.PeerTutorHandler, "student"))
 }
 
 // -----------------------------------------------------------------
@@ -197,14 +198,15 @@ func main() {
 	}
 	repository.InitDatabase(models.Config.Database, models.Config.DBUserName, models.Config.DBPassWord, models.Config.DBServerIP)
 	if teacher_file != "" {
-		add_multiple(teacher_file, "teacher")
+		restHandlers.AddMultiple(teacher_file, "teacher")
 	}
 	if student_file != "" {
-		add_multiple(student_file, "student")
+		restHandlers.AddMultiple(student_file, "student")
 	}
 	init_handlers()
 	repository.LoadTeachers()
 	fmt.Println("**************************************************")
+
 	fmt.Printf("*   Course id:      %s\n", models.Config.CourseId)
 	if models.Config.NameServer != "" {
 		fmt.Printf("*   Server address: %s\n", models.Config.NameServer)

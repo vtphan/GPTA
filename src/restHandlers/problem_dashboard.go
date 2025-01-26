@@ -1,6 +1,7 @@
-package main
+package restHandlers
 
 import (
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func getName(uid int, role string) string {
+func GetName(uid int, role string) string {
 	name := ""
 	if role == "teacher" {
 		name = models.TeacherIdToName[uid]
@@ -20,7 +21,7 @@ func getName(uid int, role string) string {
 	return name
 }
 
-func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func ProblemDashboardHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	role := r.FormValue("role")
 	password := r.FormValue("password")
@@ -124,12 +125,12 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		UserID:             uid,
 		UserRole:           role,
 		Password:           password,
-		Username:           getName(uid, role),
+		Username:           GetName(uid, role),
 	}
 
 	temp := template.New("")
-	ownFuncs := template.FuncMap{"formatTimeSince": formatTimeSince}
-	t, err := temp.Funcs(ownFuncs).Parse(PROBLEM_DASHBOARD_TEMPLATE)
+	ownFuncs := template.FuncMap{"formatTimeSince": FormatTimeSince}
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.PROBLEM_DASHBOARD_TEMPLATE)
 	if err != nil {
 		http.Error(w, "Error parsing template", http.StatusInternalServerError)
 		return

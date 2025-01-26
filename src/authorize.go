@@ -49,13 +49,13 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 					c, err := r.Cookie("session_token")
 					if err != nil {
 						ok = false
-						msg += "No session token exists. "
+						msg += "No Session token exists. "
 					} else {
 						sessionToken := c.Value
-						userSession, exists := sessions[sessionToken]
-						if !exists || userSession.isExpired() {
+						userSession, exists := models.Sessions[sessionToken]
+						if !exists || userSession.IsExpired() {
 							ok = false
-							msg += r.FormValue("uid") + " (TeacherMap): No session token exists or session expired. "
+							msg += r.FormValue("uid") + " (TeacherMap): No Session token exists or Session expired. "
 						} else {
 							ok = true
 						}

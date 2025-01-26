@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
 	pid := 0
 	prob, ok := models.ActiveProblems[filename]
@@ -59,7 +59,7 @@ func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid 
 
 //-----------------------------------------------------------------------------------
 
-func student_return_without_feedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentReturnWithoutFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	models.HelpSubSem.Lock()
 	defer models.HelpSubSem.Unlock()
 	tmp := r.FormValue("submission_id")
@@ -69,7 +69,7 @@ func student_return_without_feedbackHandler(w http.ResponseWriter, r *http.Reque
 	fmt.Fprint(w, "No feedback is given. This request is returned to the help queue.")
 }
 
-func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentSendHelpMessageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionID, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
 	res, err := repository.AddHelpMessage(submissionID, uid, message, time.Now())
@@ -93,7 +93,7 @@ func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, wh
 	fmt.Fprint(w, "Dear "+who+", Your feedback has been sent.")
 
 }
-func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func SendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	messageID, _ := strconv.Atoi(r.FormValue("message_id"))
 	useful := r.FormValue("useful")
 	err := repository.UpdateHelpMessage(useful, time.Now(), messageID)
@@ -116,7 +116,7 @@ func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid
 
 }
 
-func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	backFeedback := r.FormValue("feedback")
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	authorRole := r.FormValue("role")

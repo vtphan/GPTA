@@ -1,4 +1,4 @@
-package main
+package restHandlers
 
 import (
 	"encoding/csv"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func ExportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	if role == "student" {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -35,7 +35,7 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 
 	for studentID := range models.Students {
 		row := make([]string, len(data)+1)
-		row[0] = getName(studentID, "student")
+		row[0] = GetName(studentID, "student")
 		i := 1
 		for _, scores := range data {
 			if score, ok := scores[studentID]; ok {

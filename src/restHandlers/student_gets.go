@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func student_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentGetsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	var js []byte
 	var err error
 

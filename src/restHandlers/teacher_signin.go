@@ -1,7 +1,8 @@
-package main
+package restHandlers
 
 import (
 	"fmt"
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"html/template"
 	"log"
@@ -12,22 +13,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("session_token")
 	if err != nil {
 		http.Redirect(w, r, "/teacher_signin", http.StatusSeeOther)
 	} else {
 		sessionToken := c.Value
-		userSession, exists := sessions[sessionToken]
-		if !exists || userSession.isExpired() {
+		userSession, exists := models.Sessions[sessionToken]
+		if !exists || userSession.IsExpired() {
 			http.Redirect(w, r, "/teacher_signin", http.StatusSeeOther)
 		} else {
-			http.Redirect(w, r, "/view_exercises?role=teacher&uid="+strconv.Itoa(models.TeacherNameToId[userSession.username]), http.StatusFound)
+			http.Redirect(w, r, "/view_exercises?role=teacher&uid="+strconv.Itoa(models.TeacherNameToId[userSession.Username]), http.StatusFound)
 		}
 	}
 }
 
-func teacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
+func TeacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("username")
 	password := r.FormValue("password")
 	expectedPass, ok := models.TeacherPass[name]
@@ -39,9 +40,9 @@ func teacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	sessionToken := uuid.NewString()
 	expiresAt := time.Now().Add(3 * time.Hour)
 
-	sessions[sessionToken] = session{
-		username: name,
-		expiry:   expiresAt,
+	models.Sessions[sessionToken] = models.Session{
+		Username: name,
+		Expiry:   expiresAt,
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
@@ -52,9 +53,9 @@ func teacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	// http.Redirect(w, r, "view_exercises?role=teacher", http.StatusFound)
 }
 
-func teacherSigninHandler(w http.ResponseWriter, r *http.Request) {
+func TeacherSigninHandler(w http.ResponseWriter, r *http.Request) {
 	temp := template.New("")
-	t, err := temp.Parse(TEACHER_LOGIN)
+	t, err := temp.Parse(frontEnd.TEACHER_LOGIN)
 	if err != nil {
 		log.Fatal(err)
 	}

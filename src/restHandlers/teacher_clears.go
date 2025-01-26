@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	// "encoding/json"
@@ -16,7 +16,7 @@ import (
 // -----------------------------------------------------------------------------------
 // When problems are deactivated, boards cleared, no new submissions are possibile.
 // -----------------------------------------------------------------------------------
-func teacher_deactivates_problemsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherDeactivatesProblemsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	models.CodeSnapshotSem.Lock()
 	defer models.CodeSnapshotSem.Unlock()
 	filename := r.FormValue("filename")
@@ -85,7 +85,7 @@ func teacher_deactivates_problemsHandler(w http.ResponseWriter, r *http.Request,
 // -----------------------------------------------------------------------------------
 // Clear submissions, boards, statuses, and set all problems inactive.
 // -----------------------------------------------------------------------------------
-func teacher_clears_submissionsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherClearsSubmissionsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	models.WorkingSubs = make([]*models.Submission, 0)
 	fmt.Fprintf(w, "Done.")
 }

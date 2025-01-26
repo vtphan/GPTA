@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func teacherGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 
 	models.HelpSubSem.Lock()
 	defer models.HelpSubSem.Unlock()
@@ -46,7 +46,7 @@ func teacherGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid 
 
 //-----------------------------------------------------------------------------------
 
-func teacher_return_without_feedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherReturnWithoutFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	models.HelpSubSem.Lock()
 	defer models.HelpSubSem.Unlock()
 	tmp := r.FormValue("submission_id")
@@ -56,7 +56,7 @@ func teacher_return_without_feedbackHandler(w http.ResponseWriter, r *http.Reque
 	fmt.Fprint(w, "No feedback is given. This request is returned to the help queue.")
 }
 
-func teacher_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherSendHelpMessageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submission_id, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
 	_, err := repository.AddHelpMessage(submission_id, uid, message, time.Now())

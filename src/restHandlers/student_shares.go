@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, filename := r.FormValue("content"), r.FormValue("filename")
 	answer := r.FormValue("answer")
 	test_cases := r.FormValue("testcases")
@@ -83,7 +83,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			}
 
 			// Add submitted but not graded code to code snapshot.
-			snapshotID = addCodeSnapshot(uid, pid, content, 1, now, "at_submission")
+			snapshotID = AddCodeSnapshot(uid, pid, content, 1, now, "at_submission")
 
 			var result models.SubmissionTable
 			if complete {

@@ -1,9 +1,10 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -38,7 +39,7 @@ type BulletinBoardMessage struct {
 }
 
 // -----------------------------------------------------------------------------------
-func teacher_adds_bulletin_pageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherAddsBulletinPageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	models.BulletinSem.Lock()
 	defer models.BulletinSem.Unlock()
 	models.BulletinBoard = append(models.BulletinBoard, r.FormValue("content"))
@@ -46,7 +47,7 @@ func teacher_adds_bulletin_pageHandler(w http.ResponseWriter, r *http.Request, w
 }
 
 // -----------------------------------------------------------------
-func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
+func RemoveBulletinPageHandler(w http.ResponseWriter, r *http.Request) {
 	models.BulletinSem.Lock()
 	defer models.BulletinSem.Unlock()
 	i, _ := strconv.Atoi(r.FormValue("i"))
@@ -60,7 +61,7 @@ func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // -----------------------------------------------------------------------------------
-func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
+func GetBulletinBoardData(i int, passcode string) *BulletinBoardMessage {
 	models.BulletinSem.Lock()
 	defer models.BulletinSem.Unlock()
 
@@ -131,8 +132,8 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 }
 
 // -----------------------------------------------------------------------------------
-func bulletin_board_dataHandler(w http.ResponseWriter, r *http.Request) {
-	data := get_bulletin_board_data(0, "")
+func BulletinBoardDataHandler(w http.ResponseWriter, r *http.Request) {
+	data := GetBulletinBoardData(0, "")
 	js, _ := json.Marshal(data)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -140,7 +141,7 @@ func bulletin_board_dataHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // -----------------------------------------------------------------------------------
-func view_bulletin_boardHandler(w http.ResponseWriter, r *http.Request) {
+func ViewBulletinBoardHandler(w http.ResponseWriter, r *http.Request) {
 	i, err := strconv.Atoi(r.FormValue("i"))
 	passcode := r.FormValue("pc")
 	if err != nil {
@@ -148,11 +149,11 @@ func view_bulletin_boardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	temp := template.New("")
-	t, err2 := temp.Parse(TEACHER_MESSAGING_TEMPLATE)
+	t, err2 := temp.Parse(frontEnd.TEACHER_MESSAGING_TEMPLATE)
 	if err2 != nil {
 		log.Fatal(err2)
 	}
-	data := get_bulletin_board_data(i, passcode)
+	data := GetBulletinBoardData(i, passcode)
 	w.Header().Set("Content-Type", "text/html")
 	t.Execute(w, data)
 }

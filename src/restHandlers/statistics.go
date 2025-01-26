@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ type StatsData struct {
 }
 
 // -----------------------------------------------------------------------------------
-func statisticsHandler(w http.ResponseWriter, r *http.Request) {
+func StatisticsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("pc") != models.Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return

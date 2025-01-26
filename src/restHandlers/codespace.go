@@ -1,8 +1,9 @@
-package main
+package restHandlers
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"html/template"
@@ -88,7 +89,7 @@ func formatTimeDuration(d time.Duration) string {
 	return str
 }
 
-func formatTimeSince(t time.Time) string {
+func FormatTimeSince(t time.Time) string {
 	d := time.Now().Sub(t)
 	return formatTimeDuration(d)
 }
@@ -100,8 +101,8 @@ func add(x int, y int) int {
 func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	temp := template.New("")
-	ownFuncs := template.FuncMap{"formatTimeSince": formatTimeSince}
-	t, err := temp.Funcs(ownFuncs).Parse(CODESPACE_TEMPLATE)
+	ownFuncs := template.FuncMap{"FormatTimeSince": FormatTimeSince}
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.CODESPACE_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,8 +138,8 @@ func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid in
 func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	temp := template.New("")
-	ownFuncs := template.FuncMap{"formatTimeSince": formatTimeSince}
-	t, err := temp.Funcs(ownFuncs).Parse(HELP_REQUEST_LIST_TEMPLATE)
+	ownFuncs := template.FuncMap{"FormatTimeSince": FormatTimeSince}
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.HELP_REQUEST_LIST_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -195,8 +196,8 @@ func viewHelpRequestHandler(w http.ResponseWriter, r *http.Request, who string, 
 	role := r.FormValue("role")
 	pw := r.FormValue("password")
 	temp := template.New("")
-	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode, "formatTimeSince": formatTimeSince}
-	t, err := temp.Funcs(ownFuncs).Parse(HELP_REQUEST_VIEW_TEMPLATE)
+	ownFuncs := template.FuncMap{"getEditorMode": getEditorMode, "FormatTimeSince": FormatTimeSince}
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.HELP_REQUEST_VIEW_TEMPLATE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -232,11 +233,11 @@ func viewHelpRequestHandler(w http.ResponseWriter, r *http.Request, who string, 
 		ProblemID: problemID,
 	}
 	elog, _ := json.Marshal(otherInfo)
-	logEvent("willing to help", uid, role, "click", string(elog))
+	LogEvent("willing to help", uid, role, "click", string(elog))
 
 }
 
-func setPeerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func SetPeerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	turnOn, _ := strconv.Atoi(r.FormValue("turn_on"))
 	if turnOn == 1 {
 		models.PeerTutorAllowed = true
@@ -245,7 +246,7 @@ func setPeerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	}
 }
 
-func peerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func PeerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
 	if prob, ok := models.ActiveProblems[filename]; ok {
 		if eligible, ok := models.HelpEligibleStudents[prob.Info.Pid][uid]; ok {

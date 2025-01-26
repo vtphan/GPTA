@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 //-----------------------------------------------------------------
 
-func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentChecksInHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// attendance is taken automatically by authorization when this handler is called.
 	// Next: return student attendance report
 	attendances, err := repository.GetAttendanceByStudentID(uid)
@@ -42,7 +42,7 @@ func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string
 }
 
 // -----------------------------------------------------------------
-func student_periodic_updateHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentPeriodicUpdateHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionStat := &models.StudentSubmissionStatus{}
 	if len(models.Students[uid].SubmissionStatus) > 0 {
 		submissionStat = models.Students[uid].SubmissionStatus[0]

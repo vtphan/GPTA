@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ func extract_partial_credits(content string) int {
 }
 
 // -----------------------------------------------------------------------------------
-func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherGradesHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	content, decision := r.FormValue("content"), r.FormValue("decision")
 	sid, _ := strconv.Atoi(r.FormValue("sid"))
 	changed := r.FormValue("changed")
@@ -117,7 +117,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			models.Students[sub.Uid].SubmissionStatus = append(models.Students[sub.Uid].SubmissionStatus, subStat)
 
 			// Add the correct submission to codesnapshot.
-			// addCodeSnapshot(sub.Uid, pid, content, 3, now)
+			// AddCodeSnapshot(sub.Uid, pid, content, 3, now)
 			err := repository.IncrementProblemStatGradedCorrect(pid)
 			if err != nil {
 				log.Fatal(err)
@@ -134,7 +134,7 @@ func teacher_gradesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			models.Students[sub.Uid].SubmissionStatus = append(models.Students[sub.Uid].SubmissionStatus, subStat)
 
 			// Add the incorrect submission to codesnapshot.
-			// addCodeSnapshot(sub.Uid, sub.Pid, content, 2, time.Now())
+			// AddCodeSnapshot(sub.Uid, sub.Pid, content, 2, time.Now())
 			err := repository.IncrementProblemStatGradedIncorrect(sub.Pid)
 			if err != nil {
 				log.Fatal(err)

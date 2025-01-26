@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package restHandlers
 
 import (
 	"fmt"
@@ -11,16 +11,16 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-func teacher_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func TeacherGetsPasscodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	fmt.Fprintf(w, models.Passcode)
 }
 
-func student_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func StudentGetsPasscodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	fmt.Fprintf(w, models.Passcode)
 }
 
 // -----------------------------------------------------------------------------------
-func testHandler(w http.ResponseWriter, r *http.Request) {
+func TestHandler(w http.ResponseWriter, r *http.Request) {
 	// Show content of boards
 	fmt.Println("Students:", len(models.Students))
 	for _, st := range models.Students {
@@ -49,7 +49,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 //-----------------------------------------------------------------------------------
 
-func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func Testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("file_name")
 
 	// Get Problem ID
@@ -80,6 +80,6 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 	fmt.Fprintf(w, "["+formattedTestCases+"]")
 }
 
-func logEvent(eventName string, userID int, userType, eventType, otherInfo string) {
+func LogEvent(eventName string, userID int, userType, eventType, otherInfo string) {
 	_, _ = repository.AddUserEventLog(eventName, userID, userType, eventType, otherInfo, time.Now())
 }

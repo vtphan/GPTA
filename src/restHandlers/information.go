@@ -1,4 +1,4 @@
-package main
+package restHandlers
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ type globalInfo struct {
 	ActiveProblems []*ActiveProblemInfo
 }
 
-func globalInfoHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+func GlobalInfoHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 
 	activeProblems := make([]*ActiveProblemInfo, 0)
 	for _, problem := range models.ActiveProblems {
