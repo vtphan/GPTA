@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,7 +15,7 @@ import (
 )
 
 type CodeSpaceData struct {
-	Snapshots []*Snapshot
+	Snapshots []*models.Snapshot
 	UserID    int
 	UserRole  string
 	Password  string
@@ -30,7 +32,7 @@ type FeedbackData struct {
 	Code            string
 }
 type SnapshotData struct {
-	Snapshot       *Snapshot
+	Snapshot       *models.Snapshot
 	HelpRequestIDs []int
 	UserID         int
 	UserRole       string
@@ -103,17 +105,17 @@ func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid in
 	if err != nil {
 		log.Fatal(err)
 	}
-	var snapshots []*Snapshot
+	var snapshots []*models.Snapshot
 	if role == "student" {
-		for _, s := range Snapshots {
+		for _, s := range models.Snapshots {
 			if s.StudentID == uid {
 				snapshots = append(snapshots, s)
-			} else if _, ok := HelpEligibleStudents[s.ProblemID][uid]; ok {
+			} else if _, ok := models.HelpEligibleStudents[s.ProblemID][uid]; ok {
 				snapshots = append(snapshots, s)
 			}
 		}
 	} else {
-		for _, s := range Snapshots {
+		for _, s := range models.Snapshots {
 			snapshots = append(snapshots, s)
 		}
 	}
@@ -144,13 +146,13 @@ func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, 
 	var helpNeededCount int
 	var numReply int
 	if role == "student" {
-		for _, s := range HelpSubmissions {
-			if _, ok := HelpEligibleStudents[s.Pid][uid]; ok || s.Uid == uid {
-				numReply, _ = GetNumberOfReply(s.SnapshotID)
+		for _, s := range models.HelpSubmissions {
+			if _, ok := models.HelpEligibleStudents[s.Pid][uid]; ok || s.Uid == uid {
+				numReply, _ = repository.GetNumberOfReply(s.SnapshotID)
 				helpRequests = append(helpRequests, &HelpRequest{
 					ID:          s.Sid,
 					NumReply:    numReply,
-					StudentName: Students[s.Uid].Name,
+					StudentName: models.Students[s.Uid].Name,
 					GivenAt:     s.At,
 				})
 				if numReply == 0 {
@@ -159,12 +161,12 @@ func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, 
 			}
 		}
 	} else {
-		for _, s := range HelpSubmissions {
-			numReply, _ = GetNumberOfReply(s.SnapshotID)
+		for _, s := range models.HelpSubmissions {
+			numReply, _ = repository.GetNumberOfReply(s.SnapshotID)
 			helpRequests = append(helpRequests, &HelpRequest{
 				ID:          s.Sid,
 				NumReply:    numReply,
-				StudentName: Students[s.Uid].Name,
+				StudentName: models.Students[s.Uid].Name,
 				GivenAt:     s.At,
 			})
 			if numReply == 0 {
@@ -200,10 +202,10 @@ func viewHelpRequestHandler(w http.ResponseWriter, r *http.Request, who string, 
 	}
 	data := &HelpRequest{}
 	problemID := -1
-	for _, s := range HelpSubmissions {
+	for _, s := range models.HelpSubmissions {
 		if s.Sid == requestID {
 			data = &HelpRequest{
-				StudentName: Students[s.Uid].Name,
+				StudentName: models.Students[s.Uid].Name,
 				Explanation: s.Content,
 				GivenAt:     s.At,
 				SnapshotID:  s.SnapshotID,
@@ -237,17 +239,17 @@ func viewHelpRequestHandler(w http.ResponseWriter, r *http.Request, who string, 
 func setPeerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	turnOn, _ := strconv.Atoi(r.FormValue("turn_on"))
 	if turnOn == 1 {
-		PeerTutorAllowed = true
+		models.PeerTutorAllowed = true
 	} else if turnOn == 0 {
-		PeerTutorAllowed = false
+		models.PeerTutorAllowed = false
 	}
 }
 
 func peerTutorHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
-	if prob, ok := ActiveProblems[filename]; ok {
-		if eligible, ok := HelpEligibleStudents[prob.Info.Pid][uid]; ok {
-			if PeerTutorAllowed && eligible {
+	if prob, ok := models.ActiveProblems[filename]; ok {
+		if eligible, ok := models.HelpEligibleStudents[prob.Info.Pid][uid]; ok {
+			if models.PeerTutorAllowed && eligible {
 				fmt.Fprint(w, "redirect")
 				return
 			}

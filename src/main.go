@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -129,13 +131,13 @@ func informIPAddress() string {
 }
 
 // -----------------------------------------------------------------
-func init_config(filename string) *Configuration {
+func init_config(filename string) *models.Configuration {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 	decoder := json.NewDecoder(file)
-	config := &Configuration{}
+	config := &models.Configuration{}
 	err = decoder.Decode(&config)
 	if err != nil {
 		log.Fatal(err)
@@ -154,7 +156,7 @@ func init_config(filename string) *Configuration {
 
 // -----------------------------------------------------------------
 func inform_name_server() {
-	nameserver := fmt.Sprintf("%s/tell?who=%s&address=%s", Config.NameServer, Config.CourseId, Config.Address)
+	nameserver := fmt.Sprintf("%s/tell?who=%s&address=%s", models.Config.NameServer, models.Config.CourseId, models.Config.Address)
 	_, err := http.Get(nameserver)
 	if err != nil {
 		fmt.Println("Error", err)
@@ -180,7 +182,7 @@ func get_course_specific_address(nameserver string, course string) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/CodeSpace/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/CodeSpace/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/CodeSpace/Examples/students.txt"
+	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/students.txt"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
@@ -189,11 +191,11 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	Config = init_config(config_file)
-	if Config.NameServer != "" {
+	models.Config = init_config(config_file)
+	if models.Config.NameServer != "" {
 		inform_name_server()
 	}
-	init_database(Config.Database, Config.DBUserName, Config.DBPassWord, Config.DBServerIP)
+	repository.InitDatabase(models.Config.Database, models.Config.DBUserName, models.Config.DBPassWord, models.Config.DBServerIP)
 	if teacher_file != "" {
 		add_multiple(teacher_file, "teacher")
 	}
@@ -201,19 +203,19 @@ func main() {
 		add_multiple(student_file, "student")
 	}
 	init_handlers()
-	load_teachers()
+	repository.LoadTeachers()
 	fmt.Println("**************************************************")
-	fmt.Printf("*   Course id:      %s\n", Config.CourseId)
-	if Config.NameServer != "" {
-		fmt.Printf("*   Server address: %s\n", Config.NameServer)
+	fmt.Printf("*   Course id:      %s\n", models.Config.CourseId)
+	if models.Config.NameServer != "" {
+		fmt.Printf("*   Server address: %s\n", models.Config.NameServer)
 	} else {
-		fmt.Printf("*   Serving at:     %s\n", Config.Address)
+		fmt.Printf("*   Serving at:     %s\n", models.Config.Address)
 	}
 	fmt.Printf("*   GEM %s\n", VERSION)
 	fmt.Println("**************************************************\n")
-	get_course_specific_address(Config.NameServer, Config.CourseId)
-	err := http.ListenAndServe(Config.Address, nil)
+	get_course_specific_address(models.Config.NameServer, models.Config.CourseId)
+	err := http.ListenAndServe(models.Config.Address, nil)
 	if err != nil {
-		log.Fatal("Unable to serve gem server at " + Config.Address)
+		log.Fatal("Unable to serve gem server at " + models.Config.Address)
 	}
 }

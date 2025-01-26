@@ -2,107 +2,38 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
-	"time"
 )
 
-type FeedbackDashBaord struct {
-	Name            string
-	Role            string
-	Feedback        string
-	FeedbackID      int
-	CurrentUserVote string
-	Downvote        int
-	Upvote          int
-	GivenAt         time.Time
-}
-
-type MessageDashBoard struct {
-	ID         int
-	Name       string
-	Role       string
-	Message    string
-	Type       int // 0 = help request, 1 = unsolicited
-	Event      string
-	GivenAt    time.Time
-	Code       string
-	SnapshotID int
-	Feedbacks  []*FeedbackDashBaord
-}
-
-type FeedbackProvisionDashBoard struct {
-	StudentName  string
-	ProblemName  string
-	Status       DashBoardStudentInfo
-	LastSnapshot *Snapshot
-	Messages     []*MessageDashBoard
-	StudentID    int
-	ProblemID    int
-	UserID       int
-	UserRole     string
-	Password     string
-	Username     string
-}
-
-type SubmissionInfo struct {
-	ID          int
-	Code        string
-	Grade       string
-	SubmittedAt time.Time
-	SnapshotID  int
-}
-
-type SubmissionDashboard struct {
-	Submissions []*SubmissionInfo
-	StudentName string
-	ProblemName string
-	StudentID   int
-	ProblemID   int
-	UserID      int
-	UserRole    string
-	Password    string
-	Username    string
-}
-
-type TemplateDate struct {
-	Feedback       FeedbackProvisionDashBoard
-	Submission     SubmissionDashboard
-	Status         DashBoardStudentInfo
-	ChatgptaServer string
-	UserID         int
-	UserRole       string
-	Password       string
-	Username       string
-	CourseName     string
-}
-
-func GetMessageFeedbacks(messageID int, userID int, userRole string) []*FeedbackDashBaord {
-	messageFeedbacks, err := GetMessageFeedbacksByMessageID(messageID)
+func GetMessageFeedbacks(messageID int, userID int, userRole string) []*models.FeedbackDashBaord {
+	messageFeedbacks, err := repository.GetMessageFeedbacksByMessageID(messageID)
 	if err != nil {
 		return nil
 	}
 
-	var feedbacks []*FeedbackDashBaord
+	var feedbacks []*models.FeedbackDashBaord
 	for _, feedback := range messageFeedbacks {
 		name := ""
 		if feedback.AuthorRole == "teacher" {
-			name = GetTeacherName(feedback.AuthorID)
+			name = repository.GetTeacherName(feedback.AuthorID)
 		} else {
-			name = GetStudentName(feedback.AuthorID)
+			name = repository.GetStudentName(feedback.AuthorID)
 		}
 
-		feedbacks = append(feedbacks, &FeedbackDashBaord{
+		feedbacks = append(feedbacks, &models.FeedbackDashBaord{
 			Name:            name,
 			Role:            feedback.AuthorRole,
 			Feedback:        feedback.Feedback,
 			FeedbackID:      feedback.ID,
-			CurrentUserVote: GetCurrentUserVote(feedback.ID, userID, userRole),
-			Downvote:        GetBackFeedbackCount(feedback.ID, "no"),
-			Upvote:          GetBackFeedbackCount(feedback.ID, "yes"),
+			CurrentUserVote: repository.GetCurrentUserVote(feedback.ID, userID, userRole),
+			Downvote:        repository.GetBackFeedbackCount(feedback.ID, "no"),
+			Upvote:          repository.GetBackFeedbackCount(feedback.ID, "yes"),
 			GivenAt:         feedback.GivenAt,
 		})
 	}
@@ -120,12 +51,12 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		log.Fatal(err)
 	}
-	students := GetAllStudents()
-	var messages = make([]*MessageDashBoard, 0)
-	_, ok := HelpEligibleStudents[problemID][uid]
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	students := repository.GetAllStudents()
+	var messages = make([]*models.MessageDashBoard, 0)
+	_, ok := models.HelpEligibleStudents[problemID][uid]
+	if role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok) {
 		// Fetch messages using the new function
-		messages, err = FetchMessagesForStudent(students, problemID, studentID, role)
+		messages, err = FetchMessages(students, problemID, studentID, role)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -140,18 +71,18 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 
 	// TODO(shiplu): sort the messages array
 	// sort.Slice(helpRequests, func(i, j int) bool { return helpRequests[i].GivenAt.Before(helpRequests[j].GivenAt) })
-	latestSnapshot := &Snapshot{}
-	if _, ok := StudentSnapshot[studentID][problemID]; ok {
-		latestSnapshot = Snapshots[StudentSnapshot[studentID][problemID]]
+	latestSnapshot := &models.Snapshot{}
+	if _, ok := models.StudentSnapshot[studentID][problemID]; ok {
+		latestSnapshot = models.Snapshots[models.StudentSnapshot[studentID][problemID]]
 	} else {
-		latestSnapshot, _ = GetLatestSnapshot(studentID, problemID)
+		latestSnapshot, _ = repository.GetLatestSnapshot(studentID, problemID)
 	}
 
 	// Get student status
-	studentStats := &DashBoardStudentInfo{}
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	studentStats := &models.DashBoardStudentInfo{}
+	if role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok) {
 		// Fetch student status using the new function
-		studentStats, err = FetchStudentStatuses(problemID, studentID)
+		studentStats, err = repository.FetchStudentStatuses(problemID, studentID)
 		if err != nil {
 			log.Fatal(err) // or use http.Error depending on your context
 		}
@@ -162,7 +93,7 @@ func studentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
 
-	data := &FeedbackProvisionDashBoard{
+	data := &models.FeedbackProvisionDashBoard{
 		StudentName:  students[studentID],
 		ProblemName:  latestSnapshot.ProblemName,
 		LastSnapshot: latestSnapshot,
@@ -194,19 +125,19 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 		log.Fatal(err)
 	}
 
-	var submissions = make([]*SubmissionInfo, 0)
-	_, ok := HelpEligibleStudents[problemID][uid]
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
+	var submissions = make([]*models.SubmissionInfo, 0)
+	_, ok := models.HelpEligibleStudents[problemID][uid]
+	if role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok) {
 		// Fetch submissions using the new function
-		submissionRecords, err := FetchSubmission(studentID, problemID)
+		submissionRecords, err := repository.FetchSubmission(studentID, problemID)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		// Convert SubmissionTable to SubmissionInfo and append to submissionInfos
-		var submissionInfos []*SubmissionInfo
+		var submissionInfos []*models.SubmissionInfo
 		for _, submission := range submissionRecords {
-			submissionInfos = append(submissionInfos, &SubmissionInfo{
+			submissionInfos = append(submissionInfos, &models.SubmissionInfo{
 				ID:          submission.ID,
 				SnapshotID:  submission.SnapshotID,
 				Code:        submission.StudentCode,
@@ -234,9 +165,9 @@ func studentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 
 	// TODO(shiplu): sort the messages array
 	// sort.Slice(helpRequests, func(i, j int) bool { return helpRequests[i].GivenAt.Before(helpRequests[j].GivenAt) })
-	data := &SubmissionDashboard{
-		StudentName: GetStudentName(studentID),
-		ProblemName: GetProblemNameFromID(problemID),
+	data := &models.SubmissionDashboard{
+		StudentName: repository.GetStudentName(studentID),
+		ProblemName: repository.GetProblemNameFromID(problemID),
 		Submissions: submissions,
 		StudentID:   studentID,
 		ProblemID:   problemID,
@@ -257,7 +188,7 @@ func hasMessageBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who s
 	userRole := r.FormValue("role")
 
 	// Check if feedback exists
-	exists, err := CheckMessageBackFeedback(feedbackID, uid, userRole)
+	exists, err := repository.CheckMessageBackFeedback(feedbackID, uid, userRole)
 	if err != nil {
 		log.Printf("Error checking feedback: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -282,21 +213,21 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	if err != nil {
 		log.Fatal(err)
 	}
-	students := GetAllStudents()
+	students := repository.GetAllStudents()
 
 	// Get latest snapshot from DB
-	latestSnapshot := &Snapshot{}
-	if _, ok := StudentSnapshot[studentID][problemID]; ok {
-		latestSnapshot = Snapshots[StudentSnapshot[studentID][problemID]]
+	latestSnapshot := &models.Snapshot{}
+	if _, ok := models.StudentSnapshot[studentID][problemID]; ok {
+		latestSnapshot = models.Snapshots[models.StudentSnapshot[studentID][problemID]]
 	} else {
-		latestSnapshot, _ = GetLatestSnapshot(studentID, problemID)
+		latestSnapshot, _ = repository.GetLatestSnapshot(studentID, problemID)
 	}
 
 	// Get all student messages from DB
-	var messages = make([]*MessageDashBoard, 0)
-	_, ok := HelpEligibleStudents[problemID][uid]
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		messages, err = FetchMessages(problemID, studentID, uid, role, students)
+	var messages = make([]*models.MessageDashBoard, 0)
+	_, ok := models.HelpEligibleStudents[problemID][uid]
+	if role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok) {
+		messages, err = FetchMessages(students, problemID, studentID, role)
 		if err != nil {
 			log.Fatal(err) // Consider graceful error handling
 		}
@@ -310,7 +241,7 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		return messages[i].GivenAt.After(messages[j].GivenAt)
 	})
 
-	feedback := &FeedbackProvisionDashBoard{
+	feedback := &models.FeedbackProvisionDashBoard{
 		StudentName:  students[studentID],
 		ProblemName:  latestSnapshot.ProblemName,
 		LastSnapshot: latestSnapshot,
@@ -323,10 +254,10 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	}
 
 	// Get all submissions from DB.
-	var submissions = make([]*SubmissionInfo, 0)
-	_, ok = HelpEligibleStudents[problemID][uid]
-	if role == "teacher" || uid == studentID || (PeerTutorAllowed && ok) {
-		submissions, err = FetchSubmissions(problemID, studentID)
+	var submissions = make([]*models.SubmissionInfo, 0)
+	_, ok = models.HelpEligibleStudents[problemID][uid]
+	if role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok) {
+		submissions, err = repository.FetchSubmissions(problemID, studentID)
 		if err != nil {
 			log.Printf("Error fetching submissions: %v\n", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -336,9 +267,9 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 	}
 
-	submission := &SubmissionDashboard{
-		StudentName: GetStudentName(studentID),
-		ProblemName: GetProblemNameFromID(problemID),
+	submission := &models.SubmissionDashboard{
+		StudentName: repository.GetStudentName(studentID),
+		ProblemName: repository.GetProblemNameFromID(problemID),
 		Submissions: submissions,
 		StudentID:   studentID,
 		ProblemID:   problemID,
@@ -349,27 +280,27 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	}
 
 	// Get student status
-	studentStats, err := FetchStudentStatus(problemID, studentID)
+	studentStats, err := repository.FetchStudentStatus(problemID, studentID)
 	if err != nil {
 		log.Fatal(err) // Consider handling the error gracefully instead of terminating the program
 	}
 
 	// Apply role-based authorization
-	if !(role == "teacher" || uid == studentID || (PeerTutorAllowed && ok)) {
+	if !(role == "teacher" || uid == studentID || (models.PeerTutorAllowed && ok)) {
 		http.Error(w, "You are not authorized to access!", http.StatusUnauthorized)
 		return
 	}
 
-	data := TemplateDate{
+	data := models.TemplateDate{
 		Submission:     *submission,
 		Feedback:       *feedback,
 		Status:         *studentStats,
-		ChatgptaServer: Config.ChatgptaServer,
+		ChatgptaServer: models.Config.ChatgptaServer,
 		UserID:         uid,
 		UserRole:       role,
 		Password:       r.FormValue("password"),
 		Username:       getName(uid, role),
-		CourseName:     Config.CourseName,
+		CourseName:     models.Config.CourseName,
 	}
 
 	w.Header().Set("Content-Type", "text/html")
@@ -378,4 +309,36 @@ func studentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
+}
+
+func FetchMessages(students map[int]string, problemID, studentID int, role string) ([]*models.MessageDashBoard, error) {
+	result, err := repository.FetchMessagesAndSnapshots(problemID, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var messages []*models.MessageDashBoard
+	for _, r := range result {
+		name := ""
+		if r.AuthorRole == "teacher" {
+			name = repository.GetTeacherName(r.AuthorID)
+		} else {
+			name = students[r.AuthorID]
+		}
+
+		messages = append(messages, &models.MessageDashBoard{
+			ID:         r.MessageID,
+			Name:       name,
+			Role:       r.AuthorRole,
+			Message:    r.Message,
+			Type:       r.MessageType,
+			Event:      r.Event,
+			GivenAt:    r.GivenAt,
+			SnapshotID: r.SnapshotID,
+			Code:       r.Code,
+			Feedbacks:  GetMessageFeedbacks(r.MessageID, studentID, role),
+		})
+	}
+
+	return messages, nil
 }

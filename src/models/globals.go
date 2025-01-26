@@ -1,5 +1,5 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package models
 
 import (
 	"bufio"
@@ -199,7 +199,7 @@ func RandStringRunes(n int) string {
 }
 
 // -----------------------------------------------------------------------------
-func writeLog(filename, message string) {
+func WriteLog(filename, message string) {
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -248,7 +248,7 @@ var SnapshotStatusMapping = map[string]int{
 	"Submitted: correct":    3,
 }
 
-func getLinesOfCode(code string) int {
+func GetLinesOfCode(code string) int {
 	scanner := bufio.NewScanner(strings.NewReader(code))
 	scanner.Split(bufio.ScanLines)
 	count := 0
@@ -262,3 +262,154 @@ func getLinesOfCode(code string) int {
 var PeerTutorAllowed = false
 
 var ChatGPTServerAddress = "http://141.225.10.71:8000"
+
+type DashBoardStudentInfo struct {
+	StudentID      int
+	StudentName    string
+	LastUpdatedAt  time.Time
+	CodingStat     string
+	HelpStat       string
+	SubmissionStat string
+	TutoringStat   string
+}
+
+type AnswerStatInfo struct {
+	Answer  string
+	Count   int
+	Percent float64
+}
+
+type DashBoardInfo struct {
+	StudentInfo        []*DashBoardStudentInfo
+	ProblemName        string
+	Code               string
+	IsActive           bool
+	ProblemID          int
+	NumActive          int
+	NumHelpRequest     int
+	NumGradedCorrect   int
+	NumGradedIncorrect int
+	NumNotGraded       int
+	AnswerStats        []*AnswerStatInfo
+	UserID             int
+	UserRole           string
+	Password           string
+	Username           string
+}
+
+type FeedbackDashBaord struct {
+	Name            string
+	Role            string
+	Feedback        string
+	FeedbackID      int
+	CurrentUserVote string
+	Downvote        int
+	Upvote          int
+	GivenAt         time.Time
+}
+
+type MessageDashBoard struct {
+	ID         int
+	Name       string
+	Role       string
+	Message    string
+	Type       int // 0 = help request, 1 = unsolicited
+	Event      string
+	GivenAt    time.Time
+	Code       string
+	SnapshotID int
+	Feedbacks  []*FeedbackDashBaord
+}
+
+type FeedbackProvisionDashBoard struct {
+	StudentName  string
+	ProblemName  string
+	Status       DashBoardStudentInfo
+	LastSnapshot *Snapshot
+	Messages     []*MessageDashBoard
+	StudentID    int
+	ProblemID    int
+	UserID       int
+	UserRole     string
+	Password     string
+	Username     string
+}
+
+type SubmissionInfo struct {
+	ID          int
+	Code        string
+	Grade       string
+	SubmittedAt time.Time
+	SnapshotID  int
+}
+
+type SubmissionDashboard struct {
+	Submissions []*SubmissionInfo
+	StudentName string
+	ProblemName string
+	StudentID   int
+	ProblemID   int
+	UserID      int
+	UserRole    string
+	Password    string
+	Username    string
+}
+
+type TemplateDate struct {
+	Feedback       FeedbackProvisionDashBoard
+	Submission     SubmissionDashboard
+	Status         DashBoardStudentInfo
+	ChatgptaServer string
+	UserID         int
+	UserRole       string
+	Password       string
+	Username       string
+	CourseName     string
+}
+
+type StudentReport struct {
+	Points   int
+	Filename string
+	Date     int64
+}
+
+type ScoreEntry struct {
+	Name     string
+	Points   int
+	Attempts int
+	Count    int
+}
+
+type TagsViewData struct {
+	Tags            map[int]string
+	SubmissionCount map[string]int
+	Scores          map[int]*ScoreEntry
+	PC              string
+}
+
+type ProblemPerformance struct {
+	Pid       int
+	Timestamp int64
+	Correct   int
+	Incorrect int
+	Activity  float32
+	Success   float32
+	PC        string
+}
+
+type TagData struct {
+	Description string
+	Performance map[int]*ProblemPerformance
+}
+
+type MessageWithSnapshot struct {
+	MessageID   int       `gorm:"column:id"`
+	SnapshotID  int       `gorm:"column:snapshot_id"`
+	Message     string    `gorm:"column:message"`
+	AuthorID    int       `gorm:"column:author_id"`
+	AuthorRole  string    `gorm:"column:author_role"`
+	GivenAt     time.Time `gorm:"column:given_at"`
+	MessageType int       `gorm:"column:type"`
+	Code        string    `gorm:"column:code"`
+	Event       string    `gorm:"column:event"`
+}

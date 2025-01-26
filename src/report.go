@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"net/http"
@@ -10,48 +12,35 @@ import (
 )
 
 // -----------------------------------------------------------------------------------
-type ScoreEntry struct {
-	Name     string
-	Points   int
-	Attempts int
-	Count    int
-}
-
-type TagsViewData struct {
-	Tags            map[int]string
-	SubmissionCount map[string]int
-	Scores          map[int]*ScoreEntry
-	PC              string
-}
 
 // -----------------------------------------------------------------------------------
 func reportHandler(w http.ResponseWriter, r *http.Request) {
 	// Check passcode
-	if r.FormValue("pc") != Passcode {
+	if r.FormValue("pc") != models.Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
 
 	// Fetch tags
-	tags, err := GetTags()
+	tags, err := repository.GetTags()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Fetch student scores
-	scores, err := GetStudentScores()
+	scores, err := repository.GetStudentScores()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Prepare the data for rendering
-	record := &TagsViewData{
+	record := &models.TagsViewData{
 		Tags:            tags,
 		Scores:          scores,
 		SubmissionCount: make(map[string]int), // You can add logic to fill this if needed
-		PC:              Passcode,
+		PC:              models.Passcode,
 	}
 
 	// Render the view
@@ -130,25 +119,11 @@ var TAGS_VIEW_TEMPLATE = `
 `
 
 // -----------------------------------------------------------------------------------
-type ProblemPerformance struct {
-	Pid       int
-	Timestamp int64
-	Correct   int
-	Incorrect int
-	Activity  float32
-	Success   float32
-	PC        string
-}
-
-type TagData struct {
-	Description string
-	Performance map[int]*ProblemPerformance
-}
 
 // -----------------------------------------------------------------------------------
 func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	// Check passcode
-	if r.FormValue("pc") != Passcode {
+	if r.FormValue("pc") != models.Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
@@ -162,7 +137,7 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the tag description using GORM
-	tagDescription, err := GetTagDescriptionByID(tagID)
+	tagDescription, err := repository.GetTagDescriptionByID(tagID)
 	if err != nil {
 		fmt.Println("Error retrieving tag description:", err)
 		return
@@ -170,14 +145,14 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Tag Description:", tagDescription)
 
 	// Get problem performance data by tag ID
-	record, err := GetProblemPerformanceByTagID(tagID)
+	record, err := repository.GetProblemPerformanceByTagID(tagID)
 	if err != nil {
 		fmt.Println("Error retrieving problem performance:", err)
 		return
 	}
 
 	// Get the student count
-	studentCount, err := GetStudentCount()
+	studentCount, err := repository.GetStudentCount()
 	if err != nil {
 		fmt.Println("Error retrieving student count:", err)
 		return
@@ -192,7 +167,7 @@ func report_tagHandler(w http.ResponseWriter, r *http.Request) {
 	// Render the template with the tag description and performance data
 	w.Header().Set("Content-Type", "text/html")
 	t, _ := template.New("").Parse(TAG_REPORT_TEMPLATE)
-	err = t.Execute(w, &TagData{Description: tagDescription, Performance: record})
+	err = t.Execute(w, &models.TagData{Description: tagDescription, Performance: record})
 	if err != nil {
 		fmt.Println(err)
 	}

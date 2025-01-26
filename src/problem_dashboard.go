@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"net/http"
 	"sort"
@@ -8,46 +10,12 @@ import (
 	"time"
 )
 
-type DashBoardStudentInfo struct {
-	StudentID      int
-	StudentName    string
-	LastUpdatedAt  time.Time
-	CodingStat     string
-	HelpStat       string
-	SubmissionStat string
-	TutoringStat   string
-}
-
-type AnswerStatInfo struct {
-	Answer  string
-	Count   int
-	Percent float64
-}
-
-type DashBoardInfo struct {
-	StudentInfo        []*DashBoardStudentInfo
-	ProblemName        string
-	Code               string
-	IsActive           bool
-	ProblemID          int
-	NumActive          int
-	NumHelpRequest     int
-	NumGradedCorrect   int
-	NumGradedIncorrect int
-	NumNotGraded       int
-	AnswerStats        []*AnswerStatInfo
-	UserID             int
-	UserRole           string
-	Password           string
-	Username           string
-}
-
 func getName(uid int, role string) string {
 	name := ""
 	if role == "teacher" {
-		name = TeacherIdToName[uid]
+		name = models.TeacherIdToName[uid]
 	} else {
-		name = Students[uid].Name
+		name = models.Students[uid].Name
 	}
 	return name
 }
@@ -58,10 +26,10 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	password := r.FormValue("password")
 
 	// Retrieve all students
-	students := GetAllStudents()
+	students := repository.GetAllStudents()
 
 	// Retrieve code snapshots for the problem
-	codeSnapshots, err := GetCodeSnapshotsByProblemID(problemID)
+	codeSnapshots, err := repository.GetCodeSnapshotsByProblemID(problemID)
 	if err != nil {
 		http.Error(w, "Error fetching code snapshots", http.StatusInternalServerError)
 		return
@@ -70,36 +38,36 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 	// Initialize map for storing the last update for each student
 	lastUpdateMap := make(map[int]time.Time)
 
-	_, ok := HelpEligibleStudents[problemID][uid]
+	_, ok := models.HelpEligibleStudents[problemID][uid]
 
 	// Populate the map based on the role or eligibility
 	for _, snapshot := range codeSnapshots {
-		if role == "teacher" || uid == snapshot.StudentID || (PeerTutorAllowed && ok) {
+		if role == "teacher" || uid == snapshot.StudentID || (models.PeerTutorAllowed && ok) {
 			lastUpdateMap[snapshot.StudentID] = snapshot.LastUpdatedAt
 		}
 	}
 
 	// Retrieve problem description and end time
-	code, problemEndedAt, err := GetProblemDetail(problemID)
+	code, problemEndedAt, err := repository.GetProblemDetail(problemID)
 	if err != nil {
 		http.Error(w, "Error fetching problem details", http.StatusInternalServerError)
 		return
 	}
 
 	// Retrieve latest submission times for the problem
-	latestSubmissionTime := GetLatestSubmissionTime(problemID)
+	latestSubmissionTime := repository.GetLatestSubmissionTime(problemID)
 
 	// Retrieve student statuses for the problem
-	studentStatuses, err := GetStudentStatusesByProblemID(problemID)
+	studentStatuses, err := repository.GetStudentStatusesByProblemID(problemID)
 	if err != nil {
 		http.Error(w, "Error fetching student statuses", http.StatusInternalServerError)
 		return
 	}
 
-	var studentInfo []*DashBoardStudentInfo
+	var studentInfo []*models.DashBoardStudentInfo
 	for _, status := range studentStatuses {
-		if role == "teacher" || uid == status.StudentID || (PeerTutorAllowed && ok) {
-			studentInfo = append(studentInfo, &DashBoardStudentInfo{
+		if role == "teacher" || uid == status.StudentID || (models.PeerTutorAllowed && ok) {
+			studentInfo = append(studentInfo, &models.DashBoardStudentInfo{
 				StudentID:      status.StudentID,
 				StudentName:    students[status.StudentID],
 				LastUpdatedAt:  lastUpdateMap[status.StudentID],
@@ -130,21 +98,21 @@ func problemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		return true
 	})
 
-	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := GetProblemStats(problemID)
+	nActive, nHelp, nNotGraded, nCorrect, nIncorrect := repository.GetProblemStats(problemID)
 
-	var answerStats []*AnswerStatInfo
+	var answerStats []*models.AnswerStatInfo
 	if role != "student" {
-		answerStats, err = GetAnswerStats(problemID)
+		answerStats, err = repository.GetAnswerStats(problemID)
 		if err != nil {
 			http.Error(w, "Error fetching answer stats", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	dashBoardData := &DashBoardInfo{
+	dashBoardData := &models.DashBoardInfo{
 		StudentInfo:        studentInfo,
 		ProblemID:          problemID,
-		ProblemName:        GetProblemNameFromID(problemID),
+		ProblemName:        repository.GetProblemNameFromID(problemID),
 		Code:               code,
 		IsActive:           problemEndedAt.IsZero(),
 		NumActive:          nActive,

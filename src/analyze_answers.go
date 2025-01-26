@@ -1,10 +1,9 @@
-//
 // Author: Vinhthuy Phan, 2018
-//
 package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"net/http"
@@ -17,11 +16,11 @@ type AnswersBoardMessage struct {
 	Total   int
 }
 
-//-----------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 func view_answersHandler(w http.ResponseWriter, r *http.Request) {
 	filename := r.FormValue("filename")
 	passcode := r.FormValue("pc")
-	if prob, ok := ActiveProblems[filename]; ok && passcode == Passcode {
+	if prob, ok := models.ActiveProblems[filename]; ok && passcode == models.Passcode {
 		t, err := template.New("").Parse(VIEW_ANSWERS_TEMPLATE)
 		if err == nil {
 			answers := prob.Answers

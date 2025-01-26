@@ -3,20 +3,15 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 )
 
-type StudentReport struct {
-	Points   int
-	Filename string
-	Date     int64
-}
-
 // -----------------------------------------------------------------------------------
 func student_gets_reportHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// Fetch report data
-	report, err := FetchStudentReport(uid)
+	report, err := repository.FetchStudentReport(uid)
 	if err != nil {
 		log.Printf("Error fetching student report: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

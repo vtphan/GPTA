@@ -1,8 +1,10 @@
-package main
+package repository
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/GPTA/src/models"
 	"gorm.io/gorm"
 	"log"
 	"math"
@@ -10,54 +12,54 @@ import (
 	"time"
 )
 
-func AddStudent(name string, password string) (Student, error) {
-	student := Student{
+func AddStudent(name string, password string) (models.Student, error) {
+	student := models.Student{
 		Name:     name,
 		Password: password,
 	}
-	if err := DB.Create(&student).Error; err != nil {
+	if err := models.DB.Create(&student).Error; err != nil {
 		return student, fmt.Errorf("failed to insert student: %w", err)
 	}
 	return student, nil
 }
 
-func AddTeacher(name string, password string) (Teacher, error) {
-	teacher := Teacher{
+func AddTeacher(name string, password string) (models.Teacher, error) {
+	teacher := models.Teacher{
 		Name:     name,
 		Password: password,
 	}
-	if err := DB.Create(&teacher).Error; err != nil {
+	if err := models.DB.Create(&teacher).Error; err != nil {
 		return teacher, fmt.Errorf("failed to insert student: %w", err)
 	}
 	return teacher, nil
 }
 
-func FindStudentByName(name string) (Student, error) {
-	var student Student
-	err := DB.Where("name = ?", name).First(&student).Error
+func FindStudentByName(name string) (models.Student, error) {
+	var student models.Student
+	err := models.DB.Where("name = ?", name).First(&student).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return student, fmt.Errorf("failed to query student: %w", err)
 	}
 	if err == gorm.ErrRecordNotFound {
-		return student, fmt.Errorf(RecordNotFound)
+		return student, fmt.Errorf(models.RecordNotFound)
 	}
 	return student, nil
 }
 
-func FindTeacherByName(name string) (Teacher, error) {
-	var teacher Teacher
-	err := DB.Where("name = ?", name).First(&teacher).Error
+func FindTeacherByName(name string) (models.Teacher, error) {
+	var teacher models.Teacher
+	err := models.DB.Where("name = ?", name).First(&teacher).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return teacher, fmt.Errorf("failed to query student: %w", err)
 	}
 	if err == gorm.ErrRecordNotFound {
-		return teacher, fmt.Errorf(RecordNotFound)
+		return teacher, fmt.Errorf(models.RecordNotFound)
 	}
 	return teacher, nil
 }
 
-func AddProblem(teacherID int, problemDescription, answer, filename string, merit, effort, attempts, topicID, tag int) (Problem, error) {
-	problem := Problem{
+func AddProblem(teacherID int, problemDescription, answer, filename string, merit, effort, attempts, topicID, tag int) (models.Problem, error) {
+	problem := models.Problem{
 		TeacherID:          teacherID,
 		ProblemDescription: problemDescription,
 		Answer:             answer,
@@ -69,14 +71,14 @@ func AddProblem(teacherID int, problemDescription, answer, filename string, meri
 		Tag:                tag,
 		ProblemUploadedAt:  time.Now(),
 	}
-	if err := DB.Create(&problem).Error; err != nil {
+	if err := models.DB.Create(&problem).Error; err != nil {
 		return problem, fmt.Errorf("failed to insert problem: %w", err)
 	}
 	return problem, nil
 }
 
-func AddSubmission(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt time.Time, snapshotID int, answer string) (SubmissionTable, error) {
-	submission := SubmissionTable{
+func AddSubmission(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt time.Time, snapshotID int, answer string) (models.SubmissionTable, error) {
+	submission := models.SubmissionTable{
 		ProblemID:          problemID,
 		StudentID:          studentID,
 		StudentCode:        studentCode,
@@ -86,14 +88,14 @@ func AddSubmission(problemID, studentID int, studentCode string, submissionCateg
 		SnapshotID:         snapshotID,
 		Answer:             answer,
 	}
-	if err := DB.Create(&submission).Error; err != nil {
+	if err := models.DB.Create(&submission).Error; err != nil {
 		return submission, fmt.Errorf("failed to insert submission: %w", err)
 	}
 	return submission, nil
 }
 
-func AddSubmissionComplete(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt, completedAt time.Time, snapshotID int, answer string) (SubmissionTable, error) {
-	submission := SubmissionTable{
+func AddSubmissionComplete(problemID, studentID int, studentCode string, submissionCategory, attemptNumber int, codeSubmittedAt, completedAt time.Time, snapshotID int, answer string) (models.SubmissionTable, error) {
+	submission := models.SubmissionTable{
 		ProblemID:          problemID,
 		StudentID:          studentID,
 		StudentCode:        studentCode,
@@ -104,14 +106,14 @@ func AddSubmissionComplete(problemID, studentID int, studentCode string, submiss
 		SnapshotID:         snapshotID,
 		Answer:             answer,
 	}
-	if err := DB.Create(&submission).Error; err != nil {
+	if err := models.DB.Create(&submission).Error; err != nil {
 		return submission, fmt.Errorf("failed to insert submission: %w", err)
 	}
 	return submission, nil
 }
 
 func CompleteSubmission(completed time.Time, verdict string, submissionID int) error {
-	if err := DB.Model(&SubmissionTable{}).
+	if err := models.DB.Model(&models.SubmissionTable{}).
 		Where("id = ?", submissionID).
 		Updates(map[string]interface{}{
 			"completed": completed,
@@ -123,8 +125,8 @@ func CompleteSubmission(completed time.Time, verdict string, submissionID int) e
 	return nil
 }
 
-func AddScore(problemID, studentID, teacherID, score, gradedSubmissionNumber int, scoreGivenAt time.Time) (Score, error) {
-	scoreRecord := Score{
+func AddScore(problemID, studentID, teacherID, score, gradedSubmissionNumber int, scoreGivenAt time.Time) (models.Score, error) {
+	scoreRecord := models.Score{
 		ProblemID:              problemID,
 		StudentID:              studentID,
 		TeacherID:              teacherID,
@@ -132,7 +134,7 @@ func AddScore(problemID, studentID, teacherID, score, gradedSubmissionNumber int
 		GradedSubmissionNumber: gradedSubmissionNumber,
 		ScoreGivenAt:           &scoreGivenAt,
 	}
-	if err := DB.Create(&scoreRecord).Error; err != nil {
+	if err := models.DB.Create(&scoreRecord).Error; err != nil {
 		return scoreRecord, fmt.Errorf("failed to insert score: %w", err)
 	}
 
@@ -140,7 +142,7 @@ func AddScore(problemID, studentID, teacherID, score, gradedSubmissionNumber int
 }
 
 func UpdateScore(scoreID, teacherID, score, gradedSubmissionNumber int) error {
-	if err := DB.Model(&Score{}).
+	if err := models.DB.Model(&models.Score{}).
 		Where("id = ?", scoreID).
 		Updates(map[string]interface{}{
 			"teacher_id":               teacherID,
@@ -152,8 +154,8 @@ func UpdateScore(scoreID, teacherID, score, gradedSubmissionNumber int) error {
 	return nil
 }
 
-func AddFeedback(teacherID, studentID int, feedback string, feedbackGivenAt time.Time, submissionID int) (Feedback, error) {
-	feedbackRecord := Feedback{
+func AddFeedback(teacherID, studentID int, feedback string, feedbackGivenAt time.Time, submissionID int) (models.Feedback, error) {
+	feedbackRecord := models.Feedback{
 		TeacherID:       teacherID,
 		StudentID:       studentID,
 		Feedback:        feedback,
@@ -162,51 +164,51 @@ func AddFeedback(teacherID, studentID int, feedback string, feedbackGivenAt time
 	}
 
 	// Insert the feedback record into the database using GORM
-	if err := DB.Create(&feedbackRecord).Error; err != nil {
+	if err := models.DB.Create(&feedbackRecord).Error; err != nil {
 		return feedbackRecord, fmt.Errorf("failed to insert feedback: %w", err)
 	}
 
 	return feedbackRecord, nil
 }
 
-func AddAttendance(studentID int, attendanceAt time.Time) (Attendance, error) {
-	attendanceRecord := Attendance{
+func AddAttendance(studentID int, attendanceAt time.Time) (models.Attendance, error) {
+	attendanceRecord := models.Attendance{
 		StudentID:    studentID,
 		AttendanceAt: attendanceAt,
 	}
-	if err := DB.Create(&attendanceRecord).Error; err != nil {
+	if err := models.DB.Create(&attendanceRecord).Error; err != nil {
 		return attendanceRecord, fmt.Errorf("failed to insert attendance: %w", err)
 	}
 
 	return attendanceRecord, nil
 }
 
-func AddTag(topicDescription string) (Tag, error) {
-	tagRecord := Tag{
+func AddTag(topicDescription string) (models.Tag, error) {
+	tagRecord := models.Tag{
 		TopicDescription: topicDescription,
 	}
-	if err := DB.Create(&tagRecord).Error; err != nil {
+	if err := models.DB.Create(&tagRecord).Error; err != nil {
 		return tagRecord, fmt.Errorf("failed to insert tag: %w", err)
 	}
 
 	return tagRecord, nil
 }
 
-func AddTestCase(problemID, studentID int, testCases string, addedAt time.Time) (TestCase, error) {
-	testCaseRecord := TestCase{
+func AddTestCase(problemID, studentID int, testCases string, addedAt time.Time) (models.TestCase, error) {
+	testCaseRecord := models.TestCase{
 		ProblemID: problemID,
 		StudentID: studentID,
 		TestCases: testCases,
 		AddedAt:   addedAt,
 	}
-	if err := DB.Create(&testCaseRecord).Error; err != nil {
+	if err := models.DB.Create(&testCaseRecord).Error; err != nil {
 		return testCaseRecord, fmt.Errorf("failed to insert test case: %w", err)
 	}
 	return testCaseRecord, nil
 }
 
 func UpdateTestCase(testCases string, addedAt time.Time, testCaseID int) error {
-	if err := DB.Model(&TestCase{}).
+	if err := models.DB.Model(&models.TestCase{}).
 		Where("id = ?", testCaseID).
 		Updates(map[string]interface{}{
 			"test_cases": testCases,
@@ -218,21 +220,21 @@ func UpdateTestCase(testCases string, addedAt time.Time, testCaseID int) error {
 	return nil
 }
 
-func AddHelpMessage(codeExplanationID int, studentID int, message string, givenAt time.Time) (HelpMessage, error) {
-	helpMessage := HelpMessage{
+func AddHelpMessage(codeExplanationID int, studentID int, message string, givenAt time.Time) (models.HelpMessage, error) {
+	helpMessage := models.HelpMessage{
 		CodeExplanationID: codeExplanationID,
 		StudentID:         studentID,
 		Message:           message,
 		GivenAt:           givenAt,
 	}
-	if err := DB.Create(&helpMessage).Error; err != nil {
+	if err := models.DB.Create(&helpMessage).Error; err != nil {
 		return helpMessage, fmt.Errorf("failed to add help message: %w", err)
 	}
 	return helpMessage, nil
 }
 
 func UpdateHelpMessage(useful string, updatedAt time.Time, helpMessageID int) error {
-	if err := DB.Model(&HelpMessage{}).
+	if err := models.DB.Model(&models.HelpMessage{}).
 		Where("id = ?", helpMessageID).
 		Updates(map[string]interface{}{
 			"useful":     useful,
@@ -243,8 +245,8 @@ func UpdateHelpMessage(useful string, updatedAt time.Time, helpMessageID int) er
 	return nil
 }
 
-func AddCodeSnapshot(studentID int, problemID int, code string, status int, lastUpdatedAt time.Time, event string) (CodeSnapshot, error) {
-	codeSnapshot := CodeSnapshot{
+func AddCodeSnapshot(studentID int, problemID int, code string, status int, lastUpdatedAt time.Time, event string) (models.CodeSnapshot, error) {
+	codeSnapshot := models.CodeSnapshot{
 		StudentID:     studentID,
 		ProblemID:     problemID,
 		Code:          code,
@@ -252,14 +254,14 @@ func AddCodeSnapshot(studentID int, problemID int, code string, status int, last
 		Status:        status,
 		Event:         event,
 	}
-	if err := DB.Create(&codeSnapshot).Error; err != nil {
+	if err := models.DB.Create(&codeSnapshot).Error; err != nil {
 		return codeSnapshot, fmt.Errorf("failed to insert code snapshot: %w", err)
 	}
 	return codeSnapshot, nil
 }
 
 func UpdateProblemEndTime(problemEndedAt time.Time, problemID int) error {
-	if err := DB.Model(&Problem{}).
+	if err := models.DB.Model(&models.Problem{}).
 		Where("id = ?", problemID).
 		Update("problem_ended_at", problemEndedAt).Error; err != nil {
 		return fmt.Errorf("failed to update problem end time for problem ID %d: %w", problemID, err)
@@ -267,20 +269,20 @@ func UpdateProblemEndTime(problemEndedAt time.Time, problemID int) error {
 	return nil
 }
 
-func AddHelpEligible(problemID int, studentID int, becameEligibleAt time.Time) (HelpEligible, error) {
-	helpEligible := HelpEligible{
+func AddHelpEligible(problemID int, studentID int, becameEligibleAt time.Time) (models.HelpEligible, error) {
+	helpEligible := models.HelpEligible{
 		ProblemID:        problemID,
 		StudentID:        studentID,
 		BecameEligibleAt: becameEligibleAt,
 	}
-	if err := DB.Create(&helpEligible).Error; err != nil {
+	if err := models.DB.Create(&helpEligible).Error; err != nil {
 		return helpEligible, fmt.Errorf("failed to insert help eligible: %w", err)
 	}
 	return helpEligible, nil
 }
 
-func AddUserEventLog(name string, userID int, userType string, eventType string, referralInfo string, eventTime time.Time) (UserEventLog, error) {
-	userEventLog := UserEventLog{
+func AddUserEventLog(name string, userID int, userType string, eventType string, referralInfo string, eventTime time.Time) (models.UserEventLog, error) {
+	userEventLog := models.UserEventLog{
 		Name:         name,
 		UserID:       userID,
 		UserType:     userType,
@@ -288,15 +290,15 @@ func AddUserEventLog(name string, userID int, userType string, eventType string,
 		ReferralInfo: referralInfo,
 		EventTime:    eventTime,
 	}
-	if err := DB.Create(&userEventLog).Error; err != nil {
+	if err := models.DB.Create(&userEventLog).Error; err != nil {
 		return userEventLog, fmt.Errorf("failed to insert user event log: %w", err)
 	}
 
 	return userEventLog, nil
 }
 
-func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, tutoringStat string, lastUpdatedAt time.Time) (StudentStatus, error) {
-	studentStatus := StudentStatus{
+func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, tutoringStat string, lastUpdatedAt time.Time) (models.StudentStatus, error) {
+	studentStatus := models.StudentStatus{
 		StudentID:      studentID,
 		ProblemID:      problemID,
 		CodingStat:     codingStat,
@@ -305,18 +307,18 @@ func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat 
 		TutoringStat:   tutoringStat,
 		LastUpdatedAt:  lastUpdatedAt,
 	}
-	if err := DB.Create(&studentStatus).Error; err != nil {
+	if err := models.DB.Create(&studentStatus).Error; err != nil {
 		return studentStatus, fmt.Errorf("failed to insert student status: %w", err)
 	}
 	return studentStatus, nil
 }
 
 func UpdateStudentCodingStat(codingStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
-	studentStatus := StudentStatus{
+	studentStatus := models.StudentStatus{
 		CodingStat:    codingStat,
 		LastUpdatedAt: lastUpdatedAt,
 	}
-	if err := DB.Model(&StudentStatus{}).
+	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Updates(studentStatus).Error; err != nil {
 		return fmt.Errorf("failed to update student coding status: %w", err)
@@ -325,11 +327,11 @@ func UpdateStudentCodingStat(codingStat string, lastUpdatedAt time.Time, student
 }
 
 func UpdateStudentSubmissionStat(submissionStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
-	studentStatus := StudentStatus{
+	studentStatus := models.StudentStatus{
 		SubmissionStat: submissionStat,
 		LastUpdatedAt:  lastUpdatedAt,
 	}
-	if err := DB.Model(&StudentStatus{}).
+	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Updates(studentStatus).Error; err != nil {
 		return fmt.Errorf("failed to update student submission status: %w", err)
@@ -338,11 +340,11 @@ func UpdateStudentSubmissionStat(submissionStat string, lastUpdatedAt time.Time,
 }
 
 func UpdateStudentHelpStat(helpStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
-	studentStatus := StudentStatus{
+	studentStatus := models.StudentStatus{
 		HelpStat:      helpStat,
 		LastUpdatedAt: lastUpdatedAt,
 	}
-	if err := DB.Model(&StudentStatus{}).
+	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Updates(studentStatus).Error; err != nil {
 		return fmt.Errorf("failed to update student help status: %w", err)
@@ -351,11 +353,11 @@ func UpdateStudentHelpStat(helpStat string, lastUpdatedAt time.Time, studentID i
 }
 
 func UpdateStudentTutoringStat(tutoringStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
-	studentStatus := StudentStatus{
+	studentStatus := models.StudentStatus{
 		TutoringStat:  tutoringStat,
 		LastUpdatedAt: lastUpdatedAt,
 	}
-	if err := DB.Model(&StudentStatus{}).
+	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Updates(studentStatus).Error; err != nil {
 		return fmt.Errorf("failed to update student tutoring status: %w", err)
@@ -365,7 +367,7 @@ func UpdateStudentTutoringStat(tutoringStat string, lastUpdatedAt time.Time, stu
 }
 
 func AddMessage(snapshotID int, message string, authorID int, authorRole string, givenAt time.Time, messageType int) (int, error) {
-	msg := Message{
+	msg := models.Message{
 		SnapshotID: snapshotID,
 		Message:    message,
 		AuthorID:   authorID,
@@ -373,28 +375,28 @@ func AddMessage(snapshotID int, message string, authorID int, authorRole string,
 		GivenAt:    givenAt,
 		Type:       messageType,
 	}
-	if err := DB.Create(&msg).Error; err != nil {
+	if err := models.DB.Create(&msg).Error; err != nil {
 		return 0, fmt.Errorf("failed to add message: %w", err)
 	}
 	return msg.ID, nil
 }
 
 func AddMessageFeedback(messageID int, feedback string, authorID int, authorRole string, givenAt time.Time) (int, error) {
-	feedbackRecord := MessageFeedback{
+	feedbackRecord := models.MessageFeedback{
 		MessageID:  messageID,
 		Feedback:   feedback,
 		AuthorID:   authorID,
 		AuthorRole: authorRole,
 		GivenAt:    givenAt,
 	}
-	if err := DB.Create(&feedbackRecord).Error; err != nil {
+	if err := models.DB.Create(&feedbackRecord).Error; err != nil {
 		return 0, fmt.Errorf("failed to add message feedback: %w", err)
 	}
 	return feedbackRecord.ID, nil
 }
 
 func AddProblemStatistics(problemID int) error {
-	statsRecord := ProblemStatistics{
+	statsRecord := models.ProblemStatistics{
 		ProblemID:       problemID,
 		Active:          0,
 		Submission:      0,
@@ -402,14 +404,14 @@ func AddProblemStatistics(problemID int) error {
 		GradedCorrect:   0,
 		GradedIncorrect: 0,
 	}
-	if err := DB.Create(&statsRecord).Error; err != nil {
+	if err := models.DB.Create(&statsRecord).Error; err != nil {
 		return fmt.Errorf("failed to add problem statistics: %w", err)
 	}
 	return nil
 }
 
 func IncrementProblemStatActive(problemID int) error {
-	result := DB.Model(&ProblemStatistics{}).
+	result := models.DB.Model(&models.ProblemStatistics{}).
 		Where("problem_id = ?", problemID).
 		UpdateColumn("active", gorm.Expr("active + ?", 1))
 	if result.Error != nil {
@@ -419,7 +421,7 @@ func IncrementProblemStatActive(problemID int) error {
 }
 
 func IncrementProblemStatSubmission(problemID int) error {
-	result := DB.Model(&ProblemStatistics{}).
+	result := models.DB.Model(&models.ProblemStatistics{}).
 		Where("problem_id = ?", problemID).
 		UpdateColumn("submission", gorm.Expr("submission + ?", 1))
 	if result.Error != nil {
@@ -429,7 +431,7 @@ func IncrementProblemStatSubmission(problemID int) error {
 }
 
 func IncrementProblemStatHelp(problemID int) error {
-	result := DB.Model(&ProblemStatistics{}).
+	result := models.DB.Model(&models.ProblemStatistics{}).
 		Where("problem_id = ?", problemID).
 		UpdateColumn("help_request", gorm.Expr("help_request + ?", 1))
 	if result.Error != nil {
@@ -439,7 +441,7 @@ func IncrementProblemStatHelp(problemID int) error {
 }
 
 func IncrementProblemStatGradedCorrect(problemID int) error {
-	result := DB.Model(&ProblemStatistics{}).
+	result := models.DB.Model(&models.ProblemStatistics{}).
 		Where("problem_id = ?", problemID).
 		UpdateColumn("graded_correct", gorm.Expr("graded_correct + ?", 1))
 	if result.Error != nil {
@@ -449,7 +451,7 @@ func IncrementProblemStatGradedCorrect(problemID int) error {
 }
 
 func IncrementProblemStatGradedIncorrect(problemID int) error {
-	result := DB.Model(&ProblemStatistics{}).
+	result := models.DB.Model(&models.ProblemStatistics{}).
 		Where("problem_id = ?", problemID).
 		UpdateColumn("graded_incorrect", gorm.Expr("graded_incorrect + ?", 1))
 	if result.Error != nil {
@@ -459,14 +461,14 @@ func IncrementProblemStatGradedIncorrect(problemID int) error {
 }
 
 func AddMessageBackFeedback(messageFeedbackID, authorID int, authorRole, useful string) error {
-	messageBackFeedback := MessageBackFeedback{
+	messageBackFeedback := models.MessageBackFeedback{
 		MessageFeedbackID: messageFeedbackID,
 		AuthorID:          authorID,
 		AuthorRole:        authorRole,
 		Useful:            useful,
 		GivenAt:           time.Now(),
 	}
-	result := DB.Create(&messageBackFeedback)
+	result := models.DB.Create(&messageBackFeedback)
 	if result.Error != nil {
 		return fmt.Errorf("failed to add message back feedback: %w", result.Error)
 	}
@@ -474,7 +476,7 @@ func AddMessageBackFeedback(messageFeedbackID, authorID int, authorRole, useful 
 }
 
 func UpdateMessageBackFeedback(useful string, givenAt time.Time, feedbackID, authorID int, authorRole string) error {
-	result := DB.Model(&MessageBackFeedback{}).
+	result := models.DB.Model(&models.MessageBackFeedback{}).
 		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
 		UpdateColumns(map[string]interface{}{
 			"useful":   useful,
@@ -486,9 +488,9 @@ func UpdateMessageBackFeedback(useful string, givenAt time.Time, feedbackID, aut
 	return nil
 }
 
-func GetSubmissions() ([]SubmissionTable, error) {
-	var submissions []SubmissionTable
-	if err := DB.Model(&SubmissionTable{}).Select("problem_id", "student_id", "code_submitted_at").Find(&submissions).Error; err != nil {
+func GetSubmissions() ([]models.SubmissionTable, error) {
+	var submissions []models.SubmissionTable
+	if err := models.DB.Model(&models.SubmissionTable{}).Select("problem_id", "student_id", "code_submitted_at").Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	return submissions, nil
@@ -498,7 +500,7 @@ func GetProblemUploadTime(pid int) (time.Time, error) {
 	var problem struct {
 		ProblemUploadedAt time.Time `gorm:"column:problem_uploaded_at"`
 	}
-	if err := DB.Model(&Problem{}).
+	if err := models.DB.Model(&models.Problem{}).
 		Where("id = ?", pid).
 		Select("problem_uploaded_at").
 		First(&problem).Error; err != nil {
@@ -507,9 +509,9 @@ func GetProblemUploadTime(pid int) (time.Time, error) {
 	return problem.ProblemUploadedAt, nil
 }
 
-func GetSubmissionsByProblemID(pid int) ([]SubmissionTable, error) {
-	var submissions []SubmissionTable
-	if err := DB.Model(&SubmissionTable{}).
+func GetSubmissionsByProblemID(pid int) ([]models.SubmissionTable, error) {
+	var submissions []models.SubmissionTable
+	if err := models.DB.Model(&models.SubmissionTable{}).
 		Where("problem_id = ?", pid).
 		Select("student_id", "submission_category", "code_submitted_at", "completed").
 		Find(&submissions).Error; err != nil {
@@ -519,8 +521,8 @@ func GetSubmissionsByProblemID(pid int) ([]SubmissionTable, error) {
 }
 
 func GetStudentName(studentID int) string {
-	var student Student
-	if err := DB.Model(&Student{}).
+	var student models.Student
+	if err := models.DB.Model(&models.Student{}).
 		Where("id = ?", studentID).
 		Select("name").
 		First(&student).Error; err != nil {
@@ -529,9 +531,9 @@ func GetStudentName(studentID int) string {
 	return student.Name
 }
 
-func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
-	var codeSnapshot CodeSnapshot
-	if err := DB.Table("code_snapshots cs").
+func GetCodeSnapshot(snapshotID int) (*models.CodeSnapshot, error) {
+	var codeSnapshot models.CodeSnapshot
+	if err := models.DB.Table("code_snapshots cs").
 		Joins("join problems p on cs.problem_id = p.id").
 		Where("cs.id = ?", snapshotID).
 		Select("cs.student_id, cs.problem_id, cs.code, p.filename").
@@ -541,9 +543,9 @@ func GetCodeSnapshot(snapshotID int) (*CodeSnapshot, error) {
 	return &codeSnapshot, nil
 }
 
-func GetCodeSnapshotMessageDetails(messageID int) ([]CodeSnapshotMessageDetails, error) {
-	var details []CodeSnapshotMessageDetails
-	if err := DB.Table("code_snapshots cs").
+func GetCodeSnapshotMessageDetails(messageID int) ([]models.CodeSnapshotMessageDetails, error) {
+	var details []models.CodeSnapshotMessageDetails
+	if err := models.DB.Table("code_snapshots cs").
 		Select("cs.student_id AS student_id, cs.problem_id AS problem_id, cs.code AS code, p.filename AS filename, m.type AS message_type").
 		Joins("JOIN problems p ON cs.problem_id = p.id").
 		Joins("JOIN messages m ON m.snapshot_id = cs.id").
@@ -556,7 +558,7 @@ func GetCodeSnapshotMessageDetails(messageID int) ([]CodeSnapshotMessageDetails,
 
 func GetVoteCount(feedbackID int, voteType string) (int64, error) {
 	var count int64
-	if err := DB.Model(&SnapshotBackFeedback{}).
+	if err := models.DB.Model(&models.SnapshotBackFeedback{}).
 		Where("is_helpful = ? AND snapshot_feedback_id = ?", voteType, feedbackID).
 		Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to execute query: %w", err)
@@ -566,7 +568,7 @@ func GetVoteCount(feedbackID int, voteType string) (int64, error) {
 
 func GetNumberOfReply(snapshotID int) (int, error) {
 	var count int64
-	if err := DB.Model(&SnapshotFeedback{}).
+	if err := models.DB.Model(&models.SnapshotFeedback{}).
 		Where("snapshot_id = ?", snapshotID).
 		Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to retrieve the count of replies for snapshot ID %d: %w", snapshotID, err)
@@ -574,17 +576,17 @@ func GetNumberOfReply(snapshotID int) (int, error) {
 	return int(count), nil
 }
 
-func GetAllTeachers() ([]Teacher, error) {
-	var teachers []Teacher
-	if err := DB.Model(&Teacher{}).Find(&teachers).Error; err != nil {
+func GetAllTeachers() ([]models.Teacher, error) {
+	var teachers []models.Teacher
+	if err := models.DB.Model(&models.Teacher{}).Find(&teachers).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve teachers: %w", err)
 	}
 	return teachers, nil
 }
 
-func GetScoreDetails(problemID, studentID int) (*Score, error) {
-	var score Score
-	if err := DB.Model(&Score{}).
+func GetScoreDetails(problemID, studentID int) (*models.Score, error) {
+	var score models.Score
+	if err := models.DB.Model(&models.Score{}).
 		Select("id, score, graded_submission_number, teacher_id").
 		Where("problem_id = ? AND student_id = ?", problemID, studentID).
 		First(&score).Error; err != nil {
@@ -596,9 +598,9 @@ func GetScoreDetails(problemID, studentID int) (*Score, error) {
 	return &score, nil
 }
 
-func GetProblemDetails(problemID int) (*Problem, error) {
-	var problem Problem
-	if err := DB.Model(&Problem{}).
+func GetProblemDetails(problemID int) (*models.Problem, error) {
+	var problem models.Problem
+	if err := models.DB.Model(&models.Problem{}).
 		Select("merit, effort").
 		Where("id = ?", problemID).
 		First(&problem).Error; err != nil {
@@ -610,9 +612,9 @@ func GetProblemDetails(problemID int) (*Problem, error) {
 	return &problem, nil
 }
 
-func GetStudentStatus(studentID, problemID int) (*StudentStatus, error) {
-	var status StudentStatus
-	if err := DB.Model(&StudentStatus{}).
+func GetStudentStatus(studentID, problemID int) (*models.StudentStatus, error) {
+	var status models.StudentStatus
+	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		First(&status).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -623,9 +625,9 @@ func GetStudentStatus(studentID, problemID int) (*StudentStatus, error) {
 	return &status, nil
 }
 
-func GetStudentByID(studentID int) (*Student, error) {
-	var student Student
-	if err := DB.Model(&Student{}).
+func GetStudentByID(studentID int) (*models.Student, error) {
+	var student models.Student
+	if err := models.DB.Model(&models.Student{}).
 		Where("id = ?", studentID).
 		First(&student).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -637,8 +639,8 @@ func GetStudentByID(studentID int) (*Student, error) {
 }
 
 func GetProblemIDByFilename(filename string) (int, error) {
-	var problem Problem
-	if err := DB.Model(&Problem{}).
+	var problem models.Problem
+	if err := models.DB.Model(&models.Problem{}).
 		Select("id").
 		Where("filename = ?", filename).
 		First(&problem).Error; err != nil {
@@ -652,7 +654,7 @@ func GetProblemIDByFilename(filename string) (int, error) {
 
 func GetTestCasesByProblemID(problemID int) ([]string, error) {
 	var testCases []string
-	if err := DB.Model(&TestCase{}).
+	if err := models.DB.Model(&models.TestCase{}).
 		Select("test_cases").
 		Where("problem_id = ?", problemID).
 		Pluck("test_cases", &testCases).Error; err != nil {
@@ -664,7 +666,7 @@ func GetTestCasesByProblemID(problemID int) ([]string, error) {
 func GetCurrentStudents() []int {
 	var studentIDs []int
 	date := time.Now().Format("2006-01-02") // Correct format for GORM's DATE query
-	if err := DB.Model(&Attendance{}).
+	if err := models.DB.Model(&models.Attendance{}).
 		Select("student_id").
 		Where("DATE(attendance_at) = ?", date).
 		Pluck("student_id", &studentIDs).Error; err != nil {
@@ -674,10 +676,10 @@ func GetCurrentStudents() []int {
 }
 
 func GetAllStudents() map[int]string {
-	var students []Student
+	var students []models.Student
 	studentMap := make(map[int]string)
 
-	if err := DB.Model(&Student{}).
+	if err := models.DB.Model(&models.Student{}).
 		Select("id, name").
 		Find(&students).Error; err != nil {
 		return nil
@@ -691,9 +693,9 @@ func GetAllStudents() map[int]string {
 }
 
 func GetProblemStats(problemID int) (int, int, int, int, int) {
-	var stats ProblemStatistics
+	var stats models.ProblemStatistics
 
-	if err := DB.Where("problem_id = ?", problemID).First(&stats).Error; err != nil {
+	if err := models.DB.Where("problem_id = ?", problemID).First(&stats).Error; err != nil {
 		return 0, 0, 0, 0, 0
 	}
 
@@ -704,9 +706,9 @@ func GetProblemStats(problemID int) (int, int, int, int, int) {
 
 func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 	var latestSubmissions = make(map[int]time.Time)
-	var submissions []SubmissionTable
+	var submissions []models.SubmissionTable
 
-	if err := DB.Model(&SubmissionTable{}).
+	if err := models.DB.Model(&models.SubmissionTable{}).
 		Select("student_id, max(code_submitted_at) as code_submitted_at").
 		Where("problem_id = ?", problemID).
 		Group("student_id").
@@ -722,9 +724,9 @@ func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 }
 
 func GetProblemNameFromID(problemID int) string {
-	var problem Problem
+	var problem models.Problem
 
-	if err := DB.Model(&Problem{}).
+	if err := models.DB.Model(&models.Problem{}).
 		Select("filename").
 		Where("id = ?", problemID).
 		First(&problem).Error; err != nil {
@@ -734,9 +736,9 @@ func GetProblemNameFromID(problemID int) string {
 	return problem.Filename
 }
 
-func GetCodeSnapshotsByProblemID(problemID int) ([]CodeSnapshot, error) {
-	var codeSnapshots []CodeSnapshot
-	err := DB.Model(&CodeSnapshot{}).
+func GetCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
+	var codeSnapshots []models.CodeSnapshot
+	err := models.DB.Model(&models.CodeSnapshot{}).
 		Select("student_id, MAX(last_updated_at) as last_updated_at").
 		Where("problem_id = ?", problemID).
 		Group("student_id").
@@ -752,25 +754,25 @@ func GetProblemDetail(problemID int) (string, time.Time, error) {
 		Description    string
 		ProblemEndedAt time.Time
 	}
-	err := DB.Table("problems").
+	err := models.DB.Table("problems").
 		Select("problem_description as description, problem_ended_at").
 		Where("id = ?", problemID).
 		Scan(&problem).Error
 	return problem.Description, problem.ProblemEndedAt, err
 }
 
-func GetStudentStatusesByProblemID(problemID int) ([]StudentStatus, error) {
-	var statuses []StudentStatus
-	err := DB.Where("problem_id = ?", problemID).Find(&statuses).Error
+func GetStudentStatusesByProblemID(problemID int) ([]models.StudentStatus, error) {
+	var statuses []models.StudentStatus
+	err := models.DB.Where("problem_id = ?", problemID).Find(&statuses).Error
 	return statuses, err
 }
 
-func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
+func GetAnswerStats(problemID int) ([]*models.AnswerStatInfo, error) {
 	var stats []struct {
 		Answer string
 		Count  int
 	}
-	err := DB.Table("submissions").
+	err := models.DB.Table("submissions").
 		Select("answer, COUNT(*) as count").
 		Where("problem_id = ? AND answer IS NOT NULL AND LENGTH(answer) > 0", problemID).
 		Group("answer").
@@ -780,7 +782,7 @@ func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
 		return nil, err
 	}
 
-	var answerStats []*AnswerStatInfo
+	var answerStats []*models.AnswerStatInfo
 	var total int
 	for _, stat := range stats {
 		total += stat.Count
@@ -788,7 +790,7 @@ func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
 	for _, stat := range stats {
 		percent := float64(stat.Count) * 100.0 / float64(total)
 		percent = math.Round(percent*100) / 100
-		answerStats = append(answerStats, &AnswerStatInfo{
+		answerStats = append(answerStats, &models.AnswerStatInfo{
 			Answer:  stat.Answer,
 			Count:   stat.Count,
 			Percent: percent,
@@ -799,20 +801,20 @@ func GetAnswerStats(problemID int) ([]*AnswerStatInfo, error) {
 }
 
 // GetProblems fetches all problems from the database with the specified fields.
-func GetProblems() ([]Problem, error) {
-	var problems []Problem
+func GetProblems() ([]models.Problem, error) {
+	var problems []models.Problem
 
 	// Query the database to fetch the required fields for all problems
-	if err := DB.Select("id, filename, problem_uploaded_at, problem_ended_at").Find(&problems).Error; err != nil {
+	if err := models.DB.Select("id, filename, problem_uploaded_at, problem_ended_at").Find(&problems).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch problems: %w", err)
 	}
 
 	return problems, nil
 }
 
-func GetTeacherByName(name string) (Teacher, error) {
-	var teacher Teacher
-	if err := DB.Where("name = ?", name).First(&teacher).Error; err != nil {
+func GetTeacherByName(name string) (models.Teacher, error) {
+	var teacher models.Teacher
+	if err := models.DB.Where("name = ?", name).First(&teacher).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return teacher, fmt.Errorf("teacher not found")
 		}
@@ -821,9 +823,9 @@ func GetTeacherByName(name string) (Teacher, error) {
 	return teacher, nil
 }
 
-func GetStudentByName(name string) (Student, error) {
-	var student Student
-	if err := DB.Where("name = ?", name).First(&student).Error; err != nil {
+func GetStudentByName(name string) (models.Student, error) {
+	var student models.Student
+	if err := models.DB.Where("name = ?", name).First(&student).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return student, fmt.Errorf("student not found")
 		}
@@ -833,8 +835,8 @@ func GetStudentByName(name string) (Student, error) {
 }
 
 func GetTags() (map[int]string, error) {
-	var tags []Tag
-	if err := DB.Find(&tags).Error; err != nil {
+	var tags []models.Tag
+	if err := models.DB.Find(&tags).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve tags: %w", err)
 	}
 
@@ -846,7 +848,7 @@ func GetTags() (map[int]string, error) {
 	return tagMap, nil
 }
 
-func GetStudentScores() (map[int]*ScoreEntry, error) {
+func GetStudentScores() (map[int]*models.ScoreEntry, error) {
 	var scores []struct {
 		Score                  int
 		GradedSubmissionNumber int
@@ -854,17 +856,17 @@ func GetStudentScores() (map[int]*ScoreEntry, error) {
 		StudentName            string
 	}
 
-	if err := DB.Table("scores").
+	if err := models.DB.Table("scores").
 		Joins("join students on score.student_id = student.id").
 		Select("scores.score, scores.graded_submission_number, scores.student_id, students.name").
 		Find(&scores).Error; err != nil {
 		return nil, fmt.Errorf("failed to retrieve scores: %w", err)
 	}
 
-	scoreEntries := make(map[int]*ScoreEntry)
+	scoreEntries := make(map[int]*models.ScoreEntry)
 	for _, score := range scores {
 		if _, ok := scoreEntries[score.StudentID]; !ok {
-			scoreEntries[score.StudentID] = &ScoreEntry{Name: score.StudentName}
+			scoreEntries[score.StudentID] = &models.ScoreEntry{Name: score.StudentName}
 		}
 		scoreEntries[score.StudentID].Points += score.Score
 		scoreEntries[score.StudentID].Attempts += score.GradedSubmissionNumber
@@ -875,14 +877,14 @@ func GetStudentScores() (map[int]*ScoreEntry, error) {
 }
 
 func GetTagDescriptionByID(tagID int) (string, error) {
-	var tag Tag
-	if err := DB.Where("id = ?", tagID).First(&tag).Error; err != nil {
+	var tag models.Tag
+	if err := models.DB.Where("id = ?", tagID).First(&tag).Error; err != nil {
 		return "", fmt.Errorf("failed to retrieve tag description: %w", err)
 	}
 	return tag.TopicDescription, nil
 }
 
-func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error) {
+func GetProblemPerformanceByTagID(tagID int) (map[int]*models.ProblemPerformance, error) {
 	var results []struct {
 		Pid       int
 		Merit     int
@@ -891,7 +893,7 @@ func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error
 		StudentID int
 	}
 
-	if err := DB.Table("problems").
+	if err := models.DB.Table("problems").
 		Joins("join scores on problems.id = scores.problem_id").
 		Joins("join students on scores.student_id = students.id").
 		Where("problems.tag = ?", tagID).
@@ -900,16 +902,16 @@ func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error
 		return nil, fmt.Errorf("failed to retrieve problem performance: %w", err)
 	}
 
-	record := make(map[int]*ProblemPerformance)
+	record := make(map[int]*models.ProblemPerformance)
 	for _, result := range results {
 		if _, ok := record[result.Pid]; !ok {
-			record[result.Pid] = &ProblemPerformance{
+			record[result.Pid] = &models.ProblemPerformance{
 				Pid:       result.Pid,
 				Timestamp: result.At.UnixNano(),
 				Correct:   0,
 				Incorrect: 0,
 				Activity:  0,
-				PC:        Passcode,
+				PC:        models.Passcode,
 			}
 		}
 		if result.Merit == result.Points {
@@ -925,16 +927,16 @@ func GetProblemPerformanceByTagID(tagID int) (map[int]*ProblemPerformance, error
 
 func GetStudentCount() (float32, error) {
 	var count int64
-	if err := DB.Table("student").Count(&count).Error; err != nil {
+	if err := models.DB.Table("student").Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to get student count: %w", err)
 	}
 	return float32(count), nil
 }
 
 func GetLatestProblemID() (int, error) {
-	var problem Problem
+	var problem models.Problem
 	// Retrieve the latest problem based on the highest ID
-	if err := DB.Order("id desc").First(&problem).Error; err != nil {
+	if err := models.DB.Order("id desc").First(&problem).Error; err != nil {
 		return 0, fmt.Errorf("failed to retrieve the latest problem ID: %w", err)
 	}
 	return problem.ID, nil
@@ -958,7 +960,7 @@ func GetProblemStatistics(pid int) (map[int]int, string, time.Time, map[string]i
 	var probContent string
 	var probAt time.Time
 
-	err := DB.Table("scores").
+	err := models.DB.Table("scores").
 		Joins("join problems on scores.problem_id = problems.id").
 		Joins("join submissions on scores.problem_id = submissions.problem_id and scores.student_id = submissions.student_id").
 		Where("problems.id = ?", pid).
@@ -992,10 +994,10 @@ func GetProblemStatistics(pid int) (map[int]int, string, time.Time, map[string]i
 }
 
 func GetAttendanceByDate(theDate string) (map[int]int, error) {
-	var attendances []Attendance
+	var attendances []models.Attendance
 	attendants := make(map[int]int)
 
-	err := DB.Where("DATE(attendance_at) = ?", theDate).
+	err := models.DB.Where("DATE(attendance_at) = ?", theDate).
 		Find(&attendances).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve attendance: %w", err)
@@ -1008,9 +1010,9 @@ func GetAttendanceByDate(theDate string) (map[int]int, error) {
 	return attendants, nil
 }
 
-func GetAttendanceByStudentID(uid int) ([]Attendance, error) {
-	var attendances []Attendance
-	err := DB.Where("student_id = ?", uid).
+func GetAttendanceByStudentID(uid int) ([]models.Attendance, error) {
+	var attendances []models.Attendance
+	err := models.DB.Where("student_id = ?", uid).
 		Select("attendance_at").
 		Find(&attendances).Error
 	if err != nil {
@@ -1020,9 +1022,9 @@ func GetAttendanceByStudentID(uid int) ([]Attendance, error) {
 }
 
 func GetCurrentUserVote(feedbackID int, userID int, userRole string) string {
-	var feedback MessageBackFeedback
+	var feedback models.MessageBackFeedback
 
-	err := DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
+	err := models.DB.Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, userID, userRole).
 		First(&feedback).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -1037,7 +1039,7 @@ func GetCurrentUserVote(feedbackID int, userID int, userRole string) string {
 func GetBackFeedbackCount(feedbackID int, backFeedbackType string) int {
 	var count int64
 
-	err := DB.Model(&MessageBackFeedback{}).
+	err := models.DB.Model(&models.MessageBackFeedback{}).
 		Where("useful = ? AND message_feedback_id = ?", backFeedbackType, feedbackID).
 		Count(&count).Error
 	if err != nil {
@@ -1047,23 +1049,23 @@ func GetBackFeedbackCount(feedbackID int, backFeedbackType string) int {
 	return int(count)
 }
 
-func GetMessageFeedbacksByMessageID(messageID int) ([]MessageFeedback, error) {
-	var messageFeedbacks []MessageFeedback
-	err := DB.Where("message_id = ?", messageID).Find(&messageFeedbacks).Error
+func GetMessageFeedbacksByMessageID(messageID int) ([]models.MessageFeedback, error) {
+	var messageFeedbacks []models.MessageFeedback
+	err := models.DB.Where("message_id = ?", messageID).Find(&messageFeedbacks).Error
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving message feedbacks: %v", err)
 	}
 	return messageFeedbacks, nil
 }
 
-func GetLatestSnapshot(studentID int, problemID int) (*Snapshot, error) {
-	var snapshot CodeSnapshot
+func GetLatestSnapshot(studentID int, problemID int) (*models.Snapshot, error) {
+	var snapshot models.CodeSnapshot
 
-	_ = DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+	_ = models.DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Order("last_updated_at DESC").
 		First(&snapshot).Error
 
-	return &Snapshot{
+	return &models.Snapshot{
 		ID:          snapshot.ID,
 		StudentID:   snapshot.StudentID,
 		ProblemID:   snapshot.ProblemID,
@@ -1074,9 +1076,9 @@ func GetLatestSnapshot(studentID int, problemID int) (*Snapshot, error) {
 }
 
 func GetTeacherName(authorID int) string {
-	var teacher Teacher
+	var teacher models.Teacher
 
-	err := DB.Where("id = ?", authorID).First(&teacher).Error
+	err := models.DB.Where("id = ?", authorID).First(&teacher).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return ""
@@ -1088,9 +1090,9 @@ func GetTeacherName(authorID int) string {
 	return teacher.Name
 }
 
-func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole string) (*MessageBackFeedback, error) {
-	var feedback MessageBackFeedback
-	err := DB.Table("message_back_feedbacks").
+func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole string) (*models.MessageBackFeedback, error) {
+	var feedback models.MessageBackFeedback
+	err := models.DB.Table("message_back_feedbacks").
 		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
 		First(&feedback).Error
 
@@ -1107,7 +1109,7 @@ func FetchExistingMessageBackFeedback(feedbackID, authorID int, authorRole strin
 
 func FetchExistingTestCase(studentID, problemID int) (int, error) {
 	var testCaseID int
-	err := DB.Table("test_cases").
+	err := models.DB.Table("test_cases").
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Select("id").
 		Scan(&testCaseID).Error
@@ -1125,7 +1127,7 @@ func FetchExistingTestCase(studentID, problemID int) (int, error) {
 
 func FetchTagIDByDescription(description string) (int64, error) {
 	var tagID int64
-	err := DB.Table("tags").
+	err := models.DB.Table("tags").
 		Where("topic_description = ?", description).
 		Select("id").
 		Scan(&tagID).Error // Use Scan instead of First
@@ -1143,7 +1145,7 @@ func FetchTagIDByDescription(description string) (int64, error) {
 
 func CheckMessageBackFeedback(feedbackID, authorID int, authorRole string) (bool, error) {
 	var count int64
-	err := DB.Model(&MessageBackFeedback{}).
+	err := models.DB.Model(&models.MessageBackFeedback{}).
 		Where("message_feedback_id = ? AND author_id = ? AND author_role = ?", feedbackID, authorID, authorRole).
 		Count(&count).Error
 
@@ -1156,7 +1158,7 @@ func CheckMessageBackFeedback(feedbackID, authorID int, authorRole string) (bool
 
 func GetStudentIDByMessageID(messageID int) (int, error) {
 	var studentID int
-	err := DB.Model(&HelpMessage{}).
+	err := models.DB.Model(&models.HelpMessage{}).
 		Select("student_id").
 		Where("id = ?", messageID).
 		Scan(&studentID).Error
@@ -1176,7 +1178,7 @@ func FetchScores() (map[string]map[int]int, error) {
 	}
 
 	var results []ScoreData
-	err := DB.Table("problems as P").
+	err := models.DB.Table("problems as P").
 		Select("S.student_id, P.filename, S.score").
 		Joins("join scores as S on P.id = S.problem_id").
 		Scan(&results).Error
@@ -1196,7 +1198,7 @@ func FetchScores() (map[string]map[int]int, error) {
 	return data, nil
 }
 
-func FetchStudentReport(uid int) ([]*StudentReport, error) {
+func FetchStudentReport(uid int) ([]*models.StudentReport, error) {
 	type ReportData struct {
 		Points   int
 		Date     time.Time
@@ -1204,7 +1206,7 @@ func FetchStudentReport(uid int) ([]*StudentReport, error) {
 	}
 
 	var results []ReportData
-	err := DB.Table("scores").
+	err := models.DB.Table("scores").
 		Select("scores.score as points, scores.score_given_at as date, problems.filename").
 		Joins("join problems on problems.id = scores.problem_id").
 		Where("student_id = ?", uid).
@@ -1214,9 +1216,9 @@ func FetchStudentReport(uid int) ([]*StudentReport, error) {
 	}
 
 	// Convert to []*StudentReport
-	report := make([]*StudentReport, len(results))
+	report := make([]*models.StudentReport, len(results))
 	for i, result := range results {
-		report[i] = &StudentReport{
+		report[i] = &models.StudentReport{
 			Points:   result.Points,
 			Filename: result.Filename,
 			Date:     result.Date.Unix(),
@@ -1226,17 +1228,17 @@ func FetchStudentReport(uid int) ([]*StudentReport, error) {
 	return report, nil
 }
 
-func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error) {
-	var studentStatus StudentStatus
-	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).First(&studentStatus).Error
+func FetchStudentStatus(problemID, studentID int) (*models.DashBoardStudentInfo, error) {
+	var studentStatus models.StudentStatus
+	err := models.DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).First(&studentStatus).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &DashBoardStudentInfo{}, nil // No record found
+			return &models.DashBoardStudentInfo{}, nil // No record found
 		}
-		return &DashBoardStudentInfo{}, fmt.Errorf("failed to fetch student status: %w", err)
+		return &models.DashBoardStudentInfo{}, fmt.Errorf("failed to fetch student status: %w", err)
 	}
 
-	return &DashBoardStudentInfo{
+	return &models.DashBoardStudentInfo{
 		CodingStat:     studentStatus.CodingStat,
 		HelpStat:       studentStatus.HelpStat,
 		SubmissionStat: studentStatus.SubmissionStat,
@@ -1244,17 +1246,17 @@ func FetchStudentStatus(problemID, studentID int) (*DashBoardStudentInfo, error)
 	}, nil
 }
 
-func FetchSubmissions(problemID, studentID int) ([]*SubmissionInfo, error) {
-	var submissionInfos = make([]*SubmissionInfo, 0)
-	var submissions []SubmissionTable
-	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).Find(&submissions).Error
+func FetchSubmissions(problemID, studentID int) ([]*models.SubmissionInfo, error) {
+	var submissionInfos = make([]*models.SubmissionInfo, 0)
+	var submissions []models.SubmissionTable
+	err := models.DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).Find(&submissions).Error
 	if err != nil {
 		return submissionInfos, fmt.Errorf("failed to fetch submissions: %w", err)
 	}
 
 	// Map the fetched submissions to the SubmissionInfo format
 	for _, submission := range submissions {
-		submissionInfos = append(submissionInfos, &SubmissionInfo{
+		submissionInfos = append(submissionInfos, &models.SubmissionInfo{
 			ID:          submission.ID,
 			SnapshotID:  submission.SnapshotID,
 			Code:        submission.StudentCode,
@@ -1280,61 +1282,21 @@ func FetchSubmissions(problemID, studentID int) ([]*SubmissionInfo, error) {
 	return submissionInfos, nil
 }
 
-func FetchMessages(problemID, studentID, uid int, role string, students map[int]string) ([]*MessageDashBoard, error) {
-	var messages []*MessageDashBoard // Use slice of pointers
+func FetchMessagesAndSnapshots(problemID, studentID int) ([]models.MessageWithSnapshot, error) {
+	var result []models.MessageWithSnapshot
 
-	// Fetch messages and their associated code snapshots
-	var results []struct {
-		MessageID   int
-		SnapshotID  int
-		Message     string
-		AuthorID    int
-		AuthorRole  string
-		MessageType int
-		Code        string
-		Event       string
-		GivenAt     time.Time
-	}
-
-	err := DB.Table("messages M").
-		Select("M.id as message_id, M.snapshot_id, M.message, M.author_id, M.author_role, M.type as message_type, C.code, C.event, M.given_at").
-		Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
+	err := models.DB.Table("messages M").
+		Select("M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.Code, C.event").
+		Joins("join code_snapshots C on M.snapshot_id = C.id").
 		Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
-		Scan(&results).Error
-	if err != nil {
-		return messages, fmt.Errorf("failed to fetch messages: %w", err)
-	}
+		Scan(&result).Error
 
-	// Process results into MessageDashBoard
-	for _, result := range results {
-		var name string
-		if result.AuthorRole == "teacher" {
-			name = GetTeacherName(result.AuthorID)
-		} else {
-			name = students[result.AuthorID]
-		}
-
-		// Append pointer to MessageDashBoard
-		messages = append(messages, &MessageDashBoard{
-			ID:         result.MessageID,
-			Name:       name,
-			Role:       result.AuthorRole,
-			Message:    result.Message,
-			Type:       result.MessageType,
-			Event:      result.Event,
-			GivenAt:    result.GivenAt,
-			SnapshotID: result.SnapshotID,
-			Code:       result.Code,
-			Feedbacks:  GetMessageFeedbacks(result.MessageID, uid, role),
-		})
-	}
-
-	return messages, nil
+	return result, err
 }
 
-func FetchSubmission(studentID, problemID int) ([]SubmissionTable, error) {
-	var submissions []SubmissionTable
-	err := DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
+func FetchSubmission(studentID, problemID int) ([]models.SubmissionTable, error) {
+	var submissions []models.SubmissionTable
+	err := models.DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).
 		Order("verdict, code_submitted_at ASC").
 		Find(&submissions).Error
 
@@ -1345,62 +1307,11 @@ func FetchSubmission(studentID, problemID int) ([]SubmissionTable, error) {
 	return submissions, nil
 }
 
-func FetchMessagesForStudent(students map[int]string, problemID, studentID int, role string) ([]*MessageDashBoard, error) {
-	var result []struct {
-		MessageID   int       `gorm:"column:id"`
-		SnapshotID  int       `gorm:"column:snapshot_id"`
-		Message     string    `gorm:"column:message"`
-		AuthorID    int       `gorm:"column:author_id"`
-		AuthorRole  string    `gorm:"column:author_role"`
-		GivenAt     time.Time `gorm:"column:given_at"`
-		MessageType int       `gorm:"column:type"`
-		Code        string    `gorm:"column:code"`
-		Event       string    `gorm:"column:event"`
-	}
-
-	// Execute the query to fetch messages and associated code snapshots
-	err := DB.Table("messages M").
-		Select("M.id, M.snapshot_id, M.message, M.author_id, M.author_role, M.given_at, M.type, C.Code, C.event").
-		Joins("join code_snapshots C on M.snapshot_id = C.id").
-		Where("C.problem_id = ? AND C.student_id = ?", problemID, studentID).
-		Scan(&result).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert the result into MessageDashBoard slices
-	var messages []*MessageDashBoard
-	for _, r := range result {
-		name := ""
-		if r.AuthorRole == "teacher" {
-			name = GetTeacherName(r.AuthorID)
-		} else {
-			name = students[r.AuthorID]
-		}
-
-		messages = append(messages, &MessageDashBoard{
-			ID:         r.MessageID,
-			Name:       name,
-			Role:       r.AuthorRole,
-			Message:    r.Message,
-			Type:       r.MessageType,
-			Event:      r.Event,
-			GivenAt:    r.GivenAt,
-			SnapshotID: r.SnapshotID,
-			Code:       r.Code,
-			Feedbacks:  GetMessageFeedbacks(r.MessageID, studentID, role),
-		})
-	}
-
-	return messages, nil
-}
-
-func FetchStudentStatuses(problemID, studentID int) (*DashBoardStudentInfo, error) {
-	var result StudentStatus
+func FetchStudentStatuses(problemID, studentID int) (*models.DashBoardStudentInfo, error) {
+	var result models.StudentStatus
 
 	// Execute the query using the StudentStatus struct
-	err := DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).
+	err := models.DB.Where("problem_id = ? AND student_id = ?", problemID, studentID).
 		First(&result).Error // Use `First` to get the first matching result
 
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -1408,7 +1319,7 @@ func FetchStudentStatuses(problemID, studentID int) (*DashBoardStudentInfo, erro
 	}
 
 	// Convert the result into DashBoardStudentInfo format
-	studentStats := &DashBoardStudentInfo{
+	studentStats := &models.DashBoardStudentInfo{
 		CodingStat:     result.CodingStat,
 		HelpStat:       result.HelpStat,
 		SubmissionStat: result.SubmissionStat,

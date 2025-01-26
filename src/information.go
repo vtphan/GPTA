@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/GPTA/src/models"
 	"net/http"
 )
 
@@ -16,7 +17,7 @@ type globalInfo struct {
 func globalInfoHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 
 	activeProblems := make([]*ActiveProblemInfo, 0)
-	for _, problem := range ActiveProblems {
+	for _, problem := range models.ActiveProblems {
 		if problem.Active == true {
 			activeProblems = append(activeProblems, &ActiveProblemInfo{problem.Info.Pid, problem.Info.Filename})
 		}

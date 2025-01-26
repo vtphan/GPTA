@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,29 +12,29 @@ import (
 )
 
 func addCodeSnapshot(studentID int, problemID int, code string, status int, lastUpdate time.Time, event string) int {
-	result, err := AddCodeSnapshot(studentID, problemID, code, status, lastUpdate, event)
+	result, err := repository.AddCodeSnapshot(studentID, problemID, code, status, lastUpdate, event)
 	if err != nil {
 		log.Fatal("Could not save the snapshot for error: ", err)
 		return -1
 	}
 	snapshotID := result.ID
-	idx, ok := StudentSnapshot[studentID][problemID]
+	idx, ok := models.StudentSnapshot[studentID][problemID]
 	if !ok {
-		idx = len(Snapshots)
-		StudentSnapshot[studentID][problemID] = idx
-		name := GetStudentName(studentID)
+		idx = len(models.Snapshots)
+		models.StudentSnapshot[studentID][problemID] = idx
+		name := repository.GetStudentName(studentID)
 		if err != nil {
 			log.Fatal("Could not retrieve student name: ", err)
 			return -1
 		}
 		problemName := ""
-		for _, problem := range ActiveProblems {
+		for _, problem := range models.ActiveProblems {
 			if problem.Active == true && problem.Info.Pid == problemID {
 				problemName = problem.Info.Filename
 				break
 			}
 		}
-		Snapshots = append(Snapshots, &Snapshot{
+		models.Snapshots = append(models.Snapshots, &models.Snapshot{
 			ID:          int(snapshotID),
 			StudentName: name,
 			StudentID:   studentID,
@@ -41,26 +43,26 @@ func addCodeSnapshot(studentID int, problemID int, code string, status int, last
 			Status:      status,
 			FirstUpdate: lastUpdate,
 			LastUpdated: lastUpdate,
-			LinesOfCode: getLinesOfCode(code),
+			LinesOfCode: models.GetLinesOfCode(code),
 			Code:        code,
 		})
 	} else {
-		currentStatus := Snapshots[idx].Status
+		currentStatus := models.Snapshots[idx].Status
 		if currentStatus > status {
 			status = currentStatus
 		}
-		Snapshots[idx] = &Snapshot{
+		models.Snapshots[idx] = &models.Snapshot{
 			ID:          int(snapshotID),
-			StudentName: Snapshots[idx].StudentName,
+			StudentName: models.Snapshots[idx].StudentName,
 			StudentID:   studentID,
-			ProblemName: Snapshots[idx].ProblemName,
+			ProblemName: models.Snapshots[idx].ProblemName,
 			ProblemID:   problemID,
 			Status:      status,
-			FirstUpdate: Snapshots[idx].FirstUpdate,
+			FirstUpdate: models.Snapshots[idx].FirstUpdate,
 			LastUpdated: lastUpdate,
-			LinesOfCode: getLinesOfCode(code),
+			LinesOfCode: models.GetLinesOfCode(code),
 			Code:        code,
-			NumFeedback: Snapshots[idx].NumFeedback,
+			NumFeedback: models.Snapshots[idx].NumFeedback,
 		}
 	}
 	return snapshotID
@@ -84,14 +86,14 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	authorRole := r.FormValue("role")
 	now := time.Now()
 
-	mid, err := AddMessage(snapshotID, "", authorID, authorRole, now, 1)
+	mid, err := repository.AddMessage(snapshotID, "", authorID, authorRole, now, 1)
 	if err != nil {
 		log.Fatal("Could not save feedback for error: ", err)
 		return
 	}
 
 	// Use GetCodeSnapshot instead of raw SQL query
-	codeSnapshot, err := GetCodeSnapshot(snapshotID)
+	codeSnapshot, err := repository.GetCodeSnapshot(snapshotID)
 	if err != nil {
 		log.Fatal("Failed to retrieve code snapshot: ", err)
 		return
@@ -104,12 +106,12 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	}
 
 	// Update feedback count
-	idx := StudentSnapshot[codeSnapshot.StudentID][codeSnapshot.ProblemID]
-	Snapshots[idx].NumFeedback++
+	idx := models.StudentSnapshot[codeSnapshot.StudentID][codeSnapshot.ProblemID]
+	models.Snapshots[idx].NumFeedback++
 
 	// Add feedback message
 	messageID := mid
-	id, err := AddMessageFeedback(messageID, feedback, authorID, authorRole, now)
+	id, err := repository.AddMessageFeedback(messageID, feedback, authorID, authorRole, now)
 	if err != nil {
 		log.Fatal("Could not save feedback for error: ", err)
 		return
@@ -117,7 +119,7 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	feedbackID := id
 
 	// Append feedback to the student's queue
-	Students[codeSnapshot.StudentID].SnapShotFeedbackQueue = append(Students[codeSnapshot.StudentID].SnapShotFeedbackQueue, &SnapShotFeedback{
+	models.Students[codeSnapshot.StudentID].SnapShotFeedbackQueue = append(models.Students[codeSnapshot.StudentID].SnapShotFeedbackQueue, &models.SnapShotFeedback{
 		FeedbackID:  int(feedbackID),
 		Snapshot:    codeSnapshot.Code,
 		Feedback:    feedback,
@@ -126,9 +128,9 @@ func codeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	})
 
 	// Update student status
-	addOrUpdateStudentStatus(codeSnapshot.StudentID, codeSnapshot.ProblemID, "", "Been helped", "", "")
+	repository.AddOrUpdateStudentStatus(codeSnapshot.StudentID, codeSnapshot.ProblemID, "", "Been helped", "", "")
 	if authorRole == "student" {
-		addOrUpdateStudentStatus(authorID, codeSnapshot.ProblemID, "", "", "", "Tutoring")
+		repository.AddOrUpdateStudentStatus(authorID, codeSnapshot.ProblemID, "", "", "", "Tutoring")
 	}
 	fmt.Println("Feedback on code snapshot saved!")
 }
@@ -140,13 +142,13 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 	authorRole := r.FormValue("role")
 	now := time.Now()
 
-	id, err := AddMessageFeedback(messageID, feedback, authorID, authorRole, now)
+	id, err := repository.AddMessageFeedback(messageID, feedback, authorID, authorRole, now)
 	if err != nil {
 		log.Fatal("Could not save the feedback for error: ", err)
 		return
 	}
 
-	details, err := GetCodeSnapshotMessageDetails(messageID)
+	details, err := repository.GetCodeSnapshotMessageDetails(messageID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -165,15 +167,15 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 		}
 
 		if messageType == "0" {
-			addOrUpdateStudentStatus(studentID, detail.ProblemID, "", "Been helped", "", "")
+			repository.AddOrUpdateStudentStatus(studentID, detail.ProblemID, "", "Been helped", "", "")
 			if authorRole == "student" {
-				addOrUpdateStudentStatus(authorID, detail.ProblemID, "", "", "", "Tutoring")
+				repository.AddOrUpdateStudentStatus(authorID, detail.ProblemID, "", "", "", "Tutoring")
 			}
 		}
 
-		idx := StudentSnapshot[studentID][detail.ProblemID]
-		Snapshots[idx].NumFeedback++
-		Students[studentID].SnapShotFeedbackQueue = append(Students[studentID].SnapShotFeedbackQueue, &SnapShotFeedback{
+		idx := models.StudentSnapshot[studentID][detail.ProblemID]
+		models.Snapshots[idx].NumFeedback++
+		models.Students[studentID].SnapShotFeedbackQueue = append(models.Students[studentID].SnapShotFeedbackQueue, &models.SnapShotFeedback{
 			FeedbackID:  id,
 			Snapshot:    code,
 			Feedback:    feedback,
@@ -185,8 +187,8 @@ func messageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 }
 
 func getSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	feedfback := Students[uid].SnapShotFeedbackQueue[0]
-	Students[uid].SnapShotFeedbackQueue = Students[uid].SnapShotFeedbackQueue[1:]
+	feedfback := models.Students[uid].SnapShotFeedbackQueue[0]
+	models.Students[uid].SnapShotFeedbackQueue = models.Students[uid].SnapShotFeedbackQueue[1:]
 	js, err := json.Marshal(feedfback)
 	if err != nil {
 		log.Fatal(err)

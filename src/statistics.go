@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -25,7 +27,7 @@ type StatsData struct {
 
 // -----------------------------------------------------------------------------------
 func statisticsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("pc") != Passcode {
+	if r.FormValue("pc") != models.Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
@@ -36,7 +38,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if pid <= 0 { // Select the last problem (max id)
-		pid, err = GetLatestProblemID()
+		pid, err = repository.GetLatestProblemID()
 		if err != nil {
 			fmt.Println("Error retrieving latest problem:", err)
 			return
@@ -45,12 +47,12 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 	data := &StatsData{
 		Performance: make(map[string]int),
 		Durations:   make(map[string][]float64),
-		PC:          Passcode,
+		PC:          models.Passcode,
 		NextPid:     pid + 1,
 		PrevPid:     pid - 1,
 	}
 	if pid > 0 {
-		participants, probContent, probAt, performance, durations, err := GetProblemStatistics(pid)
+		participants, probContent, probAt, performance, durations, err := repository.GetProblemStatistics(pid)
 		if err != nil {
 			fmt.Println("Error retrieving problem statistics", pid, err)
 			return
@@ -60,7 +62,7 @@ func statisticsHandler(w http.ResponseWriter, r *http.Request) {
 		theDate := probAt.Format("2006-01-02")
 
 		// Fetching attendance data using the Attendance model
-		attendants, err := GetAttendanceByDate(theDate)
+		attendants, err := repository.GetAttendanceByDate(theDate)
 		if err != nil {
 			fmt.Println("Error retrieving attendance for date", theDate, err)
 			return

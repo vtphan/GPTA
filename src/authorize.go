@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"net/http"
 	"strconv"
 )
@@ -38,7 +40,7 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 			ok := false
 			var password string
 			if givenRole == "teacher" {
-				password, ok = TeacherMap[uid]
+				password, ok = models.TeacherMap[uid]
 				if ok && password != r.FormValue("password") {
 					ok = false
 					msg += r.FormValue("uid") + " (TeacherMap): Password doesn't match. "
@@ -60,12 +62,12 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 					}
 				}
 			} else {
-				_, ok = Students[uid]
+				_, ok = models.Students[uid]
 				if !ok {
-					ok = load_and_authorize_student(uid, r.FormValue("password"))
-				} else if Students[uid].Password != r.FormValue("password") {
+					ok = repository.LoadAndAuthorizeStudent(uid, r.FormValue("password"))
+				} else if models.Students[uid].Password != r.FormValue("password") {
 					ok = false
-					msg += Students[uid].Name + "(Student): Password doesn't match. "
+					msg += models.Students[uid].Name + "(Student): Password doesn't match. "
 				}
 			}
 			if ok {

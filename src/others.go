@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"time"
@@ -10,18 +12,18 @@ import (
 
 // -----------------------------------------------------------------------------------
 func teacher_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	fmt.Fprintf(w, Passcode)
+	fmt.Fprintf(w, models.Passcode)
 }
 
 func student_gets_passcodeHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	fmt.Fprintf(w, Passcode)
+	fmt.Fprintf(w, models.Passcode)
 }
 
 // -----------------------------------------------------------------------------------
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	// Show content of boards
-	fmt.Println("Students:", len(Students))
-	for _, st := range Students {
+	fmt.Println("Students:", len(models.Students))
+	for _, st := range models.Students {
 		// fmt.Printf("Uid: %d has %d pages. Status: %d\n", uid, len(st.Boards), st.SubmissionStatus)
 		for i := 0; i < len(st.Boards); i++ {
 			b := st.Boards[i]
@@ -30,19 +32,19 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Printf("WorkingSubs: %d entries", len(WorkingSubs))
-	for i := 0; i < len(WorkingSubs); i++ {
-		fmt.Println(WorkingSubs[i].Sid, WorkingSubs[i].Uid, WorkingSubs[i].Pid, WorkingSubs[i].Priority)
-		fmt.Println(WorkingSubs[i].Content)
+	fmt.Printf("WorkingSubs: %d entries", len(models.WorkingSubs))
+	for i := 0; i < len(models.WorkingSubs); i++ {
+		fmt.Println(models.WorkingSubs[i].Sid, models.WorkingSubs[i].Uid, models.WorkingSubs[i].Pid, models.WorkingSubs[i].Priority)
+		fmt.Println(models.WorkingSubs[i].Content)
 	}
 	fmt.Println()
 
-	fmt.Println("ActiveProblems:", ActiveProblems)
-	for fname, v := range ActiveProblems {
+	fmt.Println("ActiveProblems:", models.ActiveProblems)
+	for fname, v := range models.ActiveProblems {
 		fmt.Println(fname, v.Active, "Answers:", v.Answers, "Attempts:", v.Attempts)
 		fmt.Println(fname, v.Info.Pid, v.Info.Merit, v.Info.Effort, v.Info.Attempts, v.Info.ExactAnswer, v.Info.Answer)
 	}
-	fmt.Fprintf(w, Passcode)
+	fmt.Fprintf(w, models.Passcode)
 }
 
 //-----------------------------------------------------------------------------------
@@ -51,7 +53,7 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 	filename := r.FormValue("file_name")
 
 	// Get Problem ID
-	problemID, err := GetProblemIDByFilename(filename)
+	problemID, err := repository.GetProblemIDByFilename(filename)
 	if err != nil {
 		log.Fatalf("Error fetching problem ID: %v", err)
 	}
@@ -61,7 +63,7 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 	}
 
 	// Get Test Cases
-	testCases, err := GetTestCasesByProblemID(problemID)
+	testCases, err := repository.GetTestCasesByProblemID(problemID)
 	if err != nil {
 		log.Fatalf("Error fetching test cases: %v", err)
 	}
@@ -79,5 +81,5 @@ func testcase_getsHandler(w http.ResponseWriter, r *http.Request, who string, ui
 }
 
 func logEvent(eventName string, userID int, userType, eventType, otherInfo string) {
-	_, _ = AddUserEventLog(eventName, userID, userType, eventType, otherInfo, time.Now())
+	_, _ = repository.AddUserEventLog(eventName, userID, userType, eventType, otherInfo, time.Now())
 }

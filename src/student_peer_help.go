@@ -4,6 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,25 +16,25 @@ import (
 func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	filename := r.FormValue("filename")
 	pid := 0
-	prob, ok := ActiveProblems[filename]
-	HelpSubSem.Lock()
-	defer HelpSubSem.Unlock()
-	selected := &HelpSubmission{}
+	prob, ok := models.ActiveProblems[filename]
+	models.HelpSubSem.Lock()
+	defer models.HelpSubSem.Unlock()
+	selected := &models.HelpSubmission{}
 	selected.Status = 1
 	if ok {
 		if prob.Active {
 			// fmt.Fprint(w, "This problem is not active.")
 			pid = prob.Info.Pid
-			if _, ok := HelpEligibleStudents[pid][uid]; ok {
+			if _, ok := models.HelpEligibleStudents[pid][uid]; ok {
 
-				for idx, sub := range WorkingHelpSubs {
+				for idx, sub := range models.WorkingHelpSubs {
 					if sub.Pid != pid || sub.Uid == uid {
 						continue
 					}
-					if _, ok := SeenHelpSubmissions[uid][sub.Sid]; !ok {
+					if _, ok := models.SeenHelpSubmissions[uid][sub.Sid]; !ok {
 						selected = sub
-						WorkingHelpSubs = append(WorkingHelpSubs[:idx], WorkingHelpSubs[idx+1:]...)
-						SeenHelpSubmissions[uid][sub.Sid] = true
+						models.WorkingHelpSubs = append(models.WorkingHelpSubs[:idx], models.WorkingHelpSubs[idx+1:]...)
+						models.SeenHelpSubmissions[uid][sub.Sid] = true
 						selected.Status = 0
 						break
 					}
@@ -58,27 +60,27 @@ func studentGetHelpCode(w http.ResponseWriter, r *http.Request, who string, uid 
 //-----------------------------------------------------------------------------------
 
 func student_return_without_feedbackHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	HelpSubSem.Lock()
-	defer HelpSubSem.Unlock()
+	models.HelpSubSem.Lock()
+	defer models.HelpSubSem.Unlock()
 	tmp := r.FormValue("submission_id")
 	submissionID, _ := strconv.Atoi(tmp)
-	submission := HelpSubmissions[submissionID]
-	WorkingHelpSubs = append(WorkingHelpSubs, submission)
+	submission := models.HelpSubmissions[submissionID]
+	models.WorkingHelpSubs = append(models.WorkingHelpSubs, submission)
 	fmt.Fprint(w, "No feedback is given. This request is returned to the help queue.")
 }
 
 func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	submissionID, _ := strconv.Atoi(r.FormValue("submission_id"))
 	message := r.FormValue("message")
-	res, err := AddHelpMessage(submissionID, uid, message, time.Now())
+	res, err := repository.AddHelpMessage(submissionID, uid, message, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
 	messageID := res.ID // todo test this ID coming correctly
-	helpSub := HelpSubmissions[submissionID]
+	helpSub := models.HelpSubmissions[submissionID]
 	studentID := helpSub.Uid
 	message = helpSub.Content + "\n\nFeedback: " + message
-	b := &Board{
+	b := &models.Board{
 		Content:      message,
 		Answer:       "",
 		Attempts:     0,
@@ -87,19 +89,19 @@ func student_send_help_messageHandler(w http.ResponseWriter, r *http.Request, wh
 		StartingTime: time.Now(),
 		Type:         "peer_feedback",
 	}
-	Students[studentID].Boards = append(Students[studentID].Boards, b)
+	models.Students[studentID].Boards = append(models.Students[studentID].Boards, b)
 	fmt.Fprint(w, "Dear "+who+", Your feedback has been sent.")
 
 }
 func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	messageID, _ := strconv.Atoi(r.FormValue("message_id"))
 	useful := r.FormValue("useful")
-	err := UpdateHelpMessage(useful, time.Now(), messageID)
+	err := repository.UpdateHelpMessage(useful, time.Now(), messageID)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if useful == "yes" {
-		studentID, err := GetStudentIDByMessageID(messageID)
+		studentID, err := repository.GetStudentIDByMessageID(messageID)
 		if err != nil {
 			log.Printf("Error retrieving student ID: %v\n", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -107,7 +109,7 @@ func sendThankYouHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		}
 
 		// Update the in-memory Students map
-		if student, exists := Students[studentID]; exists {
+		if student, exists := models.Students[studentID]; exists {
 			student.ThankStatus = 1
 		}
 	}
@@ -119,18 +121,18 @@ func studentSendBackFeedbackHandler(w http.ResponseWriter, r *http.Request, who 
 	feedbackID, _ := strconv.Atoi(r.FormValue("feedback_id"))
 	authorRole := r.FormValue("role")
 
-	existingFeedback, err := FetchExistingMessageBackFeedback(feedbackID, uid, authorRole)
+	existingFeedback, err := repository.FetchExistingMessageBackFeedback(feedbackID, uid, authorRole)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if existingFeedback != nil {
-		err = UpdateMessageBackFeedback(backFeedback, time.Now(), feedbackID, uid, authorRole)
+		err = repository.UpdateMessageBackFeedback(backFeedback, time.Now(), feedbackID, uid, authorRole)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		err = AddMessageBackFeedback(feedbackID, uid, authorRole, backFeedback)
+		err = repository.AddMessageBackFeedback(feedbackID, uid, authorRole, backFeedback)
 		if err != nil {
 			log.Fatal(err)
 		}

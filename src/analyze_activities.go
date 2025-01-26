@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"net/http"
@@ -20,11 +22,11 @@ type DailyActivityData struct {
 
 // -----------------------------------------------------------------------------------
 func view_activitiesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("pc") != Passcode {
+	if r.FormValue("pc") != models.Passcode {
 		fmt.Fprintf(w, "Unauthorized")
 		return
 	}
-	submissions, err := GetSubmissions()
+	submissions, err := repository.GetSubmissions()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error retrieving submissions: %v", err), http.StatusInternalServerError)
 		return

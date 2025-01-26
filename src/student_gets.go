@@ -4,6 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"net/http"
 )
 
@@ -12,18 +14,18 @@ func student_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	var js []byte
 	var err error
 
-	BoardsSem.Lock()
-	defer BoardsSem.Unlock()
+	models.BoardsSem.Lock()
+	defer models.BoardsSem.Unlock()
 
-	if _, ok := Students[uid]; ok {
-		js, err = json.Marshal(Students[uid].Boards)
-		for _, b := range Students[uid].Boards {
+	if _, ok := models.Students[uid]; ok {
+		js, err = json.Marshal(models.Students[uid].Boards)
+		for _, b := range models.Students[uid].Boards {
 			if b.Pid != 0 {
-				addOrUpdateStudentStatus(uid, b.Pid, "Working", "", "", "")
-				_ = IncrementProblemStatActive(b.Pid)
+				repository.AddOrUpdateStudentStatus(uid, b.Pid, "Working", "", "", "")
+				_ = repository.IncrementProblemStatActive(b.Pid)
 			}
 		}
-		Students[uid].Boards = []*Board{}
+		models.Students[uid].Boards = []*models.Board{}
 		if err == nil {
 			// fmt.Println(string(js))
 			w.Header().Set("Content-Type", "application/json")
@@ -32,7 +34,7 @@ func student_getsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		}
 	}
 	fmt.Println(err.Error())
-	js, err = json.Marshal([]*Board{})
+	js, err = json.Marshal([]*models.Board{})
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }

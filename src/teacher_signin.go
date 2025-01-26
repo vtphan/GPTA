@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
 	"html/template"
 	"log"
 	"net/http"
@@ -21,7 +22,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		if !exists || userSession.isExpired() {
 			http.Redirect(w, r, "/teacher_signin", http.StatusSeeOther)
 		} else {
-			http.Redirect(w, r, "/view_exercises?role=teacher&uid="+strconv.Itoa(TeacherNameToId[userSession.username]), http.StatusFound)
+			http.Redirect(w, r, "/view_exercises?role=teacher&uid="+strconv.Itoa(models.TeacherNameToId[userSession.username]), http.StatusFound)
 		}
 	}
 }
@@ -29,7 +30,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func teacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("username")
 	password := r.FormValue("password")
-	expectedPass, ok := TeacherPass[name]
+	expectedPass, ok := models.TeacherPass[name]
 	if !ok || expectedPass != password {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -47,7 +48,7 @@ func teacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		Value:   sessionToken,
 		Expires: expiresAt,
 	})
-	fmt.Fprintf(w, "%d", TeacherNameToId[name])
+	fmt.Fprintf(w, "%d", models.TeacherNameToId[name])
 	// http.Redirect(w, r, "view_exercises?role=teacher", http.StatusFound)
 }
 

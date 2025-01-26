@@ -1,18 +1,17 @@
 // Author: Vinhthuy Phan, 2018
-package main
+package repository
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func execSQL(s string) {
-	if err := DB.Exec(s).Error; err != nil {
+	if err := models.DB.Exec(s).Error; err != nil {
 		log.Fatalf("failed to execute SQL: %v", err)
 	}
 }
@@ -25,7 +24,7 @@ func create_tables() {
 			// Check if the new table already exists to avoid renaming to an existing table
 			if !checkIfTableExists(newName) {
 				// Rename the old table to the new name
-				DB.Exec(fmt.Sprintf("ALTER TABLE %s RENAME TO %s", oldName, newName))
+				models.DB.Exec(fmt.Sprintf("ALTER TABLE %s RENAME TO %s", oldName, newName))
 			}
 		}
 	}
@@ -80,46 +79,46 @@ func create_tables() {
 func checkIfTableExists(tableName string) bool {
 	var count int
 	query := fmt.Sprintf("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '%s'", tableName)
-	DB.Raw(query).Scan(&count)
+	models.DB.Raw(query).Scan(&count)
 	return count > 0
 }
 
 // -----------------------------------------------------------------
-func init_database(db_name string, username string, pass string, server string) {
+func InitDatabase(db_name string, username string, pass string, server string) {
 	var err error
 
 	// Prepare DSN (Data Source Name) for GORM
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/?parseTime=true", username, pass, server)
 
 	// Open a connection to MySQL using GORM
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	models.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
 
 	// Create the database if it doesn't exist
-	err = DB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", db_name)).Error
+	err = models.DB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", db_name)).Error
 	if err != nil {
 		log.Fatal("Failed to create database: ", err)
 	}
 
 	// Switch to the selected database
 	dsn = fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", username, pass, server, db_name)
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	models.DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to the selected database: ", err)
 	}
 
 	// Set connection pool settings (like MaxLifetime) if necessary
-	sqlDB, err := DB.DB()
+	sqlDB, err := models.DB.DB()
 	if err != nil {
 		log.Fatal("Failed to get raw SQL database object: ", err)
 	}
 	sqlDB.SetConnMaxLifetime(time.Minute * 3)
 	create_tables()
-	Passcode = RandStringRunes(12)
-	Students[0] = &StudenInfo{
-		Boards: make([]*Board, 0),
+	models.Passcode = models.RandStringRunes(12)
+	models.Students[0] = &models.StudenInfo{
+		Boards: make([]*models.Board, 0),
 	}
 }
 
@@ -127,7 +126,7 @@ func init_database(db_name string, username string, pass string, server string) 
 // Add or update score based on a decision. If decision is "correct"
 // a new problem, if there's one, is added to student's board.
 // -----------------------------------------------------------------
-func add_or_update_score(decision string, pid, student_id, teacher_id, partial_credits int) string {
+func AddOrUpdateScore(decision string, pid, student_id, teacher_id, partial_credits int) string {
 	mesg := ""
 
 	// Find score information for this student (student_id) for this problem (pid)
@@ -176,21 +175,21 @@ func add_or_update_score(decision string, pid, student_id, teacher_id, partial_c
 		_, err := AddScore(pid, student_id, teacher_id, points, current_attempts+1, time.Now())
 		if err != nil {
 			mesg = fmt.Sprintf("Unable to add score: %d %d %d", pid, student_id, teacher_id)
-			writeLog(Config.LogFile, mesg)
+			models.WriteLog(models.Config.LogFile, mesg)
 			return mesg
 		}
 	} else {
 		err := UpdateScore(teacher, points, current_attempts+1, score_id)
 		if err != nil {
 			mesg = fmt.Sprintf("Unable to update score: %d %d", teacher, score_id)
-			writeLog(Config.LogFile, mesg)
+			models.WriteLog(models.Config.LogFile, mesg)
 			return mesg
 		}
 	}
 	return mesg
 }
 
-func addOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
+func AddOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
 	status, err := GetStudentStatus(studentID, problemID)
 	if err != nil {
 		log.Fatalf("Error retrieving student status: %v", err)
@@ -233,32 +232,32 @@ func addOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat
 }
 
 // -----------------------------------------------------------------
-func init_teacher(id int, name string, password string) {
-	TeacherMap[id] = password
-	TeacherPass[name] = password
-	TeacherNameToId[name] = id
-	TeacherIdToName[id] = name
-	SeenHelpSubmissions[id] = map[int]bool{}
+func InitTeacher(id int, name string, password string) {
+	models.TeacherMap[id] = password
+	models.TeacherPass[name] = password
+	models.TeacherNameToId[name] = id
+	models.TeacherIdToName[id] = name
+	models.SeenHelpSubmissions[id] = map[int]bool{}
 }
 
 // -----------------------------------------------------------------
 // initialize once per session
 // -----------------------------------------------------------------
-func init_student(student_id int, name string, password string) {
+func InitStudent(student_id int, name string, password string) {
 	_, err := AddAttendance(student_id, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	BoardsSem.Lock()
-	defer BoardsSem.Unlock()
+	models.BoardsSem.Lock()
+	defer models.BoardsSem.Unlock()
 
-	Students[student_id] = &StudenInfo{
+	models.Students[student_id] = &models.StudenInfo{
 		Name:                  name,
 		Password:              password,
-		Boards:                make([]*Board, 0),
-		SubmissionStatus:      make([]*StudentSubmissionStatus, 0),
-		SnapShotFeedbackQueue: make([]*SnapShotFeedback, 0),
+		Boards:                make([]*models.Board, 0),
+		SubmissionStatus:      make([]*models.StudentSubmissionStatus, 0),
+		SnapShotFeedbackQueue: make([]*models.SnapShotFeedback, 0),
 		ThankStatus:           0,
 	}
 
@@ -266,22 +265,22 @@ func init_student(student_id int, name string, password string) {
 	// MessageBoards[student_id] = ""
 	// Boards[student_id] = make([]*Board, 0)
 
-	for i := 0; i < len(Students[0].Boards); i++ {
-		b := &Board{
-			Content:      Students[0].Boards[i].Content,
-			Answer:       Students[0].Boards[i].Answer,
-			Attempts:     Students[0].Boards[i].Attempts,
-			Filename:     Students[0].Boards[i].Filename,
-			Pid:          Students[0].Boards[i].Pid,
+	for i := 0; i < len(models.Students[0].Boards); i++ {
+		b := &models.Board{
+			Content:      models.Students[0].Boards[i].Content,
+			Answer:       models.Students[0].Boards[i].Answer,
+			Attempts:     models.Students[0].Boards[i].Attempts,
+			Filename:     models.Students[0].Boards[i].Filename,
+			Pid:          models.Students[0].Boards[i].Pid,
 			StartingTime: time.Now(),
 		}
-		Students[student_id].Boards = append(Students[student_id].Boards, b)
+		models.Students[student_id].Boards = append(models.Students[student_id].Boards, b)
 	}
-	StudentSnapshot[student_id] = map[int]int{}
+	models.StudentSnapshot[student_id] = map[int]int{}
 }
 
 // -----------------------------------------------------------------
-func load_and_authorize_student(studentID int, password string) bool {
+func LoadAndAuthorizeStudent(studentID int, password string) bool {
 	student, err := GetStudentByID(studentID)
 	if err != nil {
 		log.Fatalf("Error retrieving student: %v", err)
@@ -289,23 +288,23 @@ func load_and_authorize_student(studentID int, password string) bool {
 	if student == nil || student.Password != password {
 		return false
 	}
-	init_student(studentID, student.Name, password)
+	InitStudent(studentID, student.Name, password)
 	return true
 }
 
 // -----------------------------------------------------------------
-func load_teachers() {
+func LoadTeachers() {
 	teachers, err := GetAllTeachers()
 	if err != nil {
 		log.Fatalf("Error loading teachers: %v", err)
 	}
 
 	for _, teacher := range teachers {
-		TeacherMap[teacher.ID] = teacher.Password
-		TeacherPass[teacher.Name] = teacher.Password
-		TeacherNameToId[teacher.Name] = teacher.ID
-		TeacherIdToName[teacher.ID] = teacher.Name
+		models.TeacherMap[teacher.ID] = teacher.Password
+		models.TeacherPass[teacher.Name] = teacher.Password
+		models.TeacherNameToId[teacher.Name] = teacher.ID
+		models.TeacherIdToName[teacher.ID] = teacher.Name
 	}
 
-	Passcode = RandStringRunes(20)
+	models.Passcode = models.RandStringRunes(20)
 }

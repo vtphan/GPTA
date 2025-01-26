@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"time"
@@ -20,7 +22,7 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 	msg := "your help message has been sent"
 
 	pid := 0
-	prob, ok := ActiveProblems[filename]
+	prob, ok := models.ActiveProblems[filename]
 	snapshotID := 0
 	if ok {
 		if !prob.Active {
@@ -28,30 +30,30 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 		} else {
 			pid = prob.Info.Pid
 			if _, ok := prob.Attempts[uid]; !ok {
-				ActiveProblems[filename].Attempts[uid] = prob.Info.Attempts
+				models.ActiveProblems[filename].Attempts[uid] = prob.Info.Attempts
 			}
 			now := time.Now()
 			snapshotID = addCodeSnapshot(uid, pid, content, 0, now, "at_ask_for_help")
 
 			// result, err = AddHelpSubmissionSQL.Exec(pid, uid, snapshotID, "", need_help_with, now)
-			result, err := AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
+			result, err := repository.AddMessage(snapshotID, need_help_with, uid, "student", now, 0)
 			if err != nil {
 				log.Fatal(err)
 			}
 			sid = int64(result)
-			err = IncrementProblemStatHelp(pid)
+			err = repository.IncrementProblemStatHelp(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
-			addOrUpdateStudentStatus(uid, pid, "", "Asked for help", "", "")
+			repository.AddOrUpdateStudentStatus(uid, pid, "", "Asked for help", "", "")
 		}
 	} else {
 		msg = "Invalid filename"
 	}
 	if ok && prob.Active {
-		HelpSubSem.Lock()
-		defer HelpSubSem.Unlock()
-		sub := &HelpSubmission{
+		models.HelpSubSem.Lock()
+		defer models.HelpSubSem.Unlock()
+		sub := &models.HelpSubmission{
 			Sid:        int(sid),
 			Uid:        uid,
 			Pid:        pid,
@@ -61,8 +63,8 @@ func studentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 			SnapshotID: snapshotID,
 			Snapshot:   content,
 		}
-		WorkingHelpSubs = append(WorkingHelpSubs, sub)
-		HelpSubmissions[int(sid)] = sub
+		models.WorkingHelpSubs = append(models.WorkingHelpSubs, sub)
+		models.HelpSubmissions[int(sid)] = sub
 	}
 
 	fmt.Fprintf(w, msg)

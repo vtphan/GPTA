@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"os"
@@ -36,18 +38,18 @@ func add_multiple(filename, role string) {
 // -----------------------------------------------------------------
 func add_user(name, role string, password string) {
 	var err error
-	var teacher Teacher
-	var student Student
+	var teacher models.Teacher
+	var student models.Student
 	var id int
 
 	if role == "teacher" {
-		teacher, err = FindTeacherByName(name)
-		if err != nil && err.Error() != RecordNotFound {
+		teacher, err = repository.FindTeacherByName(name)
+		if err != nil && err.Error() != models.RecordNotFound {
 			log.Fatal(err)
 		}
 	} else {
-		student, err = FindStudentByName(name)
-		if err != nil && err.Error() != RecordNotFound {
+		student, err = repository.FindStudentByName(name)
+		if err != nil && err.Error() != models.RecordNotFound {
 			log.Fatal(err)
 		}
 	}
@@ -55,15 +57,15 @@ func add_user(name, role string, password string) {
 		fmt.Printf("%s already exists. Choose a different name.\n", name)
 		return
 	}
-	if err.Error() == RecordNotFound {
+	if err.Error() == models.RecordNotFound {
 
 		if role != "teacher" {
-			password = RandStringRunes(12)
+			password = models.RandStringRunes(12)
 		}
 		if role == "teacher" {
-			teacher, err = AddTeacher(name, password)
+			teacher, err = repository.AddTeacher(name, password)
 		} else {
-			student, err = AddStudent(name, password)
+			student, err = repository.AddStudent(name, password)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -74,9 +76,9 @@ func add_user(name, role string, password string) {
 			id = student.ID
 		}
 		if role == "teacher" {
-			init_teacher(id, name, password) //todo - map
+			repository.InitTeacher(id, name, password)
 		} else {
-			init_student(id, name, password) //todo - map
+			repository.InitStudent(id, name, password)
 		}
 	}
 	fmt.Printf("|%s| is added. Must complete registeration.\n", name)
@@ -89,7 +91,7 @@ func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 	course_id := r.FormValue("course_id")
 
 	// Check course ID
-	if course_id != Config.CourseId {
+	if course_id != models.Config.CourseId {
 		fmt.Fprintf(w, "Failed")
 		return
 	}
@@ -97,14 +99,14 @@ func complete_registrationHandler(w http.ResponseWriter, r *http.Request) {
 	var msg string
 
 	if role == "teacher" {
-		teacher, err := GetTeacherByName(name)
+		teacher, err := repository.GetTeacherByName(name)
 		if err != nil {
 			fmt.Fprintf(w, "Failed")
 			return
 		}
 		msg = fmt.Sprintf("%d,%s", teacher.ID, teacher.Password)
 	} else if role == "student" {
-		student, err := GetStudentByName(name)
+		student, err := repository.GetStudentByName(name)
 		if err != nil {
 			fmt.Fprintf(w, "Failed")
 			return

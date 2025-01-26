@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,17 +15,17 @@ import (
 // -----------------------------------------------------------------------------------
 // func insert_problems(uid int, problems []*ProblemInfo) {
 // -----------------------------------------------------------------------------------
-func insert_problem(uid int, problem *ProblemInfo) {
+func insert_problem(uid int, problem *models.ProblemInfo) {
 	// Create new problem
 	pid := int64(0)
 	if problem.Merit > 0 {
 		// Find Tag id
-		tagID, err := FetchTagIDByDescription(problem.Tag)
+		tagID, err := repository.FetchTagIDByDescription(problem.Tag)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if tagID == 0 {
-			tag, err := AddTag(problem.Tag)
+			tag, err := repository.AddTag(problem.Tag)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -31,7 +33,7 @@ func insert_problem(uid int, problem *ProblemInfo) {
 		}
 
 		// Insert only real problems into database
-		result, err := AddProblem(
+		result, err := repository.AddProblem(
 			uid,
 			problem.Description,
 			problem.Answer,
@@ -45,14 +47,14 @@ func insert_problem(uid int, problem *ProblemInfo) {
 			log.Fatal(err)
 		}
 		problem.Pid = result.ID
-		ActiveProblems[problem.Filename] = &ActiveProblem{
+		models.ActiveProblems[problem.Filename] = &models.ActiveProblem{
 			Info:     problem,
 			Answers:  make([]string, 0),
 			Active:   true,
 			Attempts: make(map[int]int),
 		}
-		HelpEligibleStudents[int(pid)] = map[int]bool{}
-		err = AddProblemStatistics(problem.Pid)
+		models.HelpEligibleStudents[int(pid)] = map[int]bool{}
+		err = repository.AddProblemStatistics(problem.Pid)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -75,7 +77,7 @@ func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who strin
 
 	// fmt.Printf("%d,Answer:%s, Merit:%d, Effort:%d, Attempts:%d, Tag:%s, Filename:%s\n", len(content), answer, merit, effort, attempts, tag, filename)
 
-	problem := &ProblemInfo{
+	problem := &models.ProblemInfo{
 		Description: content,
 		Filename:    filename,
 		Answer:      answer,
@@ -89,10 +91,10 @@ func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who strin
 	// fmt.Println("answer:", problem.Answer, problem.ExactAnswer)
 
 	insert_problem(uid, problem)
-	BoardsSem.Lock()
-	defer BoardsSem.Unlock()
-	for student_id, _ := range Students {
-		b := &Board{
+	models.BoardsSem.Lock()
+	defer models.BoardsSem.Unlock()
+	for student_id, _ := range models.Students {
+		b := &models.Board{
 			Content:      problem.Description,
 			Answer:       problem.Answer,
 			Attempts:     problem.Attempts,
@@ -101,10 +103,10 @@ func teacher_broadcastsHandler(w http.ResponseWriter, r *http.Request, who strin
 			StartingTime: time.Now(),
 			Type:         "new",
 		}
-		Students[student_id].Boards = append(Students[student_id].Boards, b)
+		models.Students[student_id].Boards = append(models.Students[student_id].Boards, b)
 		if b.Pid != 0 && student_id != 0 {
 			// Add student coding status as idle
-			addOrUpdateStudentStatus(student_id, b.Pid, "Idle", "", "", "")
+			repository.AddOrUpdateStudentStatus(student_id, b.Pid, "Idle", "", "", "")
 		}
 	}
 	fmt.Fprintf(w, "Content copied to white boards.")

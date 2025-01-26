@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"log"
 	"net/http"
@@ -34,7 +36,7 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	password := r.FormValue("password")
 
 	// Fetch problems using the GetProblems function
-	problemsFromDB, err := GetProblems()
+	problemsFromDB, err := repository.GetProblems()
 	if err != nil {
 		log.Fatalf("Error fetching problems: %v", err)
 	}
@@ -43,14 +45,14 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	var problems = make([]*ProblemData, 0)
 	for _, problem := range problemsFromDB {
 		// Get stats for each problem
-		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := GetProblemStats(problem.ID)
+		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := repository.GetProblemStats(problem.ID)
 
 		problems = append(problems, &ProblemData{
 			ID:                 problem.ID,
 			Filename:           problem.Filename,
 			UploadedAt:         problem.ProblemUploadedAt,
 			IsActive:           problem.ProblemEndedAt == nil,
-			Attendance:         len(GetCurrentStudents()),
+			Attendance:         len(repository.GetCurrentStudents()),
 			NumActive:          nActive,
 			NumHelpRequest:     nHelp,
 			NumGradedCorrect:   nCorrect,
@@ -62,7 +64,7 @@ func problemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	// Prepare the ProblemListData for the template
 	problemListData := &ProblemListData{
 		Problems:         problems,
-		PeerTutorAllowed: PeerTutorAllowed,
+		PeerTutorAllowed: models.PeerTutorAllowed,
 		UserID:           uid,
 		UserRole:         role,
 		Password:         password,

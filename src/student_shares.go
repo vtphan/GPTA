@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"strconv"
@@ -23,7 +25,7 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 
 	attempt_number := -1
 	pid := 0
-	prob, ok := ActiveProblems[filename]
+	prob, ok := models.ActiveProblems[filename]
 	now := time.Now()
 	snapshotID := -1
 	if ok {
@@ -32,50 +34,50 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		} else {
 			pid = prob.Info.Pid
 			if _, ok := prob.Attempts[uid]; !ok {
-				ActiveProblems[filename].Attempts[uid] = prob.Info.Attempts
+				models.ActiveProblems[filename].Attempts[uid] = prob.Info.Attempts
 			}
-			if ActiveProblems[filename].Attempts[uid] == 0 {
+			if models.ActiveProblems[filename].Attempts[uid] == 0 {
 				fmt.Fprintf(w, "This is not submitted because either you have reached the submission limit or your solution was previously graded correctly.")
 				return
 			}
 
 			// Decrement attempts **only if students are not asking for help**
 			if priority < 2 {
-				ActiveProblems[filename].Attempts[uid] -= 1
-				if ActiveProblems[filename].Attempts[uid] <= 3 {
-					msg += fmt.Sprintf(" You have %d attempt(s) left.", ActiveProblems[filename].Attempts[uid])
+				models.ActiveProblems[filename].Attempts[uid] -= 1
+				if models.ActiveProblems[filename].Attempts[uid] <= 3 {
+					msg += fmt.Sprintf(" You have %d attempt(s) left.", models.ActiveProblems[filename].Attempts[uid])
 				}
 			}
-			attempt_number = prob.Info.Attempts - ActiveProblems[filename].Attempts[uid]
+			attempt_number = prob.Info.Attempts - models.ActiveProblems[filename].Attempts[uid]
 			// Autograding if possible
-			correct_answer = ActiveProblems[filename].Info.Answer
+			correct_answer = models.ActiveProblems[filename].Info.Answer
 			decision := ""
-			addOrUpdateStudentStatus(uid, pid, "", "", "submitted", "")
+			repository.AddOrUpdateStudentStatus(uid, pid, "", "", "submitted", "")
 			if answer != "" {
 				scoring_mesg := ""
 				if correct_answer == answer {
 					decision = "correct"
-					scoring_mesg = add_or_update_score("correct", pid, uid, 0, -1)
-					ActiveProblems[filename].Attempts[uid] = 0 // This prevents further submission
+					scoring_mesg = repository.AddOrUpdateScore("correct", pid, uid, 0, -1)
+					models.ActiveProblems[filename].Attempts[uid] = 0 // This prevents further submission
 					complete = true
-					err = IncrementProblemStatGradedCorrect(pid)
+					err = repository.IncrementProblemStatGradedCorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
-					addOrUpdateStudentStatus(uid, pid, "", "", "Graded Correct", "")
-				} else if ActiveProblems[filename].Info.ExactAnswer {
+					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Correct", "")
+				} else if models.ActiveProblems[filename].Info.ExactAnswer {
 					decision = "incorrect"
-					scoring_mesg = add_or_update_score("incorrect", pid, uid, 0, -1)
+					scoring_mesg = repository.AddOrUpdateScore("incorrect", pid, uid, 0, -1)
 					complete = true
-					err = IncrementProblemStatGradedIncorrect(pid)
+					err = repository.IncrementProblemStatGradedIncorrect(pid)
 					if err != nil {
 						log.Fatal(err)
 					}
-					addOrUpdateStudentStatus(uid, pid, "", "", "Graded Incorrect", "")
+					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Incorrect", "")
 				} else {
 					scoring_mesg = "Answer appears to be incorrect. It will be looked at."
 				}
-				ActiveProblems[filename].Answers = append(ActiveProblems[filename].Answers, answer)
+				models.ActiveProblems[filename].Answers = append(models.ActiveProblems[filename].Answers, answer)
 
 				fmt.Fprintf(w, scoring_mesg)
 			}
@@ -83,11 +85,11 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			// Add submitted but not graded code to code snapshot.
 			snapshotID = addCodeSnapshot(uid, pid, content, 1, now, "at_submission")
 
-			var result SubmissionTable
+			var result models.SubmissionTable
 			if complete {
-				result, err = AddSubmissionComplete(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
+				result, err = repository.AddSubmissionComplete(pid, uid, content, priority, attempt_number, now, now, snapshotID, answer)
 			} else {
-				result, err = AddSubmission(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
+				result, err = repository.AddSubmission(pid, uid, content, priority, attempt_number, now, snapshotID, answer)
 			}
 			if err != nil {
 
@@ -95,45 +97,45 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			}
 			sid = result.ID
 
-			err = IncrementProblemStatSubmission(pid)
+			err = repository.IncrementProblemStatSubmission(pid)
 			if err != nil {
 				log.Fatal(err)
 			}
 			if complete {
-				err := CompleteSubmission(time.Now(), decision, sid)
+				err := repository.CompleteSubmission(time.Now(), decision, sid)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
 			if test_cases != "" {
-				existingTestCaseID, err := FetchExistingTestCase(uid, pid)
+				existingTestCaseID, err := repository.FetchExistingTestCase(uid, pid)
 				if err != nil {
 					log.Fatal(err)
 				}
 
 				if existingTestCaseID != 0 {
-					err = UpdateTestCase(test_cases, now, existingTestCaseID)
+					err = repository.UpdateTestCase(test_cases, now, existingTestCaseID)
 				} else {
-					_, err = AddTestCase(pid, uid, test_cases, now)
+					_, err = repository.AddTestCase(pid, uid, test_cases, now)
 				}
 
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
-			if ActiveProblems[filename].Attempts[uid] == 0 {
-				if PeerTutorAllowed {
-					if _, ok := HelpEligibleStudents[pid][uid]; !ok {
-						HelpEligibleStudents[pid][uid] = true
-						SeenHelpSubmissions[uid] = map[int]bool{}
+			if models.ActiveProblems[filename].Attempts[uid] == 0 {
+				if models.PeerTutorAllowed {
+					if _, ok := models.HelpEligibleStudents[pid][uid]; !ok {
+						models.HelpEligibleStudents[pid][uid] = true
+						models.SeenHelpSubmissions[uid] = map[int]bool{}
 						// fmt.Fprintf(w, "You are now elligible to help you friends. To help please click on 'Help Friends' button.")
 						msg = msg + "\nYou are now elligible to help you friends. To help please click on 'Help Friends' button."
 
-						_, err = AddHelpEligible(pid, uid, now)
+						_, err = repository.AddHelpEligible(pid, uid, now)
 						if err != nil {
 							log.Fatal(err)
 						}
-						addOrUpdateStudentStatus(uid, pid, "", "", "", "Qualified")
+						repository.AddOrUpdateStudentStatus(uid, pid, "", "", "", "Qualified")
 					}
 				}
 			}
@@ -141,9 +143,9 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 		}
 	}
 	if !complete {
-		SubSem.Lock()
-		defer SubSem.Unlock()
-		sub := &Submission{
+		models.SubSem.Lock()
+		defer models.SubSem.Unlock()
+		sub := &models.Submission{
 			Sid:           int(sid),
 			Uid:           uid,
 			Pid:           pid,
@@ -155,8 +157,8 @@ func student_sharesHandler(w http.ResponseWriter, r *http.Request, who string, u
 			Name:          r.FormValue("name"),
 			SnapshotID:    snapshotID,
 		}
-		WorkingSubs = append(WorkingSubs, sub)
-		Submissions[int(sid)] = sub
+		models.WorkingSubs = append(models.WorkingSubs, sub)
+		models.Submissions[int(sid)] = sub
 		fmt.Fprintf(w, msg)
 	}
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/csv"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +18,7 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	}
 
 	// Fetch data from the database
-	data, err := FetchScores()
+	data, err := repository.FetchScores()
 	if err != nil {
 		log.Printf("Error fetching scores: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -31,7 +33,7 @@ func exportPointsHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	}
 	csvData[0] = header
 
-	for studentID := range Students {
+	for studentID := range models.Students {
 		row := make([]string, len(data)+1)
 		row[0] = getName(studentID, "student")
 		i := 1

@@ -4,6 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"log"
 	"net/http"
 )
@@ -13,7 +15,7 @@ import (
 func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	// attendance is taken automatically by authorization when this handler is called.
 	// Next: return student attendance report
-	attendances, err := GetAttendanceByStudentID(uid)
+	attendances, err := repository.GetAttendanceByStudentID(uid)
 	if err != nil {
 		http.Error(w, "Failed to retrieve attendance records", http.StatusInternalServerError)
 		log.Printf("Error retrieving attendance for student ID %d: %v", uid, err)
@@ -41,23 +43,23 @@ func student_checks_inHandler(w http.ResponseWriter, r *http.Request, who string
 
 // -----------------------------------------------------------------
 func student_periodic_updateHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	submissionStat := &StudentSubmissionStatus{}
-	if len(Students[uid].SubmissionStatus) > 0 {
-		submissionStat = Students[uid].SubmissionStatus[0]
-		Students[uid].SubmissionStatus = Students[uid].SubmissionStatus[1:]
+	submissionStat := &models.StudentSubmissionStatus{}
+	if len(models.Students[uid].SubmissionStatus) > 0 {
+		submissionStat = models.Students[uid].SubmissionStatus[0]
+		models.Students[uid].SubmissionStatus = models.Students[uid].SubmissionStatus[1:]
 	} else {
-		submissionStat = &StudentSubmissionStatus{
+		submissionStat = &models.StudentSubmissionStatus{
 			Filename:      "",
 			AttemptNumber: 0,
 			Status:        0,
 		}
 	}
 	// submission_stat := Students[uid].SubmissionStatus
-	thank_stat := Students[uid].ThankStatus
+	thank_stat := models.Students[uid].ThankStatus
 	board_stat := 0
-	if len(Students[uid].Boards) > 0 {
+	if len(models.Students[uid].Boards) > 0 {
 		board_stat = 1
-		for _, b := range Students[uid].Boards {
+		for _, b := range models.Students[uid].Boards {
 			if b.Type == "peer_feedback" {
 				board_stat = 2
 				break
@@ -65,9 +67,9 @@ func student_periodic_updateHandler(w http.ResponseWriter, r *http.Request, who 
 		}
 	}
 	// Students[uid].SubmissionStatus = 0 // reset status after notifying student
-	Students[uid].ThankStatus = 0
+	models.Students[uid].ThankStatus = 0
 	snapShotFeedbackStatus := 0
-	if len(Students[uid].SnapShotFeedbackQueue) > 0 {
+	if len(models.Students[uid].SnapShotFeedbackQueue) > 0 {
 		snapShotFeedbackStatus = 1
 	}
 	fmt.Fprintf(w, "%d;%d;%d;%d;%d;%s", submissionStat.Status, board_stat, thank_stat, snapShotFeedbackStatus, submissionStat.AttemptNumber, submissionStat.Filename)

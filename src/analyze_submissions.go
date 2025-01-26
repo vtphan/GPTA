@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/GPTA/src/repository"
 	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"net/http"
@@ -29,7 +30,7 @@ func analyze_submissionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use GetProblemUploadTime to retrieve the problem upload time
-	start, err := GetProblemUploadTime(pid)
+	start, err := repository.GetProblemUploadTime(pid)
 	if err != nil {
 		fmt.Println("Error retrieving problem upload time:", err)
 		http.Error(w, "Failed to retrieve problem upload time", http.StatusInternalServerError)
@@ -39,7 +40,7 @@ func analyze_submissionsHandler(w http.ResponseWriter, r *http.Request) {
 	records := make(map[int][]*SubmissionData)
 
 	// Use GetSubmissionsByProblemID to retrieve the submissions for the problem
-	submissions, err := GetSubmissionsByProblemID(pid)
+	submissions, err := repository.GetSubmissionsByProblemID(pid)
 	if err != nil {
 		fmt.Println("Error retrieving submissions:", err)
 		http.Error(w, "Failed to retrieve submissions", http.StatusInternalServerError)

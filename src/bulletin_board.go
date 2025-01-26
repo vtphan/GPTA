@@ -4,6 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 	"html/template"
 	"log"
 	"net/http"
@@ -37,20 +39,20 @@ type BulletinBoardMessage struct {
 
 // -----------------------------------------------------------------------------------
 func teacher_adds_bulletin_pageHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
-	BulletinSem.Lock()
-	defer BulletinSem.Unlock()
-	BulletinBoard = append(BulletinBoard, r.FormValue("content"))
+	models.BulletinSem.Lock()
+	defer models.BulletinSem.Unlock()
+	models.BulletinBoard = append(models.BulletinBoard, r.FormValue("content"))
 	fmt.Fprintf(w, "Content added to bulletin board")
 }
 
 // -----------------------------------------------------------------
 func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
-	BulletinSem.Lock()
-	defer BulletinSem.Unlock()
+	models.BulletinSem.Lock()
+	defer models.BulletinSem.Unlock()
 	i, _ := strconv.Atoi(r.FormValue("i"))
 	passcode := r.FormValue("pc")
-	if passcode == Passcode && i >= 0 && i < len(BulletinBoard) {
-		BulletinBoard = append(BulletinBoard[:i], BulletinBoard[i+1:]...)
+	if passcode == models.Passcode && i >= 0 && i < len(models.BulletinBoard) {
+		models.BulletinBoard = append(models.BulletinBoard[:i], models.BulletinBoard[i+1:]...)
 		http.Redirect(w, r, "view_bulletin_board?i=0&pc="+passcode, http.StatusSeeOther)
 	} else {
 		http.Redirect(w, r, "view_bulletin_board?i="+r.FormValue("i")+"&pc="+passcode, http.StatusSeeOther)
@@ -59,39 +61,39 @@ func remove_bulletin_pageHandler(w http.ResponseWriter, r *http.Request) {
 
 // -----------------------------------------------------------------------------------
 func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
-	BulletinSem.Lock()
-	defer BulletinSem.Unlock()
+	models.BulletinSem.Lock()
+	defer models.BulletinSem.Unlock()
 
-	if i >= len(BulletinBoard) {
+	if i >= len(models.BulletinBoard) {
 		i = 0
 	}
 	// Get code and build page links
 	code := ""
-	if i >= 0 && i < len(BulletinBoard) {
-		code = BulletinBoard[i]
+	if i >= 0 && i < len(models.BulletinBoard) {
+		code = models.BulletinBoard[i]
 	}
 
 	// Get priority counts
 	priority := []int{0, 0, 0}
-	for j := 0; j < len(WorkingSubs); j++ {
-		priority[WorkingSubs[j].Priority]++
+	for j := 0; j < len(models.WorkingSubs); j++ {
+		priority[models.WorkingSubs[j].Priority]++
 	}
 	next_i, prev_i := 0, 0
-	if len(BulletinBoard) > 0 {
-		next_i = (i + 1 + len(BulletinBoard)) % len(BulletinBoard)
-		prev_i = (i - 1 + len(BulletinBoard)) % len(BulletinBoard)
+	if len(models.BulletinBoard) > 0 {
+		next_i = (i + 1 + len(models.BulletinBoard)) % len(models.BulletinBoard)
+		prev_i = (i - 1 + len(models.BulletinBoard)) % len(models.BulletinBoard)
 	}
 	answers := 0
 	keys := make([]string, 0)
-	for key := range ActiveProblems {
+	for key := range models.ActiveProblems {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 	submissions := make([]string, 0)
 	for i, key := range keys {
-		p := ActiveProblems[key]
+		p := models.ActiveProblems[key]
 		if p.Active {
-			starting_time, err := GetProblemUploadTime(p.Info.Pid)
+			starting_time, err := repository.GetProblemUploadTime(p.Info.Pid)
 			if err != nil {
 				fmt.Println("Error retrieving problem starting time", err)
 				return &BulletinBoardMessage{}
@@ -112,18 +114,18 @@ func get_bulletin_board_data(i int, passcode string) *BulletinBoardMessage {
 		NextI:          next_i,
 		PrevI:          prev_i,
 		PC:             passcode,
-		P1:             len(Submissions),
-		P1Graded:       len(Submissions) - len(WorkingSubs),
-		P1Ungraded:     len(WorkingSubs),
-		P2:             len(HelpSubmissions),
-		P2Answered:     len(HelpSubmissions) - len(WorkingHelpSubs),
-		P2Unanswered:   len(WorkingHelpSubs),
+		P1:             len(models.Submissions),
+		P1Graded:       len(models.Submissions) - len(models.WorkingSubs),
+		P1Ungraded:     len(models.WorkingSubs),
+		P2:             len(models.HelpSubmissions),
+		P2Answered:     len(models.HelpSubmissions) - len(models.WorkingHelpSubs),
+		P2Unanswered:   len(models.WorkingHelpSubs),
 		ActiveProblems: active_problems,
-		BulletinItems:  len(BulletinBoard),
+		BulletinItems:  len(models.BulletinBoard),
 		AnswerCount:    answers,
-		Attendance:     len(Students),
-		Address:        Config.Address,
-		Authenticated:  passcode == Passcode,
+		Attendance:     len(models.Students),
+		Address:        models.Config.Address,
+		Authenticated:  passcode == models.Passcode,
 	}
 	return data
 }
