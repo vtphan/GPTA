@@ -713,7 +713,8 @@ func GetLatestSubmissionTime(problemID int) map[int]time.Time {
 		Where("problem_id = ?", problemID).
 		Group("student_id").
 		Find(&submissions).Error; err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return latestSubmissions
 	}
 
 	for _, submission := range submissions {
@@ -744,7 +745,8 @@ func GetCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
 		Group("student_id").
 		Find(&codeSnapshots).Error
 	if err != nil {
-		log.Fatalf("Failed to fetch code snapshots: %v", err)
+		log.Printf("Failed to fetch code snapshots: %v", err)
+		return codeSnapshots, err
 	}
 	return codeSnapshots, err
 }
@@ -1043,7 +1045,8 @@ func GetBackFeedbackCount(feedbackID int, backFeedbackType string) int {
 		Where("useful = ? AND message_feedback_id = ?", backFeedbackType, feedbackID).
 		Count(&count).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return 0
 	}
 
 	return int(count)
