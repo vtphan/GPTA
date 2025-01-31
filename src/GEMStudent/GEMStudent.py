@@ -57,12 +57,129 @@ gemsBackFeedbackTimeout = 60 * 10  # 10 minutes
 gemsBackFeedbackStatus = {}
 gemsBackFeedbackTimers = {}
 
+
+LOGGED_IN_MENU = [
+    {
+        "caption": "Gem",
+        "id": "GEMStudent",
+        "children": [
+            {
+                "caption": "See white board",
+                "id": "gemsGetBoardContent",
+                "command": "gems_get_board_content",
+            },
+            {
+                "caption": "Ask for help 🤔",
+                "id": "gemsNeedHelp",
+                "command": "gems_need_help",
+            },
+            {
+                "caption": "Submit code 😎",
+                "id": "gemsGotIt",
+                "command": "gems_got_it",
+            },
+            {
+                "caption": "View exercises",
+                "id": "gemsViewExercises",
+                "command": "gems_view_exercises",
+            },
+            {"caption": "-", "id": "side-bar-separator"},
+            {
+                "caption": "Attendance",
+                "id": "gemsAttendanceReport",
+                "command": "gems_attendance_report",
+            },
+            {
+                "caption": "Points",
+                "id": "gemsPointsReport",
+                "command": "gems_points_report",
+            },
+            
+            {"caption": "-", "id": "side-bar-separator"},
+            {
+                "caption": "Set working folder",
+                "id": "gemsSetLocalFolder",
+                "command": "gems_set_local_folder",
+            },
+            {
+                "caption": "Logout",
+                "id": "gemsLogout",
+                "command": "gems_logout",
+            },
+            {"caption": "-", "id": "side-bar-separator"},
+            {
+                "caption": "Update GEM",
+                "id": "gemsUpdate",
+                "command": "gems_update",
+            },
+        ]
+    }
+]
+
+LOGGED_OUT_MENU = [
+    {
+        "caption": "Gem",
+        "id": "GEMStudent",
+        "children": [
+            
+            {
+                "caption": "Set server address",
+                "id": "gemsSetServerAddress",
+                "command": "gems_set_server_address",
+            },
+            {
+                "caption": "Set course id",
+                "id": "gemsSetCourseId",
+                "command": "gems_set_course_id",
+            },
+            {
+                "caption": "Set username",
+                "id": "gemsSetName",
+                "command": "gems_set_name",
+            },
+            {
+                "caption": "Login",
+                "id": "gemsCompleteRegistration",
+                "command": "gems_complete_registration",
+            },
+        ]
+    }
+]
 # ------------------------------------------------------------------
 
 
-# def plugin_loaded():
-#     updateActiveProblems()
-#     sendCodeSnapshot()
+def plugin_loaded():
+    # updateActiveProblems()
+    # sendCodeSnapshot()
+    update_menu()
+
+# check if the user if logged in
+def is_user_logged_in():
+    try:
+        with open(gemsFILE, "r") as f:
+            info = json.loads(f.read())
+            if "Uid" in info and "Password" in info and info["Uid"] and info["Password"]:
+                return True
+    except Exception as e:
+        print("Error Checking Error Status: {}".format(e))
+    return False
+
+
+def update_menu():
+    menu_file = os.path.join(sublime.packages_path(), "GEMStudent", "Main.sublime-menu")
+    try:
+        if is_user_logged_in():
+            menu = LOGGED_IN_MENU
+        else:
+            menu = LOGGED_OUT_MENU
+
+        with open(menu_file, "w", encoding="utf-8") as f:
+            json.dump(menu, f, indent=4)
+        
+        # sublime.message_dialog("Menu updated based on login status.")
+    except Exception as e:
+        print("Error updating menu: {}".format(e))
+
 
 
 def sendCodeSnapshot():
@@ -120,6 +237,14 @@ def updateActiveProblems():
 
 
 # ------------------------------------------------------------------
+
+
+class GemsLogoutCommand(sublime_plugin.ApplicationCommand):
+    def run(self):
+        sublime.message_dialog("Logging out...")
+        if os.path.exists(gemsFILE):
+            os.remove(gemsFILE)
+        update_menu()
 
 
 class gemsReviewFeedbackForMe(sublime_plugin.ApplicationCommand):
@@ -701,7 +826,7 @@ class gemsCompleteRegistration(sublime_plugin.ApplicationCommand):
             sublime.message_dialog("{} is registered.".format(info["Name"]))
         with open(gemsFILE, "w") as f:
             f.write(json.dumps(info, indent=4))
-
+        update_menu()
 
 # ------------------------------------------------------------------
 
@@ -755,11 +880,33 @@ class gemsSetServerAddress(sublime_plugin.ApplicationCommand):
             if not addr.startswith("http://"):
                 addr = "http://" + addr
             info["Server"] = addr
+
+            # Set up default working folder if not exists
+            if "Folder" not in info:
+                default_folder = os.path.join(os.path.expanduser("~"), "GEM")
+                if self.setup_working_folder(default_folder):
+                    info["Folder"] = default_folder
+
             with open(gemsFILE, "w") as f:
                 f.write(json.dumps(info, indent=4))
         else:
             sublime.message_dialog("Server address cannot be empty.")
-
+    
+    def setup_working_folder(self, folder):
+        """Helper method to create and validate working folder structure"""
+        try:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            
+            # Create necessary subfolders
+            # feedback_dir = os.path.join(folder, "FEEDBACK")
+            # if not os.path.exists(feedback_dir):
+            #     os.makedirs(feedback_dir)
+                
+            return True
+        except Exception as e:
+            sublime.error_message("Could not create working folder")
+            return False
 
 # ------------------------------------------------------------------
 
@@ -936,15 +1083,15 @@ class gemsUpdate(sublime_plugin.WindowCommand):
             menu_file = os.path.join(package_path, "Main.sublime-menu")
             version_file = os.path.join(package_path, "version.go")
             urllib.request.urlretrieve(
-                "https://raw.githubusercontent.com/msh-shiplu/CodeSpace/2.0/src/GEMStudent/GEMStudent.py",
+                "https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/GEMStudent/GEMStudent.py",
                 module_file,
             )
             urllib.request.urlretrieve(
-                "https://raw.githubusercontent.com/msh-shiplu/CodeSpace/2.0/src/GEMStudent/Main.sublime-menu",
+                "https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/GEMStudent/Main.sublime-menu",
                 menu_file,
             )
             urllib.request.urlretrieve(
-                "https://raw.githubusercontent.com/msh-shiplu/CodeSpace/2.0/src/version.go",
+                "https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/version.go",
                 version_file,
             )
             with open(version_file) as f:
