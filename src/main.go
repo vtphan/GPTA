@@ -3,15 +3,19 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
 	"github.com/GPTA/src/restHandlers"
+	"gorm.io/gorm"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -99,6 +103,8 @@ func init_handlers() {
 	http.HandleFunc("/", restHandlers.IndexHandler)
 	http.HandleFunc("/index", restHandlers.IndexHandler)
 	http.HandleFunc("/peer_tutoring", Authorize(restHandlers.PeerTutorHandler, "student"))
+	http.HandleFunc("/instructions_with_example", openAI.InstructionsWithExampleHandler)
+	http.HandleFunc("/process_code_with_prompt", openAI.ProcessCodeWithPromptHandler)
 }
 
 // -----------------------------------------------------------------
@@ -156,30 +162,6 @@ func init_config(filename string) *models.Configuration {
 }
 
 // -----------------------------------------------------------------
-func inform_name_server() {
-	nameserver := fmt.Sprintf("%s/tell?who=%s&address=%s", models.Config.NameServer, models.Config.CourseId, models.Config.Address)
-	_, err := http.Get(nameserver)
-	if err != nil {
-		fmt.Println("Error", err)
-		log.Fatal("Unable to contact with name server.")
-	}
-}
-
-func get_course_specific_address(nameserver string, course string) {
-	resp, err := http.Get(fmt.Sprintf("%s/ask?who=%s", nameserver, course))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	address := string(bodyBytes)
-	fmt.Printf("* TeacherMap Login: %s/teacher_signin\n", address)
-}
-
-// -----------------------------------------------------------------
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
@@ -193,10 +175,12 @@ func main() {
 		os.Exit(1)
 	}
 	models.Config = init_config(config_file)
-	if models.Config.NameServer != "" {
-		inform_name_server()
-	}
+	//if models.Config.NameServer != "" {
+	//	inform_name_server()
+	//}
 	repository.InitDatabase(models.Config.Database, models.Config.DBUserName, models.Config.DBPassWord, models.Config.DBServerIP)
+	setupGracefulShutdown()
+	ReloadGlobalMaps()
 	if teacher_file != "" {
 		restHandlers.AddMultiple(teacher_file, "teacher")
 	}
@@ -208,16 +192,212 @@ func main() {
 	fmt.Println("**************************************************")
 
 	fmt.Printf("*   Course id:      %s\n", models.Config.CourseId)
-	if models.Config.NameServer != "" {
-		fmt.Printf("*   Server address: %s\n", models.Config.NameServer)
-	} else {
-		fmt.Printf("*   Serving at:     %s\n", models.Config.Address)
-	}
+	//if models.Config.NameServer != "" {
+	//	fmt.Printf("*   Server address: %s\n", models.Config.NameServer)
+	//} else {
+	fmt.Printf("*   Serving at:     http://%s\n", models.Config.Address)
+	//}
 	fmt.Printf("*   GEM %s\n", VERSION)
 	fmt.Println("**************************************************\n")
-	get_course_specific_address(models.Config.NameServer, models.Config.CourseId)
+	//get_course_specific_address(models.Config.NameServer, models.Config.CourseId)
 	err := http.ListenAndServe(models.Config.Address, nil)
 	if err != nil {
 		log.Fatal("Unable to serve gem server at " + models.Config.Address)
 	}
+}
+
+func setupGracefulShutdown() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		log.Println("Shutting down gracefully...")
+		err := StoreGlobalMaps()
+		if err != nil {
+			log.Println(err)
+		}
+		os.Exit(0)
+	}()
+}
+
+type GlobalMap struct {
+	ID                   int    `gorm:"primaryKey;autoIncrement"`
+	TeacherMap           string `gorm:"type:text"` // JSON string for map[int]string
+	TeacherPass          string `gorm:"type:text"` // JSON string for map[string]string
+	TeacherNameToId      string `gorm:"type:text"` // JSON string for map[string]int
+	TeacherIdToName      string `gorm:"type:text"` // JSON string for map[int]string
+	Students             string `gorm:"type:text"` // JSON string for map[int]*StudentInfo
+	BulletinBoard        string `gorm:"type:text"` // JSON string for []string
+	WorkingSubs          string `gorm:"type:text"` // JSON string for []*Submission
+	Submissions          string `gorm:"type:text"` // JSON string for map[int]*Submission
+	WorkingHelpSubs      string `gorm:"type:text"` // JSON string for []*HelpSubmission
+	HelpSubmissions      string `gorm:"type:text"` // JSON string for map[int]*HelpSubmission
+	ActiveProblems       string `gorm:"type:text"` // JSON string for map[string]*ActiveProblem
+	HelpEligibleStudents string `gorm:"type:text"` // JSON string for map[int]map[int]bool
+	SeenHelpSubmissions  string `gorm:"type:text"` // JSON string for map[int]map[int]bool
+	Snapshots            string `gorm:"type:text"` // JSON string for []*Snapshot
+	StudentSnapshot      string `gorm:"type:text"` // JSON string for map[int]map[int]int
+}
+
+func StoreGlobalMaps() error {
+	// Convert maps to JSON
+	teacherMapJSON, err := json.Marshal(models.TeacherMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal TeacherMap: %w", err)
+	}
+	teacherPassJSON, err := json.Marshal(models.TeacherPass)
+	if err != nil {
+		return fmt.Errorf("failed to marshal TeacherPass: %w", err)
+	}
+	teacherNameToIdJSON, err := json.Marshal(models.TeacherNameToId)
+	if err != nil {
+		return fmt.Errorf("failed to marshal TeacherNameToId: %w", err)
+	}
+	teacherIdToNameJSON, err := json.Marshal(models.TeacherIdToName)
+	if err != nil {
+		return fmt.Errorf("failed to marshal TeacherIdToName: %w", err)
+	}
+	studentsJSON, err := json.Marshal(models.Students)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Students: %w", err)
+	}
+	bulletinBoardJSON, err := json.Marshal(models.BulletinBoard)
+	if err != nil {
+		return fmt.Errorf("failed to marshal BulletinBoard: %w", err)
+	}
+	workingSubsJSON, err := json.Marshal(models.WorkingSubs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal WorkingSubs: %w", err)
+	}
+	submissionsJSON, err := json.Marshal(models.Submissions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Submissions: %w", err)
+	}
+	workingHelpSubsJSON, err := json.Marshal(models.WorkingHelpSubs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal WorkingHelpSubs: %w", err)
+	}
+	helpSubmissionsJSON, err := json.Marshal(models.HelpSubmissions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal HelpSubmissions: %w", err)
+	}
+	activeProblemsJSON, err := json.Marshal(models.ActiveProblems)
+	if err != nil {
+		return fmt.Errorf("failed to marshal ActiveProblems: %w", err)
+	}
+	helpEligibleStudentsJSON, err := json.Marshal(models.HelpEligibleStudents)
+	if err != nil {
+		return fmt.Errorf("failed to marshal HelpEligibleStudents: %w", err)
+	}
+	seenHelpSubmissionsJSON, err := json.Marshal(models.SeenHelpSubmissions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal SeenHelpSubmissions: %w", err)
+	}
+	snapshotsJSON, err := json.Marshal(models.Snapshots)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Snapshots: %w", err)
+	}
+	studentSnapshotJSON, err := json.Marshal(models.StudentSnapshot)
+	if err != nil {
+		return fmt.Errorf("failed to marshal StudentSnapshot: %w", err)
+	}
+
+	// Insert or update the data in the database
+	data := GlobalMap{
+		ID:                   1, // Single row
+		TeacherMap:           string(teacherMapJSON),
+		TeacherPass:          string(teacherPassJSON),
+		TeacherNameToId:      string(teacherNameToIdJSON),
+		TeacherIdToName:      string(teacherIdToNameJSON),
+		Students:             string(studentsJSON),
+		BulletinBoard:        string(bulletinBoardJSON),
+		WorkingSubs:          string(workingSubsJSON),
+		Submissions:          string(submissionsJSON),
+		WorkingHelpSubs:      string(workingHelpSubsJSON),
+		HelpSubmissions:      string(helpSubmissionsJSON),
+		ActiveProblems:       string(activeProblemsJSON),
+		HelpEligibleStudents: string(helpEligibleStudentsJSON),
+		SeenHelpSubmissions:  string(seenHelpSubmissionsJSON),
+		Snapshots:            string(snapshotsJSON),
+		StudentSnapshot:      string(studentSnapshotJSON),
+	}
+	return models.DB.Save(&data).Error
+}
+
+func ReloadGlobalMaps() error {
+	var data GlobalMap
+
+	// Try to fetch the first record
+	err := models.DB.First(&data, 1).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// No data found, skip processing
+			return nil
+		}
+		return fmt.Errorf("failed to load teacher data: %w", err)
+	}
+
+	// Unmarshal JSON into maps
+	err = json.Unmarshal([]byte(data.TeacherMap), &models.TeacherMap)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal TeacherMap: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.TeacherPass), &models.TeacherPass)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal TeacherPass: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.TeacherNameToId), &models.TeacherNameToId)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal TeacherNameToId: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.TeacherIdToName), &models.TeacherIdToName)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal TeacherIdToName: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.Students), &models.Students)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal Students: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.BulletinBoard), &models.BulletinBoard)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal BulletinBoard: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.Submissions), &models.Submissions)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal Submissions: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.ActiveProblems), &models.ActiveProblems)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal ActiveProblems: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.StudentSnapshot), &models.StudentSnapshot)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal StudentSnapshot: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.WorkingSubs), &models.WorkingSubs)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal WorkingSubs: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.WorkingHelpSubs), &models.WorkingHelpSubs)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal WorkingHelpSubs: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.HelpSubmissions), &models.HelpSubmissions)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal HelpSubmissions: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.HelpEligibleStudents), &models.HelpEligibleStudents)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal HelpEligibleStudents: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.SeenHelpSubmissions), &models.SeenHelpSubmissions)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal SeenHelpSubmissions: %w", err)
+	}
+	err = json.Unmarshal([]byte(data.Snapshots), &models.Snapshots)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal Snapshots: %w", err)
+	}
+
+	return nil
 }

@@ -14,19 +14,18 @@ import (
 
 // ---------------------------------------------------------
 type Configuration struct {
-	CourseId       string
-	CourseName     string
-	NameServer     string
-	IP             string
-	Port           int
-	Database       string
-	DBServerIP     string
-	DBUserName     string
-	DBPassWord     string
-	Address        string
-	LogFile        string
-	PeerTutor      int
-	ChatgptaServer string
+	CourseId   string
+	CourseName string
+	//NameServer     string
+	IP         string
+	Port       int
+	Database   string
+	DBServerIP string
+	DBUserName string
+	DBPassWord string
+	Address    string
+	LogFile    string
+	PeerTutor  int
 }
 
 var Config *Configuration
@@ -143,16 +142,6 @@ type HelpSubmission struct {
 var WorkingHelpSubs = make([]*HelpSubmission, 0)
 var HelpSubmissions = make(map[int]*HelpSubmission)
 
-type HelpFeedback struct {
-	Feedback         string
-	HelpSubmissionID int
-	GivenBy          int
-	GivenByRole      string
-	GivenAt          time.Time
-}
-
-var HelpFeedbacks = make([]*HelpFeedback, 0)
-
 // ---------------------------------------------------------
 type ProblemInfo struct {
 	Description string
@@ -261,8 +250,6 @@ func GetLinesOfCode(code string) int {
 // PeerTutorAllowed is the flag that decides whether peers are allowed to help other students or not.
 var PeerTutorAllowed = false
 
-var ChatGPTServerAddress = "http://141.225.10.71:8000"
-
 type DashBoardStudentInfo struct {
 	StudentID      int
 	StudentName    string
@@ -356,15 +343,14 @@ type SubmissionDashboard struct {
 }
 
 type TemplateDate struct {
-	Feedback       FeedbackProvisionDashBoard
-	Submission     SubmissionDashboard
-	Status         DashBoardStudentInfo
-	ChatgptaServer string
-	UserID         int
-	UserRole       string
-	Password       string
-	Username       string
-	CourseName     string
+	Feedback   FeedbackProvisionDashBoard
+	Submission SubmissionDashboard
+	Status     DashBoardStudentInfo
+	UserID     int
+	UserRole   string
+	Password   string
+	Username   string
+	CourseName string
 }
 
 type StudentReport struct {

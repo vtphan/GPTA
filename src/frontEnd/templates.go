@@ -1858,18 +1858,26 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 						<p>Latest Code Snapshot at {{.Feedback.LastSnapshot.LastUpdated.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 					</div>
 				</div>	
-				{{if ne $.ChatgptaServer ""}}<div id="feedback-block-99999"></div>{{end}}
+				<div id="feedback-block-99999"></div>
 				<div style="background: darkseagreen;">
 					<textarea id="snapshot-editor"> {{ .Feedback.LastSnapshot.Code }} </textarea>
 					<div class="actions">
 							<button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
-							{{if ne $.ChatgptaServer ""}}<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-99999" onclick="getChatGptFeedback( 99999 ,{{ .Feedback.LastSnapshot.Code }} , {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>{{end}}
 							<button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
+							<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-99999" onclick="getChatGptFeedback( 99999 ,{{ .Feedback.LastSnapshot.Code }} , {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>
 					</div>
 					<div id="code-snapshot-feedback-block"></div>
 				</div> 
+				<div id="custom-prompt-box" class="box" style="background: #f5f5f5;">
+    <h3 class="title is-4">Enter Your Custom Prompt</h3>
+    <textarea id="custom-prompt-input" class="textarea" placeholder="Type your custom prompt here..."></textarea>
+   <button class="button is-primary" id="submit-custom-prompt" onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }}, $('#custom-prompt-input').val())" style="margin-top: 10px;">Send Prompt</button>
+    <div id="custom-prompt-response" style="margin-top: 15px;"></div>
+</div>
+
 			</div>
 		</div>
+		
 
 		{{ if .Feedback.Messages}}
 		<h3>Student's help requests: </h3>
@@ -1890,7 +1898,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 
 							<div class="message-body">
 								<h3>Student says: </h3> {{.Message}}
-								{{if ne $.ChatgptaServer ""}}<div id="feedback-block-{{ $index }}"></div>{{end}}
+								<div id="feedback-block-{{ $index }}"></div>
 							</div>
 								
 							<div style="background: #c1bb91;">
@@ -1900,7 +1908,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 
 									<div class="actions">
 										<button class="button is-info help-check" id="help-check-feedback-{{ $index }}" onclick="messageFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
-										{{if ne $.ChatgptaServer ""}}<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-{{ $index }}" onclick="getChatGptFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>{{end}}
+										<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-{{ $index }}" onclick="getChatGptFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>
 										<button class="button is-info help-send" id="help-send-feedback-{{ $index }}" onclick="sendMessageFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
 										
 									</div>
@@ -2027,10 +2035,9 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					}
 				});
 			}
-			{{if ne $.ChatgptaServer ""}}
 			function getChatGptFeedback(idx, code, user_id) {
 				return $.ajax({
-					url: "{{$.ChatgptaServer}}/instructions_with_example",
+					url: "/instructions_with_example",
 					type: "POST",
 					data: JSON.stringify({
 						problem: {{.Feedback.ProblemName}},
@@ -2068,7 +2075,33 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					alert(JSON.stringify(err));
 				});
 			}
-			{{end}}
+// Add a new function to handle sending the code and custom prompt
+function sendCustomPromptFeedback(code, userID, customPrompt) {
+    return $.ajax({
+        url: "/process_code_with_prompt", // New endpoint
+        type: "POST",
+        data: JSON.stringify({
+            code: code,
+            custom_prompt: customPrompt,
+            user_id: userID
+        }),
+        "headers": {
+            "Content-Type": "application/json",
+        }
+    }).done(function(data) {
+        // Process the feedback received from the server
+        if (true) {
+            $('#custom-prompt-response').html("<br/><h4>Feedback</h4>" + data.feedback);
+        } else {
+            alert("No feedback found!");
+        }
+    }).fail(function(err) {
+        alert("Error: " + JSON.stringify(err));
+    });
+}
+
+
+
 			function runNLP(student_code, ta_code, user_id, write) {
 				return $.ajax({
 					// url: "http://127.0.0.1:5000/feedback_classify",

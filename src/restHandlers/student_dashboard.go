@@ -293,15 +293,14 @@ func StudentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 	}
 
 	data := models.TemplateDate{
-		Submission:     *submission,
-		Feedback:       *feedback,
-		Status:         *studentStats,
-		ChatgptaServer: models.Config.ChatgptaServer,
-		UserID:         uid,
-		UserRole:       role,
-		Password:       r.FormValue("password"),
-		Username:       GetName(uid, role),
-		CourseName:     models.Config.CourseName,
+		Submission: *submission,
+		Feedback:   *feedback,
+		Status:     *studentStats,
+		UserID:     uid,
+		UserRole:   role,
+		Password:   r.FormValue("password"),
+		Username:   GetName(uid, role),
+		CourseName: models.Config.CourseName,
 	}
 
 	w.Header().Set("Content-Type", "text/html")
