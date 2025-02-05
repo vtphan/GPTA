@@ -1742,6 +1742,50 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 			padding-bottom: 0px;
 			border-radius: 25px;
 		}
+.switch {
+        position: relative;
+        display: inline-block;
+        width: 34px;
+        height: 20px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 20px;
+    }
+
+    .slider::before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #4CAF50;
+    }
+
+    input:checked + .slider::before {
+        transform: translateX(14px);
+    }
 		.wrapper {
 			display: grid;
 			grid-template-columns: repeat(2, 1fr);
@@ -1865,13 +1909,24 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 							<button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
 							<button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
 							<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-99999" onclick="getChatGptFeedback( 99999 ,{{ .Feedback.LastSnapshot.Code }} , {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>
+							<button class="button is-info" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top:3px; color: #000000; display: flex; align-items: center;">
+            Enable Custom Prompt
+            <label class="switch" style="margin-left: 10px;">
+                <input id="custom_prompt_toggle" type="checkbox">
+                <span class="slider round"></span>
+            </label>
+        </button>
 					</div>
 					<div id="code-snapshot-feedback-block"></div>
-				</div> 
-				<div id="custom-prompt-box" class="box" style="background: #f5f5f5;">
+
+				<div id="custom-prompt-box" class="box" style="background: #c1bb91; display: none; margin-top: 10px;">
     <h3 class="title is-4">Enter Your Custom Prompt</h3>
     <textarea id="custom-prompt-input" class="textarea" placeholder="Type your custom prompt here..."></textarea>
-   <button class="button is-primary" id="submit-custom-prompt" onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }}, $('#custom-prompt-input').val())" style="margin-top: 10px;">Send Prompt</button>
+    <button class="button is-primary" id="submit-custom-prompt" 
+        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }}, document.getElementById('custom-prompt-input').value)" 
+        style="margin-top: 10px;">
+        Send Prompt
+    </button>
     <div id="custom-prompt-response" style="margin-top: 15px;"></div>
 </div>
 
@@ -2035,6 +2090,11 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					}
 				});
 			}
+function toggleCustomPromptBox() {
+        var checkbox = document.getElementById('custom_prompt_toggle');
+        var promptBox = document.getElementById('custom-prompt-box');
+        promptBox.style.display = checkbox.checked ? 'block' : 'none';
+    }
 			function getChatGptFeedback(idx, code, user_id) {
 				return $.ajax({
 					url: "/instructions_with_example",
