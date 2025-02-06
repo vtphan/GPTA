@@ -3,12 +3,12 @@ To use this software to share code in class, you will need to (1) install [Subli
 
 ### Student's installation
 
-1. Install Sublime Text
+## 1. Install Sublime Text
 
     First, download and install Sublime Text if you haven’t already. (https://www.sublimetext.com/download)
 
 
-2. Install the GEMStudent Plugin
+## 2. Install the GEMStudent Plugin
 
     Step 1: Open Sublime Text
         •	Launch Sublime Text on your computer.
@@ -18,6 +18,7 @@ To use this software to share code in class, you will need to (1) install [Subli
 
     Step 3: Installation Command
         Copy the following command, paste it into the console in sublime text and hit enter:
+
         ```
         import os; package_path = os.path.join(sublime.packages_path(), "GEMStudent"); 
         os.mkdir(package_path) if not os.path.isdir(package_path) else print("dir exists"); 
@@ -29,19 +30,26 @@ To use this software to share code in class, you will need to (1) install [Subli
         urllib.request.urlretrieve("https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/GEMStudent/Main.sublime-menu", menu_file);
         # urllib.request.urlretrieve("https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/version.go", version_file)
         ```
-3. Configure the Plugin
+
+## 3. Configure the Plugin: 
 configuration settings will be provided by your instructor.
 
 ![alt text](</assets/documentation/image2.png>)
 
+
  follow these steps:
+
     1. Set Server Address
+
     2. Set course id
+
     3. Set username
+
     4. login
 
 Once successfully logged in, GEM plugin menu should look like this.
 ![alt text](/assets/documentation/image1.png)
+
 
 ### Teacher's installation
 Web portal
