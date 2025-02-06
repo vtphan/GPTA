@@ -1010,7 +1010,7 @@ var PROBLEM_LIST_TEMPLATE = `
 <html lang="en">
 <head>
 <title>Exercises</title>
-<meta http-equiv="refresh" content="10" >
+<meta http-equiv="refresh" content="10000000" >
 <style>
 .switch {
   position: relative;
@@ -1088,7 +1088,7 @@ input:checked + .slider:before {
   position: fixed;
   top: 0;
   right: 0;
-  width: 450px;
+  width: 350px;
   height: 100%;
   background-color: #f4f4f4;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
@@ -1167,13 +1167,20 @@ input:checked + .slider:before {
 		</a>
 		{{end}}
 
-		<!-- Drawer for settings -->
-		<div class="drawer" id="settings-drawer">
-			<div class="drawer-content">
-				<h3>Settings</h3>
-				<p>Settings content goes here.</p>
-			</div>
-		</div>
+		<div class="drawer" id="settings-drawer" style="font-family: Arial, sans-serif; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+
+        <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;">Settings</h3>
+      
+        
+        <button class="button is-primary" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top: 3px; display: flex; align-items: center;">
+            Enable Custom Prompt
+            <label class="switch" style="margin-left: 10px;">
+                <input id="custom_prompt_toggle" type="checkbox">
+                <span class="slider round"></span>
+            </label>
+        </button>
+   
+</div>
 
 		<button class="settings-button" id="settings-button">
 			<i class="fas fa-cogs"></i>
