@@ -775,9 +775,6 @@ class gemsConnect(sublime_plugin.ApplicationCommand):
                         info = json.loads(f.read())
                 except:
                     info = dict()
-                if not server.startswith("http://"):
-                    sublime.message_dialog("Unable to get address.")
-                    return
                 gemsSERVER = server
                 gemsSERVER_TIME = time.time()
                 sublime.status_message("Connected")
