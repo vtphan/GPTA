@@ -1083,6 +1083,43 @@ input:checked + .slider:before {
 	right:0;
 }
 
+.drawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 450px;
+  height: 100%;
+  background-color: #f4f4f4;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.drawer.open {
+  display: block;
+  transform: translateX(0);
+}
+
+.drawer-content {
+  padding-top: 50px;
+}
+
+.settings-button {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  z-index: 1100;
+}
+
 </style>
 <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -1129,6 +1166,19 @@ input:checked + .slider:before {
 			<span style="color: #242424;">Export Score</span>
 		</a>
 		{{end}}
+
+		<!-- Drawer for settings -->
+		<div class="drawer" id="settings-drawer">
+			<div class="drawer-content">
+				<h3>Settings</h3>
+				<p>Settings content goes here.</p>
+			</div>
+		</div>
+
+		<button class="settings-button" id="settings-button">
+			<i class="fas fa-cogs"></i>
+		</button>
+
 		<table class="table sortable">
 				<thead>
 					<tr>
@@ -1161,15 +1211,17 @@ input:checked + .slider:before {
 </div>
 <script>
 $(document).ready(function(){
+	// Toggling the drawer visibility
+	$('#settings-button').click(function(){
+		$('#settings-drawer').toggleClass('open');
+	});
+
+	// Peer tutoring functionality (unchanged)
 	{{if eq .PeerTutorAllowed true}}$('#peer_tutoring_button').prop('checked', true);{{end}}
 	$('#new-problem').attr("href", "/teacher_web_broadcast"+window.location.search);
-	// document.getElementById("peer_tutoring_button").disabled = true;
 	$('#peer_tutoring_button').change(function(){
-		console.log("Inside function");
 		var val = document.getElementById('peer_tutoring_button').checked;
-		var valInt = 0;
-		if (val == true)
-			valInt = 1;
+		var valInt = val ? 1 : 0;
 		$.post("/set_peer_tutor", {turn_on: valInt, uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} }, function(data, status){
 		});
 	});
@@ -1193,16 +1245,13 @@ $(document).ready(function(){
 				var blob = new Blob([response], { type: type });
 
 				if (typeof window.navigator.msSaveBlob !== 'undefined') {
-					// IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
 					window.navigator.msSaveBlob(blob, filename);
 				} else {
 					var URL = window.URL || window.webkitURL;
 					var downloadUrl = URL.createObjectURL(blob);
 
 					if (filename) {
-						// use HTML5 a[download] attribute to specify filename
 						var a = document.createElement("a");
-						// safari doesn't support this yet
 						if (typeof a.download === 'undefined') {
 							window.location = downloadUrl;
 						} else {
@@ -1215,7 +1264,7 @@ $(document).ready(function(){
 						window.location = downloadUrl;
 					}
 
-					setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
+					setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100);
 				}
 			}
 		});
