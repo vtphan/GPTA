@@ -873,6 +873,7 @@ class gemsSetServerAddress(sublime_plugin.ApplicationCommand):
         )
 
     def set(self, addr):
+        global gemsSERVER
         addr = addr.strip()
         if len(addr) > 0:
             try:
@@ -883,6 +884,7 @@ class gemsSetServerAddress(sublime_plugin.ApplicationCommand):
             if not addr.startswith("http://"):
                 addr = "http://" + addr
             info["Server"] = addr
+            gemsSERVER = addr
 
             # Set up default working folder if not exists
             if "Folder" not in info:
