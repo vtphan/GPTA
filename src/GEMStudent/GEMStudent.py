@@ -142,6 +142,12 @@ LOGGED_OUT_MENU = [
                 "id": "gemsCompleteRegistration",
                 "command": "gems_complete_registration",
             },
+            {"caption": "-", "id": "side-bar-separator"},
+            {
+                "caption": "Update GEM",
+                "id": "gemsUpdate",
+                "command": "gems_update",
+            },
         ]
     }
 ]
