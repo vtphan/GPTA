@@ -32,7 +32,7 @@ To use this software to share code in class, you will need to (1) install [Subli
 3. Configure the Plugin
 configuration settings will be provided by your instructor.
 
-![alt text](<Screenshot 2025-02-06 at 5.01.11 PM.png>)
+![alt text](</assets/documentation/image2.png>)
 
  follow these steps:
     1. Set Server Address
@@ -41,7 +41,7 @@ configuration settings will be provided by your instructor.
     4. login
 
 Once successfully logged in, GEM plugin menu should look like this.
-![alt text](image.png)
+![alt text](/assets/documentation/image1.png)
 
 ### Teacher's installation
 Web portal
