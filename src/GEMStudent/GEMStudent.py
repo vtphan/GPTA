@@ -108,9 +108,9 @@ LOGGED_IN_MENU = [
             },
             {"caption": "-", "id": "side-bar-separator"},
             {
-                "caption": "Update GEM",
-                "id": "gemsUpdate",
-                "command": "gems_update",
+                "caption": "About GEM",
+                "id": "gemsAbout",
+                "command": "gems_about",
             },
         ]
     }
@@ -144,9 +144,9 @@ LOGGED_OUT_MENU = [
             },
             {"caption": "-", "id": "side-bar-separator"},
             {
-                "caption": "Update GEM",
-                "id": "gemsUpdate",
-                "command": "gems_update",
+                "caption": "About GEM",
+                "id": "gemsAbout",
+                "command": "gems_about",
             },
         ]
     }
@@ -1114,6 +1114,16 @@ class gemsUpdate(sublime_plugin.WindowCommand):
             )
 
 
+class gemsAbout(sublime_plugin.WindowCommand):
+    def run(self):
+        package_path = os.path.join(sublime.packages_path(), "GEMStudent")
+        try:
+            version = open(os.path.join(package_path, "VERSION")).read()
+        except:
+            version = 0
+        sublime.message_dialog("GEM: Grading and classroom management plugin\nversion: {}".format(version))
+
+
 # ------------------------------------------------------------------
 
 
@@ -1288,7 +1298,7 @@ def ask_for_back_feedback(filename, feedback_filename, fromEvent=False):
 
     # show Yes Option as first.
     resp = sublime.yes_no_cancel_dialog(
-        "Was this feedback helpful? Please answer Yes or No", "No", "Yes"
+        "Was this feedback helpful?", "No", "Yes"
     )
     # consider the first option as YES
     if resp == sublime.DIALOG_NO:
