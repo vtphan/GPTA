@@ -1193,11 +1193,6 @@ button {
 			</span>
 			<span style="color: #242424;">Broadcast New Exercise</span>
 		</a>
-		Peer Tutoring:
-		<label class="switch" for="peer_tutoring_button">
-			<input id="peer_tutoring_button" type="checkbox">:
-			<span class="slider round"></span>
-		</label>
 		<a id="export-button" class="button is-primary" href="">
 			<span class="icon is-small">
 			<i class="fa-solid fa-plus"></i>
@@ -1239,10 +1234,21 @@ button {
         <button class="button is-info" id="add-student-btn">Add Student</button>
     </div>
 
+<hr style="margin: 15px 0;">
+	<button class="button is-primary" id="toggle-peer-tutoring" style="margin-top: 3px; display: flex; align-items: center;">
+    Peer Tutoring
+    <label class="switch" style="margin-left: 10px;">
+        <input id="peer_tutoring_button" type="checkbox">
+        <span class="slider round"></span>
+    </label>
+</button>
+
+
+
     <hr>
 
 <button class="button is-primary" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top: 3px; display: flex; align-items: center;">
-        Enable Custom Prompt
+        Custom Prompt
         <label class="switch" style="margin-left: 10px;">
             <input id="custom_prompt_toggle" type="checkbox">
             <span class="slider round"></span>
