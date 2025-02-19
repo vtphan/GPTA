@@ -7,6 +7,7 @@ import (
 	"github.com/GPTA/src/repository"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // -----------------------------------------------------------------
@@ -81,4 +82,23 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 	}
 }
 
-//-----------------------------------------------------------------
+// -----------------------------------------------------------------
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	// Get session token from the cookie
+	cookie, err := r.Cookie("session_token")
+	if err == nil {
+		// Delete the session if it exists
+		delete(models.Sessions, cookie.Value)
+	}
+
+	// Expire the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   "",
+		Expires: time.Now().Add(-1 * time.Hour), // Expire the cookie
+		Path:    "/",
+	})
+
+	// Redirect to login page
+	http.Redirect(w, r, "/teacher_login", http.StatusSeeOther)
+}

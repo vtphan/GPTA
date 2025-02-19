@@ -36,8 +36,11 @@ func ProblemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	role := r.FormValue("role")
 	password := r.FormValue("password")
 
-	// Fetch problems using the GetProblems function
-	problemsFromDB, err := repository.GetProblems()
+	// todo - Fetch problems using the GetProblems function
+	if role == "teacher" {
+
+	}
+	problemsFromDB, err := repository.GetProblems(models.CourseId) //todo, get problems on basis of role
 	if err != nil {
 		log.Fatalf("Error fetching problems: %v", err)
 	}

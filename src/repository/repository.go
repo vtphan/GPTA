@@ -70,6 +70,7 @@ func AddProblem(teacherID int, problemDescription, answer, filename string, meri
 		TopicID:            topicID,
 		Tag:                tag,
 		ProblemUploadedAt:  time.Now(),
+		CourseID:           models.CourseId,
 	}
 	if err := models.DB.Create(&problem).Error; err != nil {
 		return problem, fmt.Errorf("failed to insert problem: %w", err)
@@ -584,6 +585,22 @@ func GetAllTeachers() ([]models.Teacher, error) {
 	return teachers, nil
 }
 
+func GetAllTeacherClasses() ([]models.TeacherClass, error) {
+	var classes []models.TeacherClass
+	if err := models.DB.Model(&models.TeacherClass{}).Find(&classes).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve teachers: %w", err)
+	}
+	return classes, nil
+}
+
+func GetAllStudentClasses() ([]models.StudentClass, error) {
+	var classes []models.StudentClass
+	if err := models.DB.Model(&models.StudentClass{}).Find(&classes).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve student classes: %w", err)
+	}
+	return classes, nil
+}
+
 func GetScoreDetails(problemID, studentID int) (*models.Score, error) {
 	var score models.Score
 	if err := models.DB.Model(&models.Score{}).
@@ -802,13 +819,14 @@ func GetAnswerStats(problemID int) ([]*models.AnswerStatInfo, error) {
 	return answerStats, nil
 }
 
-// GetProblems fetches all problems from the database with the specified fields.
-func GetProblems() ([]models.Problem, error) {
+func GetProblems(courseId string) ([]models.Problem, error) {
 	var problems []models.Problem
 
-	// Query the database to fetch the required fields for all problems
-	if err := models.DB.Select("id, filename, problem_uploaded_at, problem_ended_at").Find(&problems).Error; err != nil {
-		return nil, fmt.Errorf("failed to fetch problems: %w", err)
+	// Query the database to fetch problems filtered by CourseId
+	if err := models.DB.Select("id, filename, problem_uploaded_at, problem_ended_at").
+		Where("course_id = ?", courseId).
+		Find(&problems).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch problems for coursse %s: %w", models.CourseId, err)
 	}
 
 	return problems, nil

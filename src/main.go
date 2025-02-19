@@ -12,6 +12,7 @@ import (
 	"github.com/GPTA/src/restHandlers"
 	"gorm.io/gorm"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -105,6 +106,11 @@ func init_handlers() {
 	http.HandleFunc("/peer_tutoring", Authorize(restHandlers.PeerTutorHandler, "student"))
 	http.HandleFunc("/instructions_with_example", openAI.InstructionsWithExampleHandler)
 	http.HandleFunc("/process_code_with_prompt", openAI.ProcessCodeWithPromptHandler)
+	http.HandleFunc("/get_courses", restHandlers.GetCoursesHandler)
+	http.HandleFunc("/add_course", restHandlers.AddCourseHandler)
+	http.HandleFunc("/add_teacher", restHandlers.AddTeacherHandler)
+	http.HandleFunc("/add_student", restHandlers.AddStudentHandler)
+	http.HandleFunc("/logout", LogoutHandler)
 }
 
 // -----------------------------------------------------------------
@@ -165,22 +171,23 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file := "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/students.txt"
+	config_file, teacher_file, student_file, course_file := "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/students.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/courses.txt"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
+	flag.StringVar(&course_file, "add_courses", course_file, "courses file.") // New flag for courses
 	flag.Parse()
 	if config_file == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
 	models.Config = init_config(config_file)
-	//if models.Config.NameServer != "" {
-	//	inform_name_server()
-	//}
 	repository.InitDatabase(models.Config.Database, models.Config.DBUserName, models.Config.DBPassWord, models.Config.DBServerIP)
 	setupGracefulShutdown()
 	ReloadGlobalMaps()
+	if course_file != "" {
+		restHandlers.AddMultipleCourses(course_file) // Call AddMultipleCourses to add courses
+	}
 	if teacher_file != "" {
 		restHandlers.AddMultiple(teacher_file, "teacher")
 	}
@@ -188,19 +195,20 @@ func main() {
 		restHandlers.AddMultiple(student_file, "student")
 	}
 	init_handlers()
-	repository.LoadTeachers()
+	courses, err := repository.LoadTeachers()
+	if err != nil {
+		log.Fatal("Failed to load teachers: ", err)
+	}
+
+	// Join unique courses with commas
+	courseList := strings.Join(courses, ", ")
 	fmt.Println("**************************************************")
 
-	fmt.Printf("*   Course id:      %s\n", models.Config.CourseId)
-	//if models.Config.NameServer != "" {
-	//	fmt.Printf("*   Server address: %s\n", models.Config.NameServer)
-	//} else {
+	fmt.Printf("*   Course List:      %s\n", courseList)
 	fmt.Printf("*   Serving at:     http://%s\n", models.Config.Address)
-	//}
 	fmt.Printf("*   GEM %s\n", VERSION)
 	fmt.Println("**************************************************\n")
-	//get_course_specific_address(models.Config.NameServer, models.Config.CourseId)
-	err := http.ListenAndServe(models.Config.Address, nil)
+	err = http.ListenAndServe(models.Config.Address, nil)
 	if err != nil {
 		log.Fatal("Unable to serve gem server at " + models.Config.Address)
 	}
@@ -208,10 +216,10 @@ func main() {
 
 func setupGracefulShutdown() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-c
-		log.Println("Shutting down gracefully...")
+		fmt.Println("Shutting down gracefully...")
 		err := StoreGlobalMaps()
 		if err != nil {
 			log.Println(err)

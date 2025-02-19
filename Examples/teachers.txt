@@ -1,4 +1,4 @@
-Instructor
-123456
-Instructor2
-1234567
+Instructor, 123456 , 101
+Instructor2 ,123456, 102
+Instructor3 ,123456 ,103
+

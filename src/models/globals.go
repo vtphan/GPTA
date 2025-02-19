@@ -14,9 +14,7 @@ import (
 
 // ---------------------------------------------------------
 type Configuration struct {
-	CourseId   string
-	CourseName string
-	//NameServer     string
+	CourseName string // todo - set this globally once the user selects the course
 	IP         string
 	Port       int
 	Database   string
@@ -29,6 +27,7 @@ type Configuration struct {
 }
 
 var Config *Configuration
+var CourseId string
 
 //---------------------------------------------------------
 // Database
@@ -44,6 +43,8 @@ const RecordNotFound = "record not found"
 
 var TeacherMap = make(map[int]string)
 var TeacherPass = make(map[string]string)
+var TeacherClassesMap = make(map[int][]string)
+var StudentClassesMap = make(map[int][]string)
 var TeacherNameToId = make(map[string]int)
 var TeacherIdToName = make(map[int]string)
 var Passcode string

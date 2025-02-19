@@ -17,46 +17,11 @@ func execSQL(s string) {
 }
 
 func create_tables() {
-	// Function to check if a table exists and rename it if necessary
-	renameTableIfExists := func(oldName, newName string) {
-		// Check if the table with the old name exists
-		if checkIfTableExists(oldName) {
-			// Check if the new table already exists to avoid renaming to an existing table
-			if !checkIfTableExists(newName) {
-				// Rename the old table to the new name
-				models.DB.Exec(fmt.Sprintf("ALTER TABLE %s RENAME TO %s", oldName, newName))
-			}
-		}
-	}
-
-	// Rename singular tables to plural names if they exist
-	renameTableIfExists("teacher", "teachers")
-	renameTableIfExists("student", "students")
-	renameTableIfExists("attendance", "attendances")
-	renameTableIfExists("tag", "tags")
-	renameTableIfExists("problem", "problems")
-	renameTableIfExists("submission", "submissions")
-	renameTableIfExists("score", "scores")
-	renameTableIfExists("feedback", "feedbacks")
-	renameTableIfExists("test_case", "test_cases")
-	renameTableIfExists("code_explanation", "code_explanations")
-	renameTableIfExists("help_message", "help_messages")
-	renameTableIfExists("code_snapshot", "code_snapshots")
-	renameTableIfExists("snapshot_feedback", "snapshot_feedbacks")
-	renameTableIfExists("snapshot_back_feedback", "snapshot_back_feedbacks")
-	renameTableIfExists("message", "messages")
-	renameTableIfExists("message_feedback", "message_feedbacks")
-	renameTableIfExists("message_back_feedback", "message_back_feedbacks")
-	renameTableIfExists("help_eligible", "help_eligibles")
-	renameTableIfExists("user_event_log", "user_event_logs")
-	renameTableIfExists("student_status", "student_statuses")
-	renameTableIfExists("problem_statistic", "problem_statistics")
-
 	execSQL("create table if not exists students (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists teachers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) unique, password VARCHAR(100), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists attendances (id INT AUTO_INCREMENT NOT NULL, student_id INT NOT NULL, attendance_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists tags (id INT AUTO_INCREMENT NOT NULL, topic_description VARCHAR(200) unique, PRIMARY KEY (`id`))")
-	execSQL("create table if not exists problems (id INT AUTO_INCREMENT NOT NULL, teacher_id INT, problem_description text, answer text, filename text, merit INT, effort INT, attempts INT, topic_id INT, tag INT, problem_uploaded_at timestamp, problem_ended_at timestamp, PRIMARY KEY (`id`))")
+	execSQL("create table if not exists problems (id INT AUTO_INCREMENT NOT NULL, teacher_id INT, course_id VARCHAR(50) NOT NULL,problem_description text, answer text, filename text, merit INT, effort INT, attempts INT, topic_id INT, tag INT, problem_uploaded_at timestamp, problem_ended_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists submissions (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, student_id INT NOT NULL, student_code text, snapshot_id INT default 0, submission_category INT, code_submitted_at timestamp, completed timestamp, verdict text, attempt_number INT, answer text, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists scores (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, student_id INT, teacher_id INT, score INT, graded_submission_number INT, score_given_at timestamp, unique(problem_id,student_id), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists feedbacks (id INT AUTO_INCREMENT NOT NULL, teacher_id INT, student_id INT, feedback text, feedback_given_at timestamp, submission_id INT, PRIMARY KEY (`id`))")
@@ -74,14 +39,10 @@ func create_tables() {
 	execSQL("create table if not exists student_statuses (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, coding_stat VARCHAR(50), help_stat VARCHAR(50), submission_stat VARCHAR(50), tutoring_stat VARCHAR(50), last_updated_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists problem_statistics (id INT AUTO_INCREMENT NOT NULL, problem_id INT not null, active INT default 0, submission INT default 0, help_request INT default 0, graded_correct INT default 0, graded_incorrect INT default 0, PRIMARY KEY (`id`))")
 	execSQL("CREATE TABLE IF NOT EXISTS global_maps ( id INT AUTO_INCREMENT NOT NULL,     teacher_map TEXT NOT NULL,  teacher_pass TEXT NOT NULL,  teacher_name_to_id TEXT NOT NULL,    teacher_id_to_name TEXT NOT NULL,    students TEXT NOT NULL,     bulletin_board TEXT NOT NULL,     working_subs TEXT NOT NULL,    submissions TEXT NOT NULL,    working_help_subs TEXT NOT NULL,  help_submissions TEXT NOT NULL,    active_problems TEXT NOT NULL,    help_eligible_students TEXT NOT NULL,     seen_help_submissions TEXT NOT NULL, snapshots TEXT NOT NULL,   student_snapshot TEXT NOT NULL,   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,     PRIMARY KEY (id));")
+	execSQL("CREATE TABLE IF NOT EXISTS courses ( id INT AUTO_INCREMENT PRIMARY KEY, course_id VARCHAR(50) NOT NULL, course_name VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
+	execSQL("CREATE TABLE IF NOT EXISTS student_classes ( id INT AUTO_INCREMENT PRIMARY KEY, student_id INT NOT NULL, course_id VARCHAR(50) NOT NULL);")
+	execSQL("CREATE TABLE IF NOT EXISTS teacher_classes ( id INT AUTO_INCREMENT PRIMARY KEY, teacher_id INT NOT NULL, course_id VARCHAR(50) NOT NULL);")
 	// foreign key example: http://www.sqlitetutorial.net/sqlite-foreign-key/
-}
-
-func checkIfTableExists(tableName string) bool {
-	var count int
-	query := fmt.Sprintf("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '%s'", tableName)
-	models.DB.Raw(query).Scan(&count)
-	return count > 0
 }
 
 // -----------------------------------------------------------------
@@ -294,7 +255,7 @@ func LoadAndAuthorizeStudent(studentID int, password string) bool {
 }
 
 // -----------------------------------------------------------------
-func LoadTeachers() {
+func LoadTeachers() ([]string, error) {
 	teachers, err := GetAllTeachers()
 	if err != nil {
 		log.Fatalf("Error loading teachers: %v", err)
@@ -307,5 +268,27 @@ func LoadTeachers() {
 		models.TeacherIdToName[teacher.ID] = teacher.Name
 	}
 
+	classes, err := GetAllTeacherClasses()
+	for _, class := range classes {
+		models.TeacherClassesMap[class.TeacherID] = append(models.TeacherClassesMap[class.TeacherID], class.CourseID)
+	}
+	courseSet := make(map[string]struct{})
+
+	for _, class := range classes {
+		courseSet[class.CourseID] = struct{}{} // Store unique course IDs
+	}
+
+	// Convert map keys to a slice
+	var uniqueCourses []string
+	for course := range courseSet {
+		uniqueCourses = append(uniqueCourses, course)
+	}
+
+	studentClasses, err := GetAllStudentClasses()
+	for _, class := range studentClasses {
+		models.StudentClassesMap[class.StudentID] = append(models.StudentClassesMap[class.StudentID], class.CourseID)
+	}
+
 	models.Passcode = models.RandStringRunes(20)
+	return uniqueCourses, nil
 }

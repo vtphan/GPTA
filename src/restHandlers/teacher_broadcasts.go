@@ -95,6 +95,23 @@ func TeacherBroadcastsHandler(w http.ResponseWriter, r *http.Request, who string
 	models.BoardsSem.Lock()
 	defer models.BoardsSem.Unlock()
 	for student_id, _ := range models.Students {
+		studentCourses, exists := models.StudentClassesMap[student_id]
+		if !exists {
+			continue // Skip students who are not mapped to any course
+		}
+
+		// Check if the student is mapped to models.CourseId
+		isEnrolled := false
+		for _, course := range studentCourses {
+			if course == models.CourseId {
+				isEnrolled = true
+				break
+			}
+		}
+
+		if !isEnrolled {
+			continue // Skip students not enrolled in the current course
+		}
 		b := &models.Board{
 			Content:      problem.Description,
 			Answer:       problem.Answer,

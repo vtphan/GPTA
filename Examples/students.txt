@@ -1,3 +1,7 @@
-student1
-student2
-student3
+student1c1 , 101
+student2c1 , 101
+student3c1, 101
+student1c2, 102
+student2c2, 102
+student1c3, 103
+

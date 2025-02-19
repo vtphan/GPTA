@@ -1084,22 +1084,50 @@ input:checked + .slider:before {
 }
 
 .drawer {
-  display: none;
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 350px;
-  height: 100%;
-  background-color: #f4f4f4;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
-  padding: 20px;
-  z-index: 1000;
-  transition: transform 0.3s ease;
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 350px;
+    height: 100%;
+    background-color: #f4f4f4;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
 }
 
 .drawer.open {
-  display: block;
-  transform: translateX(0);
+    display: block;
+    transform: translateX(0);
+}
+
+h4 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.logout-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
 }
 
 .drawer-content {
@@ -1108,16 +1136,27 @@ input:checked + .slider:before {
 
 .settings-button {
   position: fixed;
-  top: 10px;
-  right: 10px;
+  top: 20px; /* Adjust as needed */
+  right: 20px; /* Adjust as needed */
   background-color: #2196F3;
   color: white;
   border: none;
-  padding: 10px;
+  padding: 12px;
   border-radius: 50%;
   cursor: pointer;
   font-size: 18px;
   z-index: 1100;
+  width: 45px; /* Ensuring button size is appropriate */
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+
+.settings-button:hover {
+  background-color: #1976D2;
 }
 
 </style>
@@ -1169,19 +1208,54 @@ input:checked + .slider:before {
 
 		<div class="drawer" id="settings-drawer" style="font-family: Arial, sans-serif; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
 
-        <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;">Settings</h3>
-      
-        
-        <button class="button is-primary" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top: 3px; display: flex; align-items: center;">
-            Enable Custom Prompt
-            <label class="switch" style="margin-left: 10px;">
-                <input id="custom_prompt_toggle" type="checkbox">
-                <span class="slider round"></span>
-            </label>
-        </button>
-   
-</div>
+    <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;">Settings</h3>
 
+    
+
+
+	<div>
+        <h4>Add Course</h4>
+        <input type="text" id="course-name" class="input" placeholder="Enter Course Name">
+		 <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
+        <button class="button is-success" id="add-course-btn">Add Course</button>
+    </div>
+
+    <hr>
+
+	<div>
+        <h4>Add Teacher to Course</h4>
+        <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
+		<input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
+        <input type="text" id="teacher-course" class="input" placeholder="Enter Course ID">
+        <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+    </div>
+
+	 <hr>
+
+<div>
+        <h4>Add Student to Course</h4>
+        <input type="text" id="student-name" class="input" placeholder="Enter Student Name">
+        <input type="text" id="student-course" class="input" placeholder="Enter Course ID">
+        <button class="button is-info" id="add-student-btn">Add Student</button>
+    </div>
+
+    <hr>
+
+<button class="button is-primary" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top: 3px; display: flex; align-items: center;">
+        Enable Custom Prompt
+        <label class="switch" style="margin-left: 10px;">
+            <input id="custom_prompt_toggle" type="checkbox">
+            <span class="slider round"></span>
+        </label>
+    </button>
+
+    <hr style="margin: 15px 0;">
+
+    <button class="button is-danger" id="logout-button" style="width: 100%; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i> Logout
+    </button>
+
+</div>
 		<button class="settings-button" id="settings-button">
 			<i class="fas fa-cogs"></i>
 		</button>
@@ -1222,6 +1296,123 @@ $(document).ready(function(){
 	$('#settings-button').click(function(){
 		$('#settings-drawer').toggleClass('open');
 	});
+	$('#logout-button').click(function(){
+        if (confirm("Are you sure you want to logout?")) {
+        window.location.href = "/logout"; 
+    }
+    });
+	$('#add-course-btn').click(function(){
+    let courseName = $('#course-name').val().trim();
+    let courseID = $('#course-id').val().trim();
+
+    if (courseName === "" || courseID === "") {
+        alert("Please enter both Course Name and Course ID.");
+        return;
+    }
+
+    $.ajax({
+        url: "/add_course",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({
+            course_name: courseName,
+            course_id: courseID
+        }),
+        success: function(response) {
+            if (response && response.message) {
+                alert(response.message); // Show success message
+                
+                // Clear input fields
+                $('#course-name').val('');
+                $('#course-id').val('');
+            } else {
+                alert("Unexpected response format.");
+            }
+        },
+        error: function(xhr) {
+            alert("Error: " + xhr.responseText);
+        }
+    });
+});
+
+
+	// Add Teacher to Course
+    $('#add-teacher-btn').click(function(){
+    let teacherName = $('#teacher-name').val().trim();
+    let teacherPass = $('#teacher-pass').val().trim();
+    let courseID = $('#teacher-course').val().trim();
+
+    if (teacherName === "" || teacherPass === "" || courseID === "") {
+        alert("Please enter Teacher Name, Password, and Course ID.");
+        return;
+    }
+
+    $.ajax({
+        url: "/add_teacher",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",  // Ensure response is treated as JSON
+        data: JSON.stringify({ 
+            teacher_name: teacherName, 
+            teacher_pass: teacherPass, 
+            course_id: courseID 
+        }),
+        success: function(response) {
+            if (response && response.message) {
+                alert(response.message); // Ensure proper handling of response
+            } else {
+                alert("Teacher added successfully, but response is missing data.");
+            }
+
+            // Clear input fields after successful addition
+            $('#teacher-name').val('');
+            $('#teacher-pass').val('');
+            $('#teacher-course').val('');
+        },
+        error: function(xhr, status, error) {
+            alert("Failed to add teacher: " + xhr.responseText);
+        }
+    });
+});
+
+
+
+	// Add Student to Course
+    $('#add-student-btn').click(function(){
+    let studentName = $('#student-name').val().trim();
+    let courseID = $('#student-course').val().trim();
+
+    if (studentName === "" || courseID === "") {
+        alert("Please enter both Student Name and Course ID.");
+        return;
+    }
+
+    $.ajax({
+        url: "/add_student",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",  // Ensure response is treated as JSON
+        data: JSON.stringify({ 
+            student_name: studentName, 
+            course_id: courseID 
+        }),
+        success: function(response) {
+            if (response && response.message) {
+                alert(response.message); // Ensure proper handling of response
+            } else {
+                alert("Student added successfully, but response is missing data.");
+            }
+
+            // Clear input fields after successful addition
+            $('#student-name').val('');
+            $('#student-course').val('');
+        },
+        error: function(xhr, status, error) {
+            alert("Failed to add student: " + xhr.responseText);
+        }
+    });
+});
 
 	// Peer tutoring functionality (unchanged)
 	{{if eq .PeerTutorAllowed true}}$('#peer_tutoring_button').prop('checked', true);{{end}}
@@ -1452,7 +1643,7 @@ var TEACHER_LOGIN = `
       .login-box .field {
         margin-bottom: 20px;
       }
-      .login-box input {
+      .login-box input, .login-box select {
         border-radius: 25px;
         padding: 10px 20px;
       }
@@ -1468,20 +1659,6 @@ var TEACHER_LOGIN = `
         background: #2575fc;
         transform: translateY(-2px);
       }
-      .forgot-password {
-        display: block;
-        margin-top: 10px;
-        font-size: 0.9rem;
-        color: #6a11cb;
-        text-decoration: none;
-      }
-      .forgot-password:hover {
-        text-decoration: underline;
-      }
-      .illustration {
-        max-width: 100px;
-        margin: 0 auto 20px;
-      }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   </head>
@@ -1491,54 +1668,57 @@ var TEACHER_LOGIN = `
       <p class="subtitle">Sign in to manage your classes</p>
       <div class="field">
         <p class="control has-icons-left">
-          <input
-            id="name"
-            class="input is-medium"
-            type="email"
-            placeholder="Enter your email"
-          />
-          <span class="icon is-left">
-            <i class="fas fa-envelope"></i>
-          </span>
+          <input id="name" class="input is-medium" type="email" placeholder="Enter your email" />
+          <span class="icon is-left"><i class="fas fa-envelope"></i></span>
         </p>
       </div>
       <div class="field">
         <p class="control has-icons-left">
-          <input
-            id="password"
-            class="input is-medium"
-            type="password"
-            placeholder="Enter your password"
-          />
-          <span class="icon is-left">
-            <i class="fas fa-lock"></i>
-          </span>
+          <input id="password" class="input is-medium" type="password" placeholder="Enter your password" />
+          <span class="icon is-left"><i class="fas fa-lock"></i></span>
+        </p>
+      </div>
+      <div class="field">
+        <p class="control">
+          <div class="select is-medium is-fullwidth">
+            <select id="course">
+              <option value="">Select a Course</option>
+            </select>
+          </div>
         </p>
       </div>
       <button id="login" class="button is-medium">Login</button>
-      <a href="#" class="forgot-password">Forgot your password?</a>
     </div>
     <script>
       $(document).ready(function () {
+  $.get("/get_courses", function (data) {
+    data.forEach(course => {
+      // Correct the field names to match the API response
+      $("#course").append(new Option(course.CourseName, course.CourseID));
+    });
+  });
+
         $('#login').click(function () {
           var name = $('#name').val().trim();
           var pass = $('#password').val().trim();
-          if (name == '' || pass == '') {
-            alert('Please enter both email and password!');
+          var courseID = $('#course').val();
+          if (name == '' || pass == '' || courseID == '') {
+            alert('Please enter email, password, and select a course!');
           } else {
-            $.post(
-              '/teacher_signin_complete',
-              { username: name, password: pass },
-              function (data, status) {
-                if (status == 'success') {
-                  window.location.replace(
-                    '/view_exercises?role=teacher&uid=' + data
-                  );
-                } else {
-                  alert('Unauthorized access');
-                }
-              }
-            );
+            $.post('/teacher_signin_complete', { username: name, password: pass, course_id: courseID })
+    .done(function (data) {
+        // Successful login: Redirect user
+        window.location.replace('/view_exercises?role=teacher&uid=' + data + '&course_id=' + courseID);
+    })
+    .fail(function (xhr) {
+        // Handle authentication errors
+        if (xhr.status === 401) {
+            alert("Unauthorized: Invalid username or password or course");
+        } else {
+            alert("Login failed. Please try again.");
+        }
+    });
+
           }
         });
       });

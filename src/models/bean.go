@@ -17,6 +17,7 @@ type Teacher struct {
 type Problem struct {
 	ID                 int `gorm:"primaryKey;autoIncrement"`
 	TeacherID          int
+	CourseID           string
 	ProblemDescription string `gorm:"type:text"`
 	Answer             string `gorm:"type:text"`
 	Filename           string
@@ -184,4 +185,23 @@ type SnapshotFeedback struct {
 	AuthorID   int
 	AuthorRole string `gorm:"size:50"`
 	GivenAt    time.Time
+}
+
+type Course struct {
+	ID         int       `gorm:"primaryKey"`
+	CourseID   string    `gorm:"size:50;not null"`
+	CourseName string    `gorm:"size:255;not null"`
+	CreatedAt  time.Time `gorm:"autoCreateTime"`
+}
+
+type StudentClass struct {
+	ID        int    `gorm:"primaryKey;autoIncrement"`
+	StudentID int    `gorm:"not null"`
+	CourseID  string `gorm:"not null"`
+}
+
+type TeacherClass struct {
+	ID        int    `gorm:"primaryKey;autoIncrement"`
+	TeacherID int    `gorm:"not null"`
+	CourseID  string `gorm:"not null"`
 }

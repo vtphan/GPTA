@@ -31,12 +31,43 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 func TeacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("username")
 	password := r.FormValue("password")
+	courseID := r.FormValue("course_id") // Get course_id from request
 	expectedPass, ok := models.TeacherPass[name]
 	if !ok || expectedPass != password {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
+	teacherId, ok := models.TeacherNameToId[name]
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if teacherCourses, exists := models.TeacherClassesMap[teacherId]; !exists {
+		// Teacher is not mapped to any courses
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else {
+		// Check if the course_id exists in the teacherCourses slice
+		isAuthorized := false
+		for _, course := range teacherCourses {
+			if course == courseID {
+				isAuthorized = true
+				break
+			}
+		}
+
+		if !isAuthorized {
+			// Teacher is not authorized for this course
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+	// Store the selected course ID
+	models.CourseId = courseID
+
+	// Create session token
 	sessionToken := uuid.NewString()
 	expiresAt := time.Now().Add(3 * time.Hour)
 
@@ -50,7 +81,6 @@ func TeacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		Expires: expiresAt,
 	})
 	fmt.Fprintf(w, "%d", models.TeacherNameToId[name])
-	// http.Redirect(w, r, "view_exercises?role=teacher", http.StatusFound)
 }
 
 func TeacherSigninHandler(w http.ResponseWriter, r *http.Request) {
