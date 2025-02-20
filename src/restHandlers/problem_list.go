@@ -36,15 +36,32 @@ func ProblemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	role := r.FormValue("role")
 	password := r.FormValue("password")
 
-	// todo - Fetch problems using the GetProblems function
+	var problemsFromDB []models.Problem
+	var err error
+
+	if role == "student" {
+		courseId := r.FormValue("course_id")
+		if courseId == "" {
+			http.Error(w, "Missing course_id parameter", http.StatusBadRequest)
+			return
+		}
+
+		problemsFromDB, err = repository.GetProblems(courseId)
+		if err != nil {
+			http.Error(w, "Failed to fetch problems", http.StatusInternalServerError)
+			log.Printf("Error fetching problems for student: %v", err)
+			return
+		}
+	}
+
 	if role == "teacher" {
-
+		problemsFromDB, err = repository.GetProblems(models.CourseId) // Adjust based on actual implementation
+		if err != nil {
+			http.Error(w, "Failed to fetch problems", http.StatusInternalServerError)
+			log.Printf("Error fetching problems for teacher: %v", err)
+			return
+		}
 	}
-	problemsFromDB, err := repository.GetProblems(models.CourseId) //todo, get problems on basis of role
-	if err != nil {
-		log.Fatalf("Error fetching problems: %v", err)
-	}
-
 	// Convert database problems to ProblemData format
 	var problems = make([]*ProblemData, 0)
 	for _, problem := range problemsFromDB {
@@ -79,11 +96,12 @@ func ProblemListHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 	temp := template.New("")
 	t, err := temp.Parse(frontEnd.PROBLEM_LIST_TEMPLATE)
 	if err != nil {
-		log.Fatalf("Error parsing template: %v", err)
+		log.Printf("Error parsing template: %v", err)
 	}
 	w.Header().Set("Content-Type", "text/html")
 	if err = t.Execute(w, problemListData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatalf("Error executing template: %v", err)
+		log.Printf("Error executing template: %v", err)
+		return
 	}
 }

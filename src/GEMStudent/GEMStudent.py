@@ -1353,7 +1353,7 @@ class gemsViewExercises(sublime_plugin.ApplicationCommand):
         with open(gemsFILE, "r") as f:
             info = json.loads(f.read())
         p = urllib.parse.urlencode(
-            {"password": info["Password"], "uid": info["Uid"], "role": "student"}
+            {"password": info["Password"], "uid": info["Uid"], "role": "student", "course_id": info["CourseId"]}
         )
         webbrowser.open(gemsSERVER + "/view_exercises?" + p)
 
