@@ -1,4 +1,12 @@
-Instructor, 123456 , 101
-Instructor2 ,123456, 102
-Instructor3 ,123456 ,103
+COURSE: S2025_COMP7712_01
+Deepak Venugopal, 123456
+Varsile Rus, 123456
+
+COURSE: S2025_COMP7712_02
+Max Garzon, 123456
+
+COURSE: S2025_COMP7712_03
+Varsile Rus, 123456
+
+
 

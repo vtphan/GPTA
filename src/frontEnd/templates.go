@@ -1210,7 +1210,6 @@ button {
 
 	<div>
         <h4>Add Course</h4>
-        <input type="text" id="course-name" class="input" placeholder="Enter Course Name">
 		 <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
         <button class="button is-success" id="add-course-btn">Add Course</button>
     </div>
@@ -1308,11 +1307,10 @@ $(document).ready(function(){
     }
     });
 	$('#add-course-btn').click(function(){
-    let courseName = $('#course-name').val().trim();
     let courseID = $('#course-id').val().trim();
 
-    if (courseName === "" || courseID === "") {
-        alert("Please enter both Course Name and Course ID.");
+    if (courseID === "") {
+        alert("Please enter Course ID.");
         return;
     }
 
@@ -1321,16 +1319,12 @@ $(document).ready(function(){
         type: "POST",
         contentType: "application/json",
         dataType: "json",
-        data: JSON.stringify({
-            course_name: courseName,
-            course_id: courseID
-        }),
+        data: JSON.stringify({ course_id: courseID }),
         success: function(response) {
             if (response && response.message) {
                 alert(response.message); // Show success message
                 
-                // Clear input fields
-                $('#course-name').val('');
+                // Clear input field
                 $('#course-id').val('');
             } else {
                 alert("Unexpected response format.");
@@ -1699,10 +1693,9 @@ var TEACHER_LOGIN = `
       $(document).ready(function () {
   $.get("/get_courses", function (data) {
     data.forEach(course => {
-      // Correct the field names to match the API response
-      $("#course").append(new Option(course.CourseName, course.CourseID));
+        $("#course").append(new Option(course.CourseID, course.CourseID));
     });
-  });
+});
 
         $('#login').click(function () {
           var name = $('#name').val().trim();

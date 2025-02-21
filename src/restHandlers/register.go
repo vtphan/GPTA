@@ -17,24 +17,23 @@ import (
 // -----------------------------------------------------------------
 // Function to create a course
 
-func AddCourse(courseID, courseName string) error {
+func AddCourse(courseID string) error {
 	// Check if the course already exists
 	var existing models.Course
 	err := models.DB.Where("course_id = ?", courseID).First(&existing).Error
 	if err == nil {
-		fmt.Printf("Course %s (%s) already exists.\n", courseID, courseName)
+		fmt.Printf("Course %s (%s) already exists.\n", courseID)
 		return errors.New("Course already exists")
 	}
 
 	// If not found, insert the new course
 	course := models.Course{
-		CourseID:   courseID,
-		CourseName: courseName,
+		CourseID: courseID,
 	}
 	if err := models.DB.Create(&course).Error; err != nil {
 		return fmt.Errorf("failed to insert course: %w", err)
 	}
-	fmt.Printf("Course %s (%s) added successfully.\n", courseName, courseID)
+	fmt.Printf("Course %s (%s) added successfully.\n", courseID)
 	return nil
 }
 
@@ -43,15 +42,18 @@ func AddMultipleCourses(courseFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
-			parts := strings.Split(line, ",")
-			courseID := parts[0]
-			courseName := parts[1]
-			_ = AddCourse(courseID, courseName)
+		courseID := strings.TrimSpace(scanner.Text())
+		if courseID != "" {
+			_ = AddCourse(courseID) // Now only passing courseID
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -118,33 +120,31 @@ func AddMultiple(filename, role string) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	var currentCourseID string
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
+		if line == "" {
+			continue
+		}
+
+		// Detect course ID using "COURSE:" prefix
+		if strings.HasPrefix(line, "COURSE:") {
+			currentCourseID = strings.TrimSpace(strings.TrimPrefix(line, "COURSE:"))
+			continue
+		}
+
+		// Process based on role
+		if role == "student" {
+			AddStudent(line, currentCourseID)
+		} else if role == "teacher" {
 			parts := strings.Split(line, ",")
-			name := parts[0]
-			name = strings.TrimSpace(name)
-
-			// Handle teacher
-			if role == "teacher" {
-				if len(parts) < 3 { // Ensure at least name, password, and one course
-					log.Fatal("Invalid teacher data format")
-				}
-				password := parts[1]
-				courses := parts[2:] // Courses start from index 2
-
-				for _, courseID := range courses {
-					AddTeacher(name, password, courseID)
-				}
+			if len(parts) < 2 {
+				log.Fatal("Invalid teacher data format")
 			}
-
-			// Handle student
-			if role == "student" {
-				courses := parts[1:] // Course IDs start from index 1
-				for _, courseID := range courses {
-					AddStudent(name, courseID)
-				}
-			}
+			name := strings.TrimSpace(parts[0])
+			password := strings.TrimSpace(parts[1])
+			AddTeacher(name, password, currentCourseID)
 		}
 	}
 
@@ -282,7 +282,7 @@ func CompleteRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetCoursesHandler(w http.ResponseWriter, r *http.Request) {
 	var courses []models.Course
-	if err := models.DB.Find(&courses).Error; err != nil {
+	if err := models.DB.Select("course_id").Find(&courses).Error; err != nil {
 		http.Error(w, "Failed to fetch courses", http.StatusInternalServerError)
 		return
 	}
@@ -326,6 +326,15 @@ func AddStudentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	studentClasses, err := repository.GetAllStudentClasses()
+	if err != nil {
+		http.Error(w, "Failed to refresh student-course map", http.StatusInternalServerError)
+		return
+	}
+	models.StudentClassesMap = make(map[int][]string)
+	for _, class := range studentClasses {
+		models.StudentClassesMap[class.StudentID] = append(models.StudentClassesMap[class.StudentID], class.CourseID)
+	}
 	// Success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -379,8 +388,7 @@ func AddTeacherHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type AddCourseRequest struct {
-	CourseID   string `json:"course_id"`
-	CourseName string `json:"course_name"`
+	CourseID string `json:"course_id"`
 }
 
 func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
@@ -395,12 +403,12 @@ func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.CourseID == "" || req.CourseName == "" {
-		http.Error(w, "Course ID and Course Name are required", http.StatusBadRequest)
+	if req.CourseID == "" {
+		http.Error(w, "Course ID is required", http.StatusBadRequest)
 		return
 	}
 
-	err := AddCourse(req.CourseID, req.CourseName)
+	err := AddCourse(req.CourseID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error adding course: %v", err), http.StatusInternalServerError)
 		return

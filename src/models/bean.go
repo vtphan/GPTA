@@ -188,10 +188,9 @@ type SnapshotFeedback struct {
 }
 
 type Course struct {
-	ID         int       `gorm:"primaryKey"`
-	CourseID   string    `gorm:"size:50;not null"`
-	CourseName string    `gorm:"size:255;not null"`
-	CreatedAt  time.Time `gorm:"autoCreateTime"`
+	ID        int       `gorm:"primaryKey"`
+	CourseID  string    `gorm:"size:50;not null"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type StudentClass struct {
