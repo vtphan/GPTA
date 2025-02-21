@@ -667,7 +667,7 @@ def gemsRequest(path, data, authenticated=True, method="POST", verbal=True):
             sublime.message_dialog("Please connect to the server first.")
         return None
 
-    if gemsSERVER == "" or time.time() - gemsSERVER_TIME > 5400:
+    if gemsSERVER == "":  # or time.time() - gemsSERVER_TIME > 5400:
         sublime.run_command("gems_connect")
         if gemsSERVER == "":
             sublime.message_dialog(
