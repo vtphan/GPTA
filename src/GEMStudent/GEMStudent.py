@@ -1118,9 +1118,16 @@ class gemsAbout(sublime_plugin.WindowCommand):
     def run(self):
         package_path = os.path.join(sublime.packages_path(), "GEMStudent")
         try:
-            version = open(os.path.join(package_path, "VERSION")).read()
+            versionFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.go")
+            with open(versionFile, "r") as file:
+                content = file.read()
+
+            # Regex to find version number
+            match = re.search(r'const VERSION = "(.*?)"', content)
+            if match:
+                version = match.group(1)
         except:
-            version = 0
+            version = 0.9
         sublime.message_dialog("GEM: Grading and classroom management plugin\nversion: {}".format(version))
 
 
