@@ -47,6 +47,9 @@ var TeacherClassesMap = make(map[int][]string)
 var StudentClassesMap = make(map[int][]string)
 var TeacherNameToId = make(map[string]int)
 var TeacherIdToName = make(map[int]string)
+var AdminPass = map[string]string{
+	"admin": "123456", // Replace with real data
+}
 var Passcode string
 
 //---------------------------------------------------------

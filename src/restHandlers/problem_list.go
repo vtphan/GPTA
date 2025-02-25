@@ -35,6 +35,10 @@ type ProblemListData struct {
 func ProblemListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
 	password := r.FormValue("password")
+	courseId := r.FormValue("course_id")
+	if courseId != "" {
+		models.CourseId = courseId
+	}
 
 	var problemsFromDB []models.Problem
 	var err error

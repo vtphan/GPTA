@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -197,11 +198,11 @@ func AddTeacher(name, password, courseID string) (int, error) {
 	}
 
 	// Associate teacher with courses
-	courseIDInt := strings.TrimSpace(courseID)
+	courseIDStr := strings.TrimSpace(courseID)
 	if err != nil {
 		log.Fatal("Invalid course ID")
 	}
-	err = AddTeacherToCourse(teacher.ID, courseIDInt)
+	err = AddTeacherToCourse(teacher.ID, courseIDStr)
 	if err != nil {
 		return 0, err
 	}
@@ -281,8 +282,17 @@ func CompleteRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetCoursesHandler(w http.ResponseWriter, r *http.Request) {
+	teacherID := r.URL.Query().Get("teacher_id")
+	if teacherID == "" {
+		http.Error(w, "Missing teacher_id", http.StatusBadRequest)
+		return
+	}
+
 	var courses []models.Course
-	if err := models.DB.Select("course_id").Find(&courses).Error; err != nil {
+	if err := models.DB.
+		Joins("JOIN teacher_classes ON teacher_classes.course_id = courses.course_id").
+		Where("teacher_classes.teacher_id = ?", teacherID).
+		Find(&courses).Error; err != nil {
 		http.Error(w, "Failed to fetch courses", http.StatusInternalServerError)
 		return
 	}
@@ -293,15 +303,15 @@ func GetCoursesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func AddStudentHandler(w http.ResponseWriter, r *http.Request) {
+func AddStudentsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req struct {
-		Name     string `json:"student_name"`
-		CourseID string `json:"course_id"`
+		Names    []string `json:"student_names"`
+		CourseID string   `json:"course_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -309,23 +319,29 @@ func AddStudentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trim input values
-	req.Name = strings.TrimSpace(req.Name)
+	// Trim input values and validate
 	req.CourseID = strings.TrimSpace(req.CourseID)
-
-	// Validate required fields
-	if req.Name == "" || req.CourseID == "" {
+	if req.CourseID == "" || len(req.Names) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
-	// Call function to add student
-	err := AddStudent(req.Name, req.CourseID)
-	if err != nil {
-		http.Error(w, "Failed to add student to course", http.StatusInternalServerError)
-		return
+	for i := range req.Names {
+		req.Names[i] = strings.TrimSpace(req.Names[i])
 	}
 
+	// Add each student to the course
+	for _, name := range req.Names {
+		if name == "" {
+			continue
+		}
+		if err := AddStudent(name, req.CourseID); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to add student %s", name), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Refresh student-course map
 	studentClasses, err := repository.GetAllStudentClasses()
 	if err != nil {
 		http.Error(w, "Failed to refresh student-course map", http.StatusInternalServerError)
@@ -335,11 +351,12 @@ func AddStudentHandler(w http.ResponseWriter, r *http.Request) {
 	for _, class := range studentClasses {
 		models.StudentClassesMap[class.StudentID] = append(models.StudentClassesMap[class.StudentID], class.CourseID)
 	}
+
 	// Success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	response := map[string]string{"message": "Student added successfully"}
-	json.NewEncoder(w).Encode(response) // Ensure JSON encoding
+	response := map[string]string{"message": "All students added successfully"}
+	json.NewEncoder(w).Encode(response)
 }
 
 type AddTeacherRequest struct {
@@ -366,7 +383,7 @@ func AddTeacherHandler(w http.ResponseWriter, r *http.Request) {
 	req.CourseID = strings.TrimSpace(req.CourseID)
 
 	// Validate required fields
-	if req.Name == "" || req.Password == "" || req.CourseID == "" {
+	if req.Name == "" || req.Password == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -381,14 +398,17 @@ func AddTeacherHandler(w http.ResponseWriter, r *http.Request) {
 	models.TeacherPass[req.Name] = req.Password
 	models.TeacherNameToId[req.Name] = id
 	models.TeacherIdToName[id] = req.Name
-	models.TeacherClassesMap[id] = append(models.TeacherClassesMap[id], req.CourseID)
+	if req.CourseID != "" {
+		models.TeacherClassesMap[id] = append(models.TeacherClassesMap[id], req.CourseID)
+	}
 	// Success response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Teacher added to course successfully"})
 }
 
 type AddCourseRequest struct {
-	CourseID string `json:"course_id"`
+	CourseID  string `json:"course_id"`
+	TeacherID string `json:"teacher_id"`
 }
 
 func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
@@ -403,14 +423,29 @@ func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.CourseID == "" {
-		http.Error(w, "Course ID is required", http.StatusBadRequest)
+	req.CourseID = strings.TrimSpace(req.CourseID)
+	req.TeacherID = strings.TrimSpace(req.TeacherID)
+
+	if req.CourseID == "" || req.TeacherID == "" {
+		http.Error(w, "Course ID and Teacher ID are required", http.StatusBadRequest)
 		return
 	}
 
 	err := AddCourse(req.CourseID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error adding course: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	teacherID, err := strconv.Atoi(req.TeacherID)
+	if err != nil {
+		http.Error(w, "Invalid Teacher ID format, must be an integer", http.StatusBadRequest)
+		return
+	}
+
+	err = AddTeacherToCourse(teacherID, req.CourseID) // Use TeacherID from request
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error adding teacher to course: %v", err), http.StatusInternalServerError)
 		return
 	}
 

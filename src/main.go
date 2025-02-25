@@ -97,7 +97,10 @@ func init_handlers() {
 	http.HandleFunc("/student_dashboard_submissions", Authorize(restHandlers.StudentDashboardSubmissionHandler, ""))
 	http.HandleFunc("/has_message_feedback", Authorize(restHandlers.HasMessageBackFeedbackHandler, ""))
 	http.HandleFunc("/teacher_signin_complete", restHandlers.TeacherSigninCompleteHandler)
+	http.HandleFunc("/admin_signin", restHandlers.AdminSigninHandler)
+	http.HandleFunc("/admin_dashboard", restHandlers.AdminDashboardHandler)
 	http.HandleFunc("/teacher_signin", restHandlers.TeacherSigninHandler)
+	http.HandleFunc("/teacher_dashboard", restHandlers.TeacherDashboardHandler)
 	http.HandleFunc("/teacher_web_broadcast", Authorize(restHandlers.TeacherWebBroadcastHandler, "teacher"))
 	http.HandleFunc("/student_dashboard_code_snapshot", Authorize(restHandlers.StudentDashboardCodeSpaceHandler, ""))
 	http.HandleFunc("/teacher_exports_point", Authorize(restHandlers.ExportPointsHandler, "teacher"))
@@ -109,7 +112,7 @@ func init_handlers() {
 	http.HandleFunc("/get_courses", restHandlers.GetCoursesHandler)
 	http.HandleFunc("/add_course", restHandlers.AddCourseHandler)
 	http.HandleFunc("/add_teacher", restHandlers.AddTeacherHandler)
-	http.HandleFunc("/add_student", restHandlers.AddStudentHandler)
+	http.HandleFunc("/add_students", restHandlers.AddStudentsHandler)
 	http.HandleFunc("/logout", LogoutHandler)
 }
 

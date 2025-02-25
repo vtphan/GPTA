@@ -1205,33 +1205,22 @@ button {
 
     <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;">Settings</h3>
 
-    
-
-
-	<div>
-        <h4>Add Course</h4>
-		 <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
-        <button class="button is-success" id="add-course-btn">Add Course</button>
-    </div>
-
     <hr>
 
 	<div>
         <h4>Add Teacher to Course</h4>
         <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
 		<input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
-        <input type="text" id="teacher-course" class="input" placeholder="Enter Course ID">
         <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
     </div>
 
 	 <hr>
 
 <div>
-        <h4>Add Student to Course</h4>
-        <input type="text" id="student-name" class="input" placeholder="Enter Student Name">
-        <input type="text" id="student-course" class="input" placeholder="Enter Course ID">
-        <button class="button is-info" id="add-student-btn">Add Student</button>
-    </div>
+    <h4>Add Students to Course</h4>
+    <input id="student-names" class="input" placeholder="Enter Comma Seperated Names">
+    <button class="button is-info" id="add-students-btn">Add Students</button>
+</div>
 
 <hr style="margin: 15px 0;">
 	<button class="button is-primary" id="toggle-peer-tutoring" style="margin-top: 3px; display: flex; align-items: center;">
@@ -1341,10 +1330,11 @@ $(document).ready(function(){
     $('#add-teacher-btn').click(function(){
     let teacherName = $('#teacher-name').val().trim();
     let teacherPass = $('#teacher-pass').val().trim();
-    let courseID = $('#teacher-course').val().trim();
+    let urlParams = new URLSearchParams(window.location.search);
+	let courseId = urlParams.get("course_id");
 
-    if (teacherName === "" || teacherPass === "" || courseID === "") {
-        alert("Please enter Teacher Name, Password, and Course ID.");
+    if (teacherName === "" || teacherPass === "" || !courseId) {
+        alert("Please enter Teacher Name and Password");
         return;
     }
 
@@ -1356,7 +1346,7 @@ $(document).ready(function(){
         data: JSON.stringify({ 
             teacher_name: teacherName, 
             teacher_pass: teacherPass, 
-            course_id: courseID 
+            course_id: courseId
         }),
         success: function(response) {
             if (response && response.message) {
@@ -1368,7 +1358,6 @@ $(document).ready(function(){
             // Clear input fields after successful addition
             $('#teacher-name').val('');
             $('#teacher-pass').val('');
-            $('#teacher-course').val('');
         },
         error: function(xhr, status, error) {
             alert("Failed to add teacher: " + xhr.responseText);
@@ -1379,40 +1368,41 @@ $(document).ready(function(){
 
 
 	// Add Student to Course
-    $('#add-student-btn').click(function(){
-    let studentName = $('#student-name').val().trim();
-    let courseID = $('#student-course').val().trim();
+   $('#add-students-btn').click(function() {
+        let studentNames = $('#student-names').val().trim();
+        let urlParams = new URLSearchParams(window.location.search);
+        let courseID = urlParams.get("course_id");
 
-    if (studentName === "" || courseID === "") {
-        alert("Please enter both Student Name and Course ID.");
-        return;
-    }
-
-    $.ajax({
-        url: "/add_student",
-        type: "POST",
-        contentType: "application/json",
-        dataType: "json",  // Ensure response is treated as JSON
-        data: JSON.stringify({ 
-            student_name: studentName, 
-            course_id: courseID 
-        }),
-        success: function(response) {
-            if (response && response.message) {
-                alert(response.message); // Ensure proper handling of response
-            } else {
-                alert("Student added successfully, but response is missing data.");
-            }
-
-            // Clear input fields after successful addition
-            $('#student-name').val('');
-            $('#student-course').val('');
-        },
-        error: function(xhr, status, error) {
-            alert("Failed to add student: " + xhr.responseText);
+        if (studentNames === "" || courseID === "") {
+            alert("Please enter student names and ensure Course ID is available.");
+            return;
         }
+
+        let studentsArray = studentNames.split(',').map(name => name.trim()).filter(name => name !== "");
+
+        if (studentsArray.length === 0) {
+            alert("Please enter valid student names.");
+            return;
+        }
+
+        $.ajax({
+            url: "/add_students",
+            type: "POST",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ 
+                student_names: studentsArray, 
+                course_id: courseID 
+            }),
+            success: function(response) {
+                alert(response.message || "Students added successfully");
+                $('#student-names').val(''); // Clear input field
+            },
+            error: function(xhr, status, error) {
+                alert("Failed to add students: " + xhr.responseText);
+            }
+        });
     });
-});
 
 	// Peer tutoring functionality (unchanged)
 	{{if eq .PeerTutorAllowed true}}$('#peer_tutoring_button').prop('checked', true);{{end}}
@@ -1595,13 +1585,221 @@ var SUBMISSION_VIEW_TEMPLATE = `
 	</body>
 	</html>
 `
+var TEACHER_DASHBOARD = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      font-family: "Arial", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      position: relative;
+    }
+    .dashboard-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    .dashboard-box .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .logout-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: auto;
+      z-index: 10;
+    }
+    #logout-button {
+      padding: 15px;
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      color: white;
+      border-radius: 30px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+    #logout-button i {
+      margin-right: 10px;
+    }
+    #logout-button:hover {
+      background: linear-gradient(45deg, #c0392b, #e74c3c);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+    #logout-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .select-course-container,
+    .add-course-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .add-course-container input {
+      width: 80%;
+      text-align: center;
+    }
+    .add-course-container button {
+      margin-top: 10px;
+      width: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-box">
+    <h1 class="title">Manage Your Courses</h1>
+
+    <div class="container">
+      <!-- Select Course Section -->
+      <div class="select-course-container">
+        <label class="label">Select Course</label>
+        <div class="select">
+          <select id="course-dropdown">
+            <option value="">Loading courses...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Add Course Section -->
+      <div class="add-course-container">
+  <h4 class="title is-5">Add Course</h4>
+  <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
+  <p class="help is-info">Example: <strong>S2025_COMP7712_01</strong></p>
+  <button class="button is-success" id="add-course-btn">Add Course</button>
+</div>
+
+    <!-- Logout Button -->
+    <div class="logout-container">
+      <button id="logout-button">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const teacherId = urlParams.get('teacher_id');
+
+      if (!teacherId) {
+        alert("Teacher ID missing, redirecting to login.");
+        window.location.replace('/');
+        return;
+      }
+
+      // Fetch courses for the teacher
+      $.get('/get_courses?teacher_id=' + teacherId, function (courses) {
+        let dropdown = $('#course-dropdown');
+        dropdown.empty();
+        dropdown.append('<option value="">Select a course</option>');
+        courses.forEach(course => {
+          dropdown.append('<option value="' + course.CourseID + '">' + course.CourseID + '</option>');
+        });
+      }).fail(function () {
+        alert("Failed to load courses.");
+      });
+
+      // Handle course selection and redirect
+      $('#course-dropdown').change(function () {
+        let courseID = $(this).val();
+        if (courseID) {
+          window.location.replace('/view_exercises?role=teacher&uid=' + teacherId + '&course_id=' + courseID);
+        }
+      });
+
+      // Handle Add Course functionality
+      // Handle Add Course functionality
+$('#add-course-btn').click(function () {
+    let courseID = $('#course-id').val().trim();
+
+    if (courseID === "") {
+        alert("Please enter Course ID.");
+        return;
+    }
+
+    if (!teacherId) {
+        alert("Teacher ID is missing.");
+        return;
+    }
+
+    $.ajax({
+        url: "/add_course",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({ course_id: courseID, teacher_id: teacherId }), // Include teacher_id
+        success: function (response) {
+            if (response && response.message) {
+                alert(response.message); // Show success message
+                $('#course-id').val(''); // Clear input field
+				location.reload();
+            } else {
+                alert("Unexpected response format.");
+            }
+        },
+        error: function (xhr) {
+            alert("Error: " + xhr.responseText);
+        }
+    });
+});
+
+
+      // Logout button functionality
+      $('#logout-button').click(function () {
+        if (confirm("Are you sure you want to logout?")) {
+          window.location.href = "/logout";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+`
+
 var TEACHER_LOGIN = `
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Teacher Login</title>
+    <title>Login</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
       rel="stylesheet"
@@ -1643,7 +1841,7 @@ var TEACHER_LOGIN = `
       .login-box .field {
         margin-bottom: 20px;
       }
-      .login-box input, .login-box select {
+      .login-box input {
         border-radius: 25px;
         padding: 10px 20px;
       }
@@ -1665,59 +1863,90 @@ var TEACHER_LOGIN = `
   <body>
     <div class="login-box">
       <h1 class="title">Welcome Back!</h1>
-      <p class="subtitle">Sign in to manage your classes</p>
+      <p class="subtitle">Sign in to manage your system</p>
       <div class="field">
-        <p class="control has-icons-left">
-          <input id="name" class="input is-medium" type="email" placeholder="Enter your email" />
-          <span class="icon is-left"><i class="fas fa-envelope"></i></span>
-        </p>
+        <label class="checkbox">
+          <input type="checkbox" id="admin-toggle" /> Login as Admin
+        </label>
       </div>
-      <div class="field">
-        <p class="control has-icons-left">
-          <input id="password" class="input is-medium" type="password" placeholder="Enter your password" />
-          <span class="icon is-left"><i class="fas fa-lock"></i></span>
-        </p>
+
+      <!-- Teacher Login Fields -->
+      <div id="teacher-login">
+        <div class="field">
+          <p class="control has-icons-left">
+            <input id="name" class="input is-medium" type="email" placeholder="Enter your username" />
+            <span class="icon is-left"><i class="fas fa-user"></i></span>
+          </p>
+        </div>
+        <div class="field">
+          <p class="control has-icons-left">
+            <input id="password" class="input is-medium" type="password" placeholder="Enter your password" />
+            <span class="icon is-left"><i class="fas fa-lock"></i></span>
+          </p>
+        </div>
       </div>
-      <div class="field">
-        <p class="control">
-          <div class="select is-medium is-fullwidth">
-            <select id="course">
-              <option value="">Select a Course</option>
-            </select>
-          </div>
-        </p>
+
+      <!-- Admin Login Fields -->
+      <div id="admin-login" style="display: none;">
+        <div class="field">
+          <p class="control has-icons-left">
+            <input id="admin-username" class="input is-medium" type="text" placeholder="Enter your username" />
+            <span class="icon is-left"><i class="fas fa-user"></i></span>
+          </p>
+        </div>
+        <div class="field">
+          <p class="control has-icons-left">
+            <input id="admin-password" class="input is-medium" type="password" placeholder="Enter your password" />
+            <span class="icon is-left"><i class="fas fa-lock"></i></span>
+          </p>
+        </div>
       </div>
+
       <button id="login" class="button is-medium">Login</button>
     </div>
+
     <script>
       $(document).ready(function () {
-  $.get("/get_courses", function (data) {
-    data.forEach(course => {
-        $("#course").append(new Option(course.CourseID, course.CourseID));
-    });
-});
+        // Toggle between Teacher and Admin login
+        $('#admin-toggle').change(function () {
+          if (this.checked) {
+            $('#teacher-login').hide();
+            $('#admin-login').show();
+          } else {
+            $('#teacher-login').show();
+            $('#admin-login').hide();
+          }
+        });
 
         $('#login').click(function () {
-          var name = $('#name').val().trim();
-          var pass = $('#password').val().trim();
-          var courseID = $('#course').val();
-          if (name == '' || pass == '' || courseID == '') {
-            alert('Please enter email, password, and select a course!');
+          if ($('#admin-toggle').is(':checked')) {
+            var adminUsername = $('#admin-username').val().trim();
+            var adminPassword = $('#admin-password').val().trim();
+            if (adminUsername == '' || adminPassword == '') {
+              alert('Please enter username and password!');
+            } else {
+              $.post('/admin_signin', { username: adminUsername, password: adminPassword })
+                .done(function (data) {
+                  window.location.replace('/admin_dashboard');
+                })
+                .fail(function (xhr) {
+                  alert("Login failed. Please try again.");
+                });
+            }
           } else {
-            $.post('/teacher_signin_complete', { username: name, password: pass, course_id: courseID })
-    .done(function (data) {
-        // Successful login: Redirect user
-        window.location.replace('/view_exercises?role=teacher&uid=' + data + '&course_id=' + courseID);
-    })
-    .fail(function (xhr) {
-        // Handle authentication errors
-        if (xhr.status === 401) {
-            alert("Unauthorized: Invalid username or password or course");
-        } else {
-            alert("Login failed. Please try again.");
-        }
-    });
-
+            var name = $('#name').val().trim();
+            var pass = $('#password').val().trim();
+            if (name == '' || pass == '') {
+              alert('Please enter email and password!');
+            } else {
+              $.post('/teacher_signin_complete', { username: name, password: pass })
+                .done(function (data) {
+                  window.location.replace('/teacher_dashboard?teacher_id=' + data);
+                })
+                .fail(function (xhr) {
+                  alert("Login failed. Please try again.");
+                });
+            }
           }
         });
       });
@@ -1725,6 +1954,161 @@ var TEACHER_LOGIN = `
   </body>
 </html>
 `
+
+var ADMIN_DASHBOARD = `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Dashboard</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+      body {
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        font-family: "Arial", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        position: relative;
+      }
+      .dashboard-box {
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      .dashboard-box .title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .logout-container {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: auto;
+        z-index: 10;
+      }
+      #logout-button {
+        padding: 15px;
+        background: linear-gradient(45deg, #e74c3c, #c0392b);
+        color: white;
+        border-radius: 30px;
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+      #logout-button i {
+        margin-right: 10px;
+      }
+      #logout-button:hover {
+        background: linear-gradient(45deg, #c0392b, #e74c3c);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      }
+      #logout-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      .add-teacher-container {
+        margin-top: 30px;
+      }
+      .add-teacher-container input {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-box">
+      <h1 class="title">Add Teacher</h1>
+
+      <!-- Add Teacher Form -->
+      <div class="add-teacher-container">
+        <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
+        <input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
+        <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+      </div>
+
+      <!-- Logout Button -->
+      <div class="logout-container">
+        <button id="logout-button">
+          <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i> Logout
+        </button>
+      </div>
+    </div>
+
+    <script>
+      $(document).ready(function () {
+        // Logout button functionality
+        $('#logout-button').click(function () {
+          if (confirm("Are you sure you want to logout?")) {
+            window.location.href = "/logout";
+          }
+        });
+
+        // Add Teacher button functionality
+        $('#add-teacher-btn').click(function () {
+          let teacherName = $('#teacher-name').val().trim();
+          let teacherPass = $('#teacher-pass').val().trim();
+
+          if (teacherName === "" || teacherPass === "") {
+            alert("Please enter Teacher Name and Password.");
+            return;
+          }
+
+          $.ajax({
+            url: "/add_teacher",
+            type: "POST",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ 
+              teacher_name: teacherName, 
+              teacher_pass: teacherPass
+            }),
+            success: function (response) {
+              if (response && response.message) {
+                alert(response.message);
+              } else {
+                alert("Teacher added successfully, but response is missing data.");
+              }
+
+              // Clear input fields after successful addition
+              $('#teacher-name').val('');
+              $('#teacher-pass').val('');
+            },
+            error: function (xhr, status, error) {
+              alert("Failed to add teacher: " + xhr.responseText);
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
+`
+
 var PROBLEM_FILE_UPLOAD_VIEW = `
 <!DOCTYPE html>
 <html lang="en">
