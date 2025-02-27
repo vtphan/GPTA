@@ -53,7 +53,7 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 			correct_answer = models.ActiveProblems[filename].Info.Answer
 			decision := ""
 			repository.AddOrUpdateStudentStatus(uid, pid, "", "", "submitted", "")
-			if answer != "" {
+			if answer != "" && correct_answer != "" {
 				scoring_mesg := ""
 				if correct_answer == answer {
 					decision = "correct"
