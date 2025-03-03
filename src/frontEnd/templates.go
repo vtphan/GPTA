@@ -1208,7 +1208,7 @@ button {
     <hr>
 
 	<div>
-        <h4>Add Teacher to Course</h4>
+        <h4>Add TA to Course</h4>
         <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
 		<input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
         <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
@@ -1235,15 +1235,6 @@ button {
 
     <hr>
 
-<button class="button is-primary" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top: 3px; display: flex; align-items: center;">
-        Custom Prompt
-        <label class="switch" style="margin-left: 10px;">
-            <input id="custom_prompt_toggle" type="checkbox">
-            <span class="slider round"></span>
-        </label>
-    </button>
-
-    <hr style="margin: 15px 0;">
 
     <button class="button is-danger" id="logout-button" style="width: 100%; display: flex; align-items: center; justify-content: center;">
         <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i> Logout
@@ -1288,7 +1279,9 @@ button {
 $(document).ready(function(){
 	// Toggling the drawer visibility
 	$('#settings-button').click(function(){
-		$('#settings-drawer').toggleClass('open');
+			let urlParams = new URLSearchParams(window.location.search);
+			let courseID = urlParams.get("course_id");
+		  window.location.href = "/settings_view?course_id=" + courseID;
 	});
 	$('#logout-button').click(function(){
         if (confirm("Are you sure you want to logout?")) {
@@ -1326,7 +1319,7 @@ $(document).ready(function(){
 });
 
 
-	// Add Teacher to Course
+	// Add TA to Course
     $('#add-teacher-btn').click(function(){
     let teacherName = $('#teacher-name').val().trim();
     let teacherPass = $('#teacher-pass').val().trim();
@@ -1703,6 +1696,8 @@ var TEACHER_DASHBOARD = `
   <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
   <p class="help is-info">Example: <strong>S2025_COMP7712_01</strong></p>
   <button class="button is-success" id="add-course-btn">Add Course</button>
+
+
 </div>
 
     <!-- Logout Button -->
@@ -1793,6 +1788,293 @@ $('#add-course-btn').click(function () {
 </html>
 `
 
+var SETTINGS_VIEW = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      font-family: "Arial", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      position: relative;
+    }
+    .dashboard-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    .dashboard-box .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .logout-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: auto;
+      z-index: 10;
+    }
+    #logout-button {
+      padding: 15px;
+      background: linear-gradient(45deg, #f56a79, #ff4757);
+      color: white;
+      border-radius: 30px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+    #logout-button i {
+      margin-right: 10px;
+    }
+    #logout-button:hover {
+      background: linear-gradient(45deg, #ff4757, #f56a79);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+    #logout-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .drawer {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .drawer h3 {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 50px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      border-radius: 50px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+    }
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+    input:checked + .slider:before {
+      transform: translateX(14px);
+    }
+    .input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px 0;
+    }
+    .button {
+      margin-top: 10px;
+    }
+    .button.is-primary, .button.is-info, .button.is-danger {
+      width: 100%;
+    }
+    .button.is-primary {
+      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+    }
+    .button.is-primary:hover {
+      background: linear-gradient(45deg, #2575fc, #6a11cb);
+    }
+    .button.is-info {
+      background: linear-gradient(45deg, #1e90ff, #00bcd4);
+      color: white;
+      border: none;
+    }
+    .button.is-info:hover {
+      background: linear-gradient(45deg, #00bcd4, #1e90ff);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-box">
+    <h1 class="title">Course Settings</h1>
+	
+
+    <div class="drawer" id="settings-drawer">
+      <div>
+        <h4>Add TA to Course</h4>
+        <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
+        <input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
+        <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+      </div>
+
+      <div>
+        <h4>Add Students to Course</h4>
+        <input id="student-names" class="input" placeholder="Enter Comma Separated Names">
+        <button class="button is-primary" id="add-students-btn">Add Students</button>
+      </div>
+
+      <div>
+        <button class="button is-primary" id="toggle-peer-tutoring">
+          Peer Tutoring
+          <label class="switch" style="margin-left: 10px;">
+            <input id="peer_tutoring_button" type="checkbox">
+            <span class="slider round"></span>
+          </label>
+        </button>
+      </div>
+
+      <div>
+        <button class="button is-danger" id="logout-button">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      // Logout functionality
+      $('#logout-button').click(function () {
+        if (confirm("Are you sure you want to logout?")) {
+          window.location.href = "/logout";
+        }
+      });
+
+      // Add TA to Course
+      $('#add-teacher-btn').click(function(){
+        let teacherName = $('#teacher-name').val().trim();
+        let teacherPass = $('#teacher-pass').val().trim();
+        let urlParams = new URLSearchParams(window.location.search);
+        let courseId = urlParams.get("course_id");
+
+        if (teacherName === "" || teacherPass === "" || !courseId) {
+            alert("Please enter Teacher Name and Password");
+            return;
+        }
+
+        $.ajax({
+            url: "/add_teacher",
+            type: "POST",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ 
+                teacher_name: teacherName, 
+                teacher_pass: teacherPass, 
+                course_id: courseId
+            }),
+            success: function(response) {
+                alert(response.message || "Teacher added successfully");
+                $('#teacher-name').val('');
+                $('#teacher-pass').val('');
+            },
+            error: function(xhr, status, error) {
+                alert("Failed to add teacher: " + xhr.responseText);
+            }
+        });
+      });
+
+      // Add Student to Course
+      $('#add-students-btn').click(function() {
+        let studentNames = $('#student-names').val().trim();
+        let urlParams = new URLSearchParams(window.location.search);
+        let courseID = urlParams.get("course_id");
+
+        if (studentNames === "" || courseID === "") {
+            alert("Please enter student names and ensure Course ID is available.");
+            return;
+        }
+
+        let studentsArray = studentNames.split(',').map(name => name.trim()).filter(name => name !== "");
+
+        if (studentsArray.length === 0) {
+            alert("Please enter valid student names.");
+            return;
+        }
+
+        $.ajax({
+            url: "/add_students",
+            type: "POST",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ 
+                student_names: studentsArray, 
+                course_id: courseID 
+            }),
+            success: function(response) {
+                alert(response.message || "Students added successfully");
+                $('#student-names').val(''); // Clear input field
+            },
+            error: function(xhr, status, error) {
+                alert("Failed to add students: " + xhr.responseText);
+            }
+        });
+      });
+
+      // Toggle Peer Tutoring functionality
+      $('#peer_tutoring_button').change(function () {
+        if ($(this).prop('checked')) {
+          alert("Peer Tutoring Enabled.");
+        } else {
+          alert("Peer Tutoring Disabled.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+`
 var TEACHER_LOGIN = `
 <!DOCTYPE html>
 <html lang="en">
