@@ -118,9 +118,9 @@ func TeacherSigninHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func TeacherDashboardHandler(w http.ResponseWriter, r *http.Request) {
+func SettingsViewHandler(w http.ResponseWriter, r *http.Request) {
 	temp := template.New("")
-	t, err := temp.Parse(frontEnd.TEACHER_DASHBOARD)
+	t, err := temp.Parse(frontEnd.SETTINGS_VIEW)
 	if err != nil {
 		log.Fatal(err)
 	}

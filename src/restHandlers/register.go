@@ -403,7 +403,7 @@ func AddTeacherHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Success response
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Teacher added to course successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Teacher added successfully"})
 }
 
 type AddCourseRequest struct {

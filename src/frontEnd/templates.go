@@ -1281,7 +1281,8 @@ $(document).ready(function(){
 	$('#settings-button').click(function(){
 			let urlParams = new URLSearchParams(window.location.search);
 			let courseID = urlParams.get("course_id");
-		  window.location.href = "/settings_view?course_id=" + courseID;
+			let teacherID = urlParams.get("uid");
+		  window.location.href = "/settings_view?course_id=" + courseID + "&teacher_id=" + teacherID;
 	});
 	$('#logout-button').click(function(){
         if (confirm("Are you sure you want to logout?")) {
@@ -1578,215 +1579,6 @@ var SUBMISSION_VIEW_TEMPLATE = `
 	</body>
 	</html>
 `
-var TEACHER_DASHBOARD = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <style>
-    body {
-      background: linear-gradient(135deg, #6a11cb, #2575fc);
-      font-family: "Arial", sans-serif;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 0;
-      position: relative;
-    }
-    .dashboard-box {
-      background: #fff;
-      border-radius: 10px;
-      padding: 30px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
-      text-align: center;
-    }
-    .dashboard-box .title {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 20px;
-    }
-    .logout-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: auto;
-      z-index: 10;
-    }
-    #logout-button {
-      padding: 15px;
-      background: linear-gradient(45deg, #e74c3c, #c0392b);
-      color: white;
-      border-radius: 30px;
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      width: 100%;
-    }
-    #logout-button i {
-      margin-right: 10px;
-    }
-    #logout-button:hover {
-      background: linear-gradient(45deg, #c0392b, #e74c3c);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    }
-    #logout-button:active {
-      transform: translateY(1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-    .select-course-container,
-    .add-course-container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .add-course-container input {
-      width: 80%;
-      text-align: center;
-    }
-    .add-course-container button {
-      margin-top: 10px;
-      width: 50%;
-    }
-  </style>
-</head>
-<body>
-  <div class="dashboard-box">
-    <h1 class="title">Manage Your Courses</h1>
-
-    <div class="container">
-      <!-- Select Course Section -->
-      <div class="select-course-container">
-        <label class="label">Select Course</label>
-        <div class="select">
-          <select id="course-dropdown">
-            <option value="">Loading courses...</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Add Course Section -->
-      <div class="add-course-container">
-  <h4 class="title is-5">Add Course</h4>
-  <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
-  <p class="help is-info">Example: <strong>S2025_COMP7712_01</strong></p>
-  <button class="button is-success" id="add-course-btn">Add Course</button>
-
-
-</div>
-
-    <!-- Logout Button -->
-    <div class="logout-container">
-      <button id="logout-button">
-        <i class="fas fa-sign-out-alt"></i> Logout
-      </button>
-    </div>
-  </div>
-
-  <script>
-    $(document).ready(function () {
-      const urlParams = new URLSearchParams(window.location.search);
-      const teacherId = urlParams.get('teacher_id');
-
-      if (!teacherId) {
-        alert("Teacher ID missing, redirecting to login.");
-        window.location.replace('/');
-        return;
-      }
-
-      // Fetch courses for the teacher
-      $.get('/get_courses?teacher_id=' + teacherId, function (courses) {
-        let dropdown = $('#course-dropdown');
-        dropdown.empty();
-        dropdown.append('<option value="">Select a course</option>');
-        courses.forEach(course => {
-          dropdown.append('<option value="' + course.CourseID + '">' + course.CourseID + '</option>');
-        });
-      }).fail(function () {
-        alert("Failed to load courses.");
-      });
-
-      // Handle course selection and redirect
-      $('#course-dropdown').change(function () {
-        let courseID = $(this).val();
-        if (courseID) {
-          window.location.replace('/view_exercises?role=teacher&uid=' + teacherId + '&course_id=' + courseID);
-        }
-      });
-
-      // Handle Add Course functionality
-      // Handle Add Course functionality
-$('#add-course-btn').click(function () {
-    let courseID = $('#course-id').val().trim();
-
-    if (courseID === "") {
-        alert("Please enter Course ID.");
-        return;
-    }
-
-    if (!teacherId) {
-        alert("Teacher ID is missing.");
-        return;
-    }
-
-    $.ajax({
-        url: "/add_course",
-        type: "POST",
-        contentType: "application/json",
-        dataType: "json",
-        data: JSON.stringify({ course_id: courseID, teacher_id: teacherId }), // Include teacher_id
-        success: function (response) {
-            if (response && response.message) {
-                alert(response.message); // Show success message
-                $('#course-id').val(''); // Clear input field
-				location.reload();
-            } else {
-                alert("Unexpected response format.");
-            }
-        },
-        error: function (xhr) {
-            alert("Error: " + xhr.responseText);
-        }
-    });
-});
-
-
-      // Logout button functionality
-      $('#logout-button').click(function () {
-        if (confirm("Are you sure you want to logout?")) {
-          window.location.href = "/logout";
-        }
-      });
-    });
-  </script>
-</body>
-</html>
-`
 
 var SETTINGS_VIEW = `
 <!DOCTYPE html>
@@ -1812,7 +1604,7 @@ var SETTINGS_VIEW = `
       background: #fff;
       border-radius: 10px;
       padding: 30px;
-      max-width: 500px;
+      max-width: 900px;
       width: 100%;
       box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
       text-align: center;
@@ -1944,46 +1736,171 @@ var SETTINGS_VIEW = `
     .button.is-info:hover {
       background: linear-gradient(45deg, #00bcd4, #1e90ff);
     }
+  .grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: 20px;
+  }
+
+  .grid-item {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Make it responsive */
+  @media (max-width: 768px) {
+    .grid-container {
+      grid-template-columns: 1fr; /* Single column on small screens */
+    }
+  }
   </style>
 </head>
 <body>
   <div class="dashboard-box">
-    <h1 class="title">Course Settings</h1>
-	
-
-    <div class="drawer" id="settings-drawer">
-      <div>
-        <h4>Add TA to Course</h4>
-        <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
-        <input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
-        <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+  <h1 class="title">Course Settings</h1>
+  
+  <div class="grid-container">
+    
+    <!-- Select Course -->
+    <div class="grid-item">
+      <h4>Select Course</h4>
+      <div class="select">
+        <select id="course-dropdown">
+          <option value="">Loading courses...</option>
+        </select>
       </div>
-
-      <div>
-        <h4>Add Students to Course</h4>
-        <input id="student-names" class="input" placeholder="Enter Comma Separated Names">
-        <button class="button is-primary" id="add-students-btn">Add Students</button>
-      </div>
-
-      <div>
-        <button class="button is-primary" id="toggle-peer-tutoring">
-          Peer Tutoring
-          <label class="switch" style="margin-left: 10px;">
-            <input id="peer_tutoring_button" type="checkbox">
-            <span class="slider round"></span>
-          </label>
-        </button>
-      </div>
-
-      <div>
-        <button class="button is-danger" id="logout-button">
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-      </div>
+      <button class="button is-primary" id="view-exercises-btn" style="margin-top: 89px;">
+    View Exercises
+  </button>
     </div>
+
+    <!-- Add TA to Course -->
+    <div class="grid-item">
+      <h4>Add TA to Course</h4>
+      <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
+      <input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
+      <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+    </div>
+
+    <!-- Add Students to Course -->
+    <div class="grid-item">
+      <h4>Add Students to Course</h4>
+      <input id="student-names" class="input" placeholder="Enter Comma Separated Names">
+      <button class="button is-primary" id="add-students-btn">Add Students</button>
+    </div>
+
+    <!-- Add Course -->
+    <div class="grid-item">
+      <h4>Add Course</h4>
+      <input type="text" id="course-id" class="input" placeholder="Enter Course ID">
+      <p class="help is-info">Example: <strong>S2025_COMP7712_01</strong></p>
+      <button class="button is-primary" id="add-course-btn">Add Course</button>
+    </div>
+
+    <!-- Peer Tutoring -->
+    <div class="grid-item">
+      <button class="button is-primary" id="toggle-peer-tutoring">
+        Peer Tutoring
+        <label class="switch" style="margin-left: 10px;">
+          <input id="peer_tutoring_button" type="checkbox">
+          <span class="slider round"></span>
+        </label>
+      </button>
+    </div>
+
+    <!-- Logout -->
+    <div class="grid-item">
+      <button class="button is-danger" id="logout-button">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+
   </div>
+</div>
 
   <script>
+$('#add-course-btn').click(function () {
+    let courseID = $('#course-id').val().trim();
+	const urlParams = new URLSearchParams(window.location.search);
+    const teacherId = urlParams.get('teacher_id');
+
+    if (courseID === "") {
+        alert("Please enter Course ID.");
+        return;
+    }
+
+    if (!teacherId) {
+        alert("Teacher ID is missing.");
+        return;
+    }
+
+    $.ajax({
+        url: "/add_course",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({ course_id: courseID, teacher_id: teacherId }), // Include teacher_id
+        success: function (response) {
+            if (response && response.message) {
+                alert(response.message); // Show success message
+                $('#course-id').val(''); // Clear input field
+				location.reload();
+            } else {
+                alert("Unexpected response format.");
+            }
+        },
+        error: function (xhr) {
+            alert("Error: " + xhr.responseText);
+        }
+    });
+});
+
+$(document).ready(function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const teacherId = urlParams.get('teacher_id');
+
+    if (!teacherId) {
+        alert("Teacher ID missing, redirecting to login.");
+        window.location.replace('/');
+        return;
+    }
+
+    // Fetch courses for the teacher
+    $.get('/get_courses?teacher_id=' + teacherId, function (courses) {
+        let dropdown = $('#course-dropdown');
+        dropdown.empty();
+        dropdown.append('<option value="">Select a course</option>');
+        courses.forEach(course => {
+            dropdown.append('<option value="' + course.CourseID + '">' + course.CourseID + '</option>');
+        });
+    }).fail(function () {
+        alert("Failed to load courses.");
+    });
+
+    // Handle course selection (change URL without navigation)
+    $('#course-dropdown').change(function () {
+        let courseID = $(this).val();
+        if (courseID) {
+            // Change the URL without navigating
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('course_id', courseID);
+            history.pushState({}, '', currentUrl); // This updates the URL in the browser
+        }
+    });
+
+    // Handle "View Exercises" button click (trigger navigation)
+    $('#view-exercises-btn').click(function () {
+        const courseID = $('#course-dropdown').val();
+        if (courseID) {
+            window.location.replace('/view_exercises?role=teacher&uid=' + teacherId + '&course_id=' + courseID);
+        } else {
+            alert("Please select a course.");
+        }
+    });
+});
+
     $(document).ready(function () {
       // Logout functionality
       $('#logout-button').click(function () {
@@ -1999,10 +1916,15 @@ var SETTINGS_VIEW = `
         let urlParams = new URLSearchParams(window.location.search);
         let courseId = urlParams.get("course_id");
 
-        if (teacherName === "" || teacherPass === "" || !courseId) {
+        if (teacherName === "" || teacherPass === "") {
             alert("Please enter Teacher Name and Password");
             return;
         }
+
+		if ( !courseId){
+alert("Please Select a course");
+return;
+}
 
         $.ajax({
             url: "/add_teacher",
@@ -2031,10 +1953,14 @@ var SETTINGS_VIEW = `
         let urlParams = new URLSearchParams(window.location.search);
         let courseID = urlParams.get("course_id");
 
-        if (studentNames === "" || courseID === "") {
+        if (studentNames === "" ) {
             alert("Please enter student names and ensure Course ID is available.");
             return;
         }
+		if ( !courseID){
+alert("Please Select a course");
+return;
+}
 
         let studentsArray = studentNames.split(',').map(name => name.trim()).filter(name => name !== "");
 
@@ -2218,12 +2144,13 @@ var TEACHER_LOGIN = `
           } else {
             var name = $('#name').val().trim();
             var pass = $('#password').val().trim();
+			var courseID = "F2025_COMP7712_02";
             if (name == '' || pass == '') {
               alert('Please enter email and password!');
             } else {
               $.post('/teacher_signin_complete', { username: name, password: pass })
                 .done(function (data) {
-                  window.location.replace('/teacher_dashboard?teacher_id=' + data);
+					window.location.href = "/settings_view?teacher_id=" + data;
                 })
                 .fail(function (xhr) {
                   alert("Login failed. Please try again.");
@@ -2320,6 +2247,17 @@ var ADMIN_DASHBOARD = `
       .add-teacher-container input {
         margin-bottom: 10px;
       }
+.button.is-primary, .button.is-info, .button.is-danger {
+      width: 100%;
+    }
+    .button.is-primary {
+      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      color: white;
+      border: none;
+    }
+    .button.is-primary:hover {
+      background: linear-gradient(45deg, #2575fc, #6a11cb);
+    }
     </style>
   </head>
   <body>

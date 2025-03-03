@@ -100,7 +100,7 @@ func init_handlers() {
 	http.HandleFunc("/admin_signin", restHandlers.AdminSigninHandler)
 	http.HandleFunc("/admin_dashboard", restHandlers.AdminDashboardHandler)
 	http.HandleFunc("/teacher_signin", restHandlers.TeacherSigninHandler)
-	http.HandleFunc("/teacher_dashboard", restHandlers.TeacherDashboardHandler)
+	http.HandleFunc("/settings_view", restHandlers.SettingsViewHandler)
 	http.HandleFunc("/teacher_web_broadcast", Authorize(restHandlers.TeacherWebBroadcastHandler, "teacher"))
 	http.HandleFunc("/student_dashboard_code_snapshot", Authorize(restHandlers.StudentDashboardCodeSpaceHandler, ""))
 	http.HandleFunc("/teacher_exports_point", Authorize(restHandlers.ExportPointsHandler, "teacher"))
