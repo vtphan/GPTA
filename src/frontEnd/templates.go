@@ -2710,7 +2710,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		</nav>
 	-->
 	<div class="content">
-	<div class="column show" style="width: 70%;">
+	<div class="column show" style="width: 93%;">
 		<!--
 		<div class="row">
 			<h3 class="title is-2" style="margin-bottom: 0px;">{{ .Feedback.StudentName}}'s Dashboard for {{ .Feedback.ProblemName}}</h3>
@@ -2745,28 +2745,26 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 				<div style="background: darkseagreen;">
 					<textarea id="snapshot-editor"> {{ .Feedback.LastSnapshot.Code }} </textarea>
 					<div class="actions">
-							<button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
-							<button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
-							<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-99999" onclick="getChatGptFeedback( 99999 ,{{ .Feedback.LastSnapshot.Code }} , {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>
-							<button class="button is-info" id="toggle-custom-prompt" onclick="toggleCustomPromptBox()" style="margin-top:3px; color: #000000; display: flex; align-items: center;">
-            Enable Custom Prompt
-            <label class="switch" style="margin-left: 10px;">
-                <input id="custom_prompt_toggle" type="checkbox">
-                <span class="slider round"></span>
-            </label>
-        </button>
-					</div>
+    <button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
+    <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
+    <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
+        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
+        style="margin-top:3px; margin-bottom: 3px; color: #000000;">
+        ChatGPT Feedback
+    </button>
+</div>
 					<div id="code-snapshot-feedback-block"></div>
 
-				<div id="custom-prompt-box" class="box" style="background: #c1bb91; display: none; margin-top: 10px;">
-    <h3 class="title is-4">Enter Your Custom Prompt</h3>
-    <textarea id="custom-prompt-input" class="textarea" placeholder="Type your custom prompt here..."></textarea>
-    <button class="button is-primary" id="submit-custom-prompt" 
-        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }}, document.getElementById('custom-prompt-input').value)" 
-        style="margin-top: 10px;">
-        Send Prompt
-    </button>
-    <div id="custom-prompt-response" style="margin-top: 15px;"></div>
+				<!-- Initially hidden feedback container -->
+<div id="custom-prompt-box" class="box" style="background: #c1bb91; margin-top: 10px; display: none;">
+    <!-- Feedback heading, hidden initially -->
+    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #000000; display: none;">Feedback</h3>
+    
+    <!-- Loading Indicator -->
+    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching ChatGPT response...</p>
+    
+    <!-- Hidden initially, shown only after response is received -->
+    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none;" readonly></textarea>
 </div>
 
 			</div>
@@ -2976,25 +2974,36 @@ function toggleCustomPromptBox() {
 			}
 // Add a new function to handle sending the code and custom prompt
 function sendCustomPromptFeedback(code, userID, customPrompt) {
+    // Show the feedback box but hide heading and textarea
+    $('#custom-prompt-box').show();
+    $('#loading-text').show();
+    $('#feedback-heading').hide(); 
+    $('#custom-prompt-response').hide();
+
     return $.ajax({
-        url: "/process_code_with_prompt", // New endpoint
+        url: "/process_code_with_prompt",
         type: "POST",
         data: JSON.stringify({
             code: code,
             custom_prompt: customPrompt,
             user_id: userID
         }),
-        "headers": {
+        headers: {
             "Content-Type": "application/json",
         }
     }).done(function(data) {
-        // Process the feedback received from the server
-        if (true) {
-            $('#custom-prompt-response').html("<br/><h4>Feedback</h4>" + data.feedback);
+        $('#loading-text').hide(); // Hide loading text once response arrives
+
+        if (data.response) {
+            $('#feedback-heading').show(); // Show heading
+            $('#custom-prompt-response').val(data.response).show(); // Show textarea with response
         } else {
+            $('#custom-prompt-box').hide(); // Hide entire box if no response
             alert("No feedback found!");
         }
     }).fail(function(err) {
+        $('#loading-text').hide();
+        $('#custom-prompt-box').hide();
         alert("Error: " + JSON.stringify(err));
     });
 }
