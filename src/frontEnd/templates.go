@@ -830,7 +830,6 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 <html lang="en">
 <head>
 <title>Problem Dashboard</title>
-<meta http-equiv="refresh" content="10" >
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" integrity="sha512-hGVnilhYD74EGnPbzyvje74/Urjrg5LSNGx0ARG1Ucqyiaz+lFvtsXk/1jCwT9/giXP0qoXSlVDjxNxjLvmqAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" integrity="sha512-/mavDpedrvPG/0Grj2Ughxte/fsm42ZmZWWpHz1jCbzd5ECv8CB7PomGtw0NAnhHmE/lkDFkRMupjoohbKNA1Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" integrity="sha512-GAled7oA9WlRkBaUQlUEgxm37hf43V2KEMaEiWlvBO/ueP2BLvBLKN5tIJu4VZOTwo6Z4XvrojYngoN9dJw2ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -892,6 +891,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 			<button id="deactivate-button" class="button is-danger">Deactivate!</button>
 		{{end}}
 	{{end}}
+	<button id="api-call-button" class="button is-primary"> Generate Class Summary</button>
 	<h4 class="title is-4">Exercise Statement</h4>
 	<div class="accordions">
 		<h3>{{.ProblemName}}</h3>
@@ -899,6 +899,13 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 			<textarea id="editor">{{ .Code }}</textarea>
 		</div>
 	</div>
+ <!-- Feedback Box -->
+<div id="custom-prompt-box" class="box" style="background: #dfefff; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
+    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #000000; font-size: 1.1rem;">Summary of Class Performance</h3>
+    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching AI response...</p>
+    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
+</div>
+
 	<h4 class="title is-4">Statistics for {{.ProblemName}}</h4>
 	<table class="table">
 			<thead>
@@ -980,6 +987,54 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 			}
 			return "text";
 		  }
+
+document.getElementById('api-call-button').addEventListener('click', function() {
+    // Show the feedback box and loading text initially
+    $('#custom-prompt-box').show();
+    $('#loading-text').show();
+    $('#feedback-heading').hide(); 
+    $('#custom-prompt-response').hide();
+
+    // Extract problem_id from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get('problem_id');
+    
+    // Prepare the request data
+    const requestData = {
+        problem_id: problemId,
+        problem_description: "Create Fibonacci" // This can be dynamic based on your needs
+    };
+
+    // Send the API request using fetch
+    fetch('/summarize_class_performance', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('API Response:', data);
+        // Handle the API response (display it on the page)
+
+        $('#loading-text').hide(); // Hide loading text once response arrives
+
+        if (data.response) {
+            $('#feedback-heading').show(); // Show heading
+            $('#custom-prompt-response').val(data.response).show(); // Show textarea with response
+        } else {
+            $('#custom-prompt-box').hide(); // Hide entire box if no response
+            alert("No feedback found!");
+        }
+    })
+    .catch(error => {
+        $('#loading-text').hide(); // Hide loading text on error
+        $('#custom-prompt-box').hide(); // Hide feedback box on error
+        alert("Error: " + JSON.stringify(error));
+    });
+});
+
 		  $(document).ready(function(){
 			$('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
 			$('#deactivate-button').click(function(){
@@ -1001,6 +1056,41 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 		  });
 		  $(".accordions").accordion({ header: "h3", active: false, collapsible: true });
 		  $(".accordions").show();
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get('problem_id');
+    
+    // Check if a class feedback exists
+    fetch('/get_class_feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ problem_id: problemId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const classFeedback = data.feedback;
+        const feedbackBox = document.getElementById('custom-prompt-box');
+        const feedbackTextArea = document.getElementById('custom-prompt-response');
+        const button = document.getElementById('api-call-button');
+        
+        if (classFeedback) {
+            // If class feedback exists, show textarea and set feedback
+            feedbackTextArea.value = classFeedback;
+            feedbackBox.style.display = 'block';
+			feedbackTextArea.style.display = 'block';
+            button.textContent = "Generate Latest Class Summary";
+        } else {
+            // If no feedback, hide textarea and change button text
+            feedbackBox.style.display = 'none';
+            button.textContent = "Generate Class Summary";
+        }
+    })
+    .catch(error => {
+        alert("Error fetching class feedback: " + JSON.stringify(error));
+    });
+});
 	</script>
 </body>
 </html>
@@ -2750,7 +2840,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
     <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
         onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
         style="margin-top:3px; margin-bottom: 3px; color: #000000;">
-        ChatGPT Feedback
+        Get feedback from AI
     </button>
 </div>
 					<div id="code-snapshot-feedback-block"></div>
@@ -2761,7 +2851,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
     <h3 id="feedback-heading" style="margin-bottom: 10px; color: #000000; display: none;">Feedback</h3>
     
     <!-- Loading Indicator -->
-    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching ChatGPT response...</p>
+    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching AI response...</p>
     
     <!-- Hidden initially, shown only after response is received -->
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none;" readonly></textarea>
@@ -2925,51 +3015,6 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 						document.getElementById("sub-submit-"+i).classList.add('is-hidden')
 						document.getElementById("sub-check-"+i).classList.remove('is-hidden')
 					}
-				});
-			}
-function toggleCustomPromptBox() {
-        var checkbox = document.getElementById('custom_prompt_toggle');
-        var promptBox = document.getElementById('custom-prompt-box');
-        promptBox.style.display = checkbox.checked ? 'block' : 'none';
-    }
-			function getChatGptFeedback(idx, code, user_id) {
-				return $.ajax({
-					url: "/instructions_with_example",
-					type: "POST",
-					data: JSON.stringify({
-						problem: {{.Feedback.ProblemName}},
-						course: "{{$.CourseName}}",
-						duration: 15,
-						solutions: [
-							{
-								solution_id: 1,
-								code: code,
-								minute_left: 5
-							}
-						]
-					}),
-					"headers": {
-						"Content-Type": "application/json",
-						// 'Accept': 'application/json',
-						// 'Origin': 'http://141.225.10.71:8080'
-					}
-					// success: function(data){
-					// 	$('#feedback-block-'+i).html(data.results);
-					// 	document.getElementById("help-send-feedback-"+i).classList.remove('is-hidden')
-					// }
-					// error: function(err) {
-					// 	alert(JSON.stringify(err));
-					// }
-				}).done(function(data){
-					if (data.feedbacks.length > 0) {
-						$('#feedback-block-'+idx).html("<br/><h4>ChatGPT Feedback</h4>"+data.feedbacks[0].feedback);
-						document.getElementById("feedback-block-"+idx).classList.remove('is-hidden')
-					} else {
-						alert("No feedback found!");
-					}
-					
-				}).fail(function(err) {
-					alert(JSON.stringify(err));
 				});
 			}
 // Add a new function to handle sending the code and custom prompt

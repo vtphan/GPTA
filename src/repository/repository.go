@@ -510,6 +510,57 @@ func GetProblemUploadTime(pid int) (time.Time, error) {
 	return problem.ProblemUploadedAt, nil
 }
 
+func GetProblemDescription(problemID int) (string, error) {
+	var problemDescription string
+	// Query the database to get the problem description
+	err := models.DB.Model(&models.Problem{}).
+		Where("id = ?", problemID).
+		Select("problem_description").
+		First(&problemDescription).Error
+
+	// Return the result or an error if something went wrong
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch problem description: %w", err)
+	}
+
+	return problemDescription, nil
+}
+
+// GetClassFeedback retrieves the class feedback for a specific problem
+func GetClassFeedback(problemID int) (string, error) {
+	var problem models.Problem
+
+	// Find the problem record by its ID
+	if err := models.DB.First(&problem, problemID).Error; err != nil {
+		// If no record is found, return the error
+		return "", fmt.Errorf("problem not found: %w", err)
+	}
+
+	// Return the class feedback, which could be empty
+	return problem.ClassFeedback, nil
+}
+
+func SaveClassFeedback(problemID int, feedback string) error {
+	// Create a new instance of the Problem model
+	var problem models.Problem
+
+	// Find the problem record by its ID
+	if err := models.DB.First(&problem, problemID).Error; err != nil {
+		// If no record is found, return the error
+		return fmt.Errorf("problem not found: %w", err)
+	}
+
+	// Update the class_feedback field with the provided feedback
+	problem.ClassFeedback = feedback
+
+	// Save the changes back to the database
+	if err := models.DB.Save(&problem).Error; err != nil {
+		return fmt.Errorf("failed to save class feedback: %w", err)
+	}
+
+	return nil
+}
+
 func GetSubmissionsByProblemID(pid int) ([]models.SubmissionTable, error) {
 	var submissions []models.SubmissionTable
 	if err := models.DB.Model(&models.SubmissionTable{}).
@@ -766,6 +817,29 @@ func GetCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
 		return codeSnapshots, err
 	}
 	return codeSnapshots, err
+}
+func GetLatestCodeSnapshots(problemID int) ([]models.CodeSnapshot, error) {
+	var codeSnapshots []models.CodeSnapshot
+
+	// Subquery to get the latest timestamp for each student
+	subquery := models.DB.Model(&models.CodeSnapshot{}).
+		Select("student_id, MAX(last_updated_at) as latest_timestamp"). // Changed timestamp to last_updated_at
+		Where("problem_id = ?", problemID).
+		Group("student_id")
+
+	// Main query to get the code snapshots with the latest timestamp for each student
+	err := models.DB.Model(&models.CodeSnapshot{}).
+		Joins("JOIN (?) AS latest ON code_snapshots.student_id = latest.student_id AND code_snapshots.last_updated_at = latest.latest_timestamp", subquery). // Changed timestamp to last_updated_at
+		Where("code_snapshots.problem_id = ?", problemID).
+		Order("CASE WHEN event = 'at_submission' THEN 1 ELSE 2 END, last_updated_at DESC"). // Changed timestamp to last_updated_at
+		Find(&codeSnapshots).Error
+
+	if err != nil {
+		log.Printf("Failed to fetch latest code snapshots: %v", err)
+		return nil, err
+	}
+
+	return codeSnapshots, nil
 }
 
 func GetProblemDetail(problemID int) (string, time.Time, error) {

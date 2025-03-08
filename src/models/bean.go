@@ -28,6 +28,7 @@ type Problem struct {
 	Tag                int
 	ProblemUploadedAt  time.Time
 	ProblemEndedAt     *time.Time `gorm:"default:null"`
+	ClassFeedback      string     `gorm:"type:longtext"`
 }
 
 type SubmissionTable struct {
