@@ -7,6 +7,7 @@ import (
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"log"
+	"strconv"
 	"time"
 
 	// "log"
@@ -20,6 +21,12 @@ func TeacherDeactivatesProblemsHandler(w http.ResponseWriter, r *http.Request, w
 	models.CodeSnapshotSem.Lock()
 	defer models.CodeSnapshotSem.Unlock()
 	filename := r.FormValue("filename")
+	problemIDStr := r.FormValue("problem_id")
+	problemID, err := strconv.Atoi(problemIDStr)
+	if err != nil {
+		http.Error(w, "Invalid problem_id", http.StatusBadRequest)
+		return
+	}
 	if prob, ok := models.ActiveProblems[filename]; ok {
 		prob.Active = false
 		models.PeerTutorAllowed = false
@@ -43,9 +50,9 @@ func TeacherDeactivatesProblemsHandler(w http.ResponseWriter, r *http.Request, w
 				idx++
 			}
 		}
-		err := repository.UpdateProblemEndTime(time.Now(), prob.Info.Pid)
+		err := repository.UpdateProblemEndTime(time.Now(), problemID)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		for studentID, _ := range models.Students {
 			for i, b := range models.Students[studentID].Boards {

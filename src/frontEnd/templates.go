@@ -1037,9 +1037,10 @@ document.getElementById('api-call-button').addEventListener('click', function() 
 
 		  $(document).ready(function(){
 			$('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
+			var problemId = new URLSearchParams(window.location.search).get('problem_id');
 			$('#deactivate-button').click(function(){
 				if (confirm("Deactivate the problem?") == true) {
-					$.post("/teacher_deactivates_problems", {filename: {{.ProblemName}}, uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} })
+					$.post("/teacher_deactivates_problems", {filename: {{.ProblemName}}, problem_id: problemId, uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} })
 					.done(function(data){
 						if (data == "-1"){
 							alert("Couldn't deactivate the problem! Please try again!");
