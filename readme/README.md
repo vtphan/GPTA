@@ -1,60 +1,21 @@
-To use this software to share code in class, you will need to (1) install [Sublime Text](https://www.sublimetext.com/download) and (2) install a specific plug in for Sublime Text.
+### GPTA Documentation
+
+Overview
+
+GPTA is a tool designed for teachers to administer in-class coding exercises effectively. It provides structured environments for students to complete coding tasks while giving teachers oversight and control over the learning process.
+
+#### Documentation Structure
+
+[Installation Guide for Students](./readme_student.md) - Steps for students to set up GPTA.
+
+Installation Guide for Teachers - Steps for teachers to set up GPTA.
+
+Usage Guide for Students - Instructions on how students interact with GPTA.
+
+[Usage Guide for Teachers and TAs](./readme_teacher.md) - Instructions on how teachers and TAs can manage assignments and student progress.
 
 
-### Student's installation
-
-#### 1. Install Sublime Text
-    First, download and install Sublime Text if you haven’t already. (https://www.sublimetext.com/download)
-
-
-#### 2. Install the GEMStudent Plugin
-    Step 1: Open Sublime Text
-        •	Launch Sublime Text on your computer.
-
-    Step 2: Open the Console
-        •	Go to the View menu and select Show Console.
-
-    Step 3: Installation Command
-        Copy the following command, paste it into the console in sublime text and hit enter:
-
-        ```
-        import os; package_path = os.path.join(sublime.packages_path(), "GEMStudent"); os.mkdir(package_path) if not os.path.isdir(package_path) else print("dir exists"); module_file = os.path.join(package_path, "GEMStudent.py") ; menu_file = os.path.join(package_path, "Main.sublime-menu"); version_file = os.path.join(package_path, "version.go"); import urllib.request; urllib.request.urlretrieve("https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/GEMStudent/GEMStudent.py", module_file); urllib.request.urlretrieve("https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/GEMStudent/Main.sublime-menu", menu_file); urllib.request.urlretrieve("https://raw.githubusercontent.com/vtphan/GPTA/2.1/src/version.go", version_file)
-        ```
-    
-    Step 4: Restart Sublime Text
-
-#### 3. Configure the Plugin: 
-configuration settings will be provided by your instructor.
-
-![alt text](</assets/documentation/image2.png>)
-
-
- follow these steps:
-
-    1. Set Server Address
-
-    2. Set course id
-
-    3. Set username
-
-    4. login
-
-Once successfully logged in, GEM plugin menu should look like this.
-![alt text](/assets/documentation/image1.png)
-
-
-
-### Teacher's installation
-Web portal
-```
-    http://server_address:course_port/
-```
-For example
-```
-    http://192.168.86.189:8088/
-```
-
-#### Running the GEM server
+### Running the GEM server
 
 The instructor must run the GEM server.  The server can be run permanently or each time class starts.
 
