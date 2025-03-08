@@ -76,6 +76,12 @@ func TeacherBroadcastsHandler(w http.ResponseWriter, r *http.Request, who string
 	filename := r.FormValue("filename")
 	exact_answer := r.FormValue("exact_answer")
 
+	var existingProblem models.Problem
+	if err := models.DB.Where("course_id = ? AND filename = ?", models.CourseId, filename).First(&existingProblem).Error; err == nil {
+		http.Error(w, "Error: A problem with this filename already exists for the specified course.", http.StatusBadRequest)
+		return
+	}
+
 	// fmt.Printf("%d,Answer:%s, Merit:%d, Effort:%d, Attempts:%d, Tag:%s, Filename:%s\n", len(content), answer, merit, effort, attempts, tag, filename)
 
 	problem := &models.ProblemInfo{

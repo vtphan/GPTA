@@ -897,10 +897,9 @@ func GetProblems(courseId string) ([]models.Problem, error) {
 	var problems []models.Problem
 
 	// Query the database to fetch problems filtered by CourseId
-	if err := models.DB.Select("id, filename, problem_uploaded_at, problem_ended_at").
-		Where("course_id = ?", courseId).
+	if err := models.DB.Where("course_id = ?", courseId).
 		Find(&problems).Error; err != nil {
-		return nil, fmt.Errorf("failed to fetch problems for coursse %s: %w", models.CourseId, err)
+		return nil, fmt.Errorf("failed to fetch problems for course %s: %w", courseId, err)
 	}
 
 	return problems, nil

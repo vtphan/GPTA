@@ -2609,23 +2609,44 @@ var PROBLEM_FILE_UPLOAD_VIEW = `
 			}
 		});
 		$('#submit').click(function() {
-			var editor = document.querySelector('.CodeMirror').CodeMirror;
-			var uid = new URLSearchParams(window.location.search).get('uid');
-			var points = $('#points').val();
-			var effort = $('#effort').val();
-			var attempt = $('#attempt').val();
-			var tag = $('#tag').val();
-			var filename = $('#filename').text();
-			var answer = $('#exact_answer').val().trim();
-			$.post("/teacher_broadcasts", {role: "teacher", uid: uid, content: editor.getValue(), answer: answer, merit: points, effort: effort, attempts: attempt, tag: tag, filename: filename, exact_answer: "True"}, function(data, status){
-				if (status == "success"){
-					alert("Exercise broadcasted successfully!");
-					window.location.replace("/view_exercises?role=teacher&uid="+uid);
-				} else {
-					alert("Failed to broadcast. Try agian!");
-				}
-			});
-		});
+    var editor = document.querySelector('.CodeMirror').CodeMirror;
+    var uid = new URLSearchParams(window.location.search).get('uid');
+    var points = $('#points').val();
+    var effort = $('#effort').val();
+    var attempt = $('#attempt').val();
+    var tag = $('#tag').val();
+    var filename = $('#filename').text();
+    var answer = $('#exact_answer').val().trim();
+
+    $.post("/teacher_broadcasts", {
+        role: "teacher", 
+        uid: uid, 
+        content: editor.getValue(), 
+        answer: answer, 
+        merit: points, 
+        effort: effort, 
+        attempts: attempt, 
+        tag: tag, 
+        filename: filename, 
+        exact_answer: "True"
+    })
+    .done(function(data, status, xhr) {
+        // Check if the request was successful (HTTP status 200)
+        if (xhr.status == 200) {
+            alert("Exercise broadcasted successfully!");
+            window.location.replace("/view_exercises?role=teacher&uid=" + uid);
+        }
+    })
+    .fail(function(xhr, status, error) {
+        // Handle failure, display the error message from the server
+        if (xhr.status === 400) {
+            alert(xhr.responseText); // This will show the error message sent by the server
+        } else {
+            alert("Failed to broadcast. Try again!");
+        }
+    });
+});
+
 	});
 	
 	</script>
