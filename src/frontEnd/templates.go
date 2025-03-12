@@ -856,6 +856,18 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 		background-color: #AE1431;
 		color: #FFFFFF;
 	}
+#feedback-dropdown {
+    width: 100%; /* Make it span the full width of the container */
+    max-width: 250px; /* Set a maximum width */
+    padding: 10px; /* Add padding to the dropdown */
+    border-radius: 5px; /* Rounded corners */
+    border: 1px solid #ccc; /* Light border */
+    background: #ffffff; /* White background */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
+}
+.content {
+    margin-top: 30px; 
+}
 </style>
 </head>
 <body>
@@ -891,7 +903,10 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 			<button id="deactivate-button" class="button is-danger">Deactivate!</button>
 		{{end}}
 	{{end}}
-	<button id="api-call-button" class="button is-primary"> Generate Class Summary</button>
+	<button id="api-call-button" class="button is-primary"> Generate New AI Assessment</button>
+ <select id="feedback-dropdown">
+        <option value="">AI Assessment</option>
+    </select>
 	<h4 class="title is-4">Exercise Statement</h4>
 	<div class="accordions">
 		<h3>{{.ProblemName}}</h3>
@@ -1081,17 +1096,82 @@ document.addEventListener("DOMContentLoaded", function() {
             feedbackTextArea.value = classFeedback;
             feedbackBox.style.display = 'block';
 			feedbackTextArea.style.display = 'block';
-            button.textContent = "Generate Latest Class Summary";
         } else {
             // If no feedback, hide textarea and change button text
             feedbackBox.style.display = 'none';
-            button.textContent = "Generate Class Summary";
         }
     })
     .catch(error => {
         alert("Error fetching class feedback: " + JSON.stringify(error));
     });
 });
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get('problem_id');
+
+    // Fetch the feedback list when the page loads
+    fetch('/get_feedback_list', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ problem_id: problemId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('API Response:', data);
+
+        // Populate the dropdown
+        const dropdown = document.getElementById("feedback-dropdown");
+        data.feedbacks.forEach(feedback => {
+            const option = document.createElement("option");
+            option.value = feedback.feedback_id;  // Store feedback_id as the value
+            option.textContent = new Date(feedback.feedback_time).toLocaleString();
+            dropdown.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+    // Event listener for dropdown selection
+    document.getElementById("feedback-dropdown").addEventListener("change", function(event) {
+        const selectedFeedbackID = event.target.value;
+        const feedbackBox = document.getElementById("custom-prompt-box");
+        const feedbackTextArea = document.getElementById("custom-prompt-response");
+        const loadingText = document.getElementById("loading-text");
+
+        if (selectedFeedbackID) {
+            // Show the box and loading text
+            feedbackBox.style.display = "block";
+            loadingText.style.display = "block";
+            feedbackTextArea.style.display = "none"; // Hide textarea while fetching
+
+            fetch('/get_feedback_by_id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ feedback_id: selectedFeedbackID })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading text and show the textarea with the response
+                loadingText.style.display = "none";
+                feedbackTextArea.style.display = "block";
+                feedbackTextArea.value = data.feedback; // Set response text
+            })
+            .catch(error => {
+                console.error('Error fetching feedback:', error);
+                loadingText.textContent = "Error fetching feedback.";
+            });
+        } else {
+            // Hide the box if no feedback is selected
+            feedbackBox.style.display = "none";
+        }
+    });
+});
+
 	</script>
 </body>
 </html>

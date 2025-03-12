@@ -78,19 +78,37 @@ func getEditorMode(filename string) string {
 }
 
 func formatTimeDuration(d time.Duration) string {
-	m := int(d.Minutes())
-	d1 := d - time.Duration(m*60*1000000000)
-	s := int(d1.Seconds())
-	str := ""
-	if m > 0 {
-		str = strconv.Itoa(m) + " min "
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	var parts []string
+
+	if days > 0 {
+		parts = append(parts, strconv.Itoa(days)+" day"+plural(days))
 	}
-	str += strconv.Itoa(s) + " sec"
-	return str
+	if hours > 0 {
+		parts = append(parts, strconv.Itoa(hours)+" hr"+plural(hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, strconv.Itoa(minutes)+" min"+plural(minutes))
+	}
+	if seconds > 0 && len(parts) == 0 { // Only show seconds if no larger units exist
+		parts = append(parts, strconv.Itoa(seconds)+" sec"+plural(seconds))
+	}
+
+	return strings.Join(parts, " ")
+}
+func plural(value int) string {
+	if value != 1 {
+		return "s"
+	}
+	return ""
 }
 
 func FormatTimeSince(t time.Time) string {
-	d := time.Now().Sub(t)
+	d := time.Since(t)
 	return formatTimeDuration(d)
 }
 

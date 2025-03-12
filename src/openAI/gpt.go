@@ -3,11 +3,12 @@ package openAI
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-
 	"github.com/GPTA/src/repository"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"sort"
+	"strconv"
+	"time"
 )
 
 //func InstructionsWithExampleHandler(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +123,7 @@ func ProcessStudentCodeSubmissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert ProblemID from string to int
+	// Convert FeedbackID from string to int
 	problemID, err := strconv.Atoi(requestData.ProblemID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid problem_id format: %v", err), http.StatusBadRequest)
@@ -176,7 +177,7 @@ func ProcessStudentCodeSubmissions(w http.ResponseWriter, r *http.Request) {
 	makeRequestClaude2(c, messages, problemID)
 }
 
-func GetClassFeedback(w http.ResponseWriter, r *http.Request) {
+func GetLatestFeedbackByProblemID(w http.ResponseWriter, r *http.Request) {
 	// Parse the problem_id from the request body
 	var requestData struct {
 		ProblemID string `json:"problem_id"`
@@ -195,17 +196,132 @@ func GetClassFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the class feedback from the database
-	feedback, err := repository.GetClassFeedback(problemID)
+	feedbacks, err := repository.GetClassFeedbackByProblemID(problemID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching class feedback: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Prepare the response
+	// Sort feedbacks by FeedbackTime in descending order (latest first)
+	sort.Slice(feedbacks, func(i, j int) bool {
+		return feedbacks[i].FeedbackTime.After(feedbacks[j].FeedbackTime)
+	})
+
+	// Pick the latest feedback (first element after sorting)
+	var latestFeedback string
+	if len(feedbacks) > 0 {
+		latestFeedback = feedbacks[0].Feedback
+	}
+
 	response := struct {
 		Feedback string `json:"feedback"`
 	}{
-		Feedback: feedback,
+		Feedback: latestFeedback,
+	}
+
+	// Set the response content type and encode the response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
+	}
+}
+
+func ListFeedbackHistoryByProblemID(w http.ResponseWriter, r *http.Request) {
+	// Parse the problem_id from the request body
+	var requestData struct {
+		ProblemID string `json:"problem_id"`
+	}
+
+	// Decode the request JSON
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	problemID, err := strconv.Atoi(requestData.ProblemID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid problem_id format: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Fetch the class feedback from the database
+	feedbacks, err := repository.GetClassFeedbackByProblemID(problemID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching class feedback: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	type FeedbackResponse struct {
+		Feedbacks []struct {
+			FeedbackID   int       `json:"feedback_id"`
+			FeedbackTime time.Time `json:"feedback_time"`
+		} `json:"feedbacks"`
+	}
+
+	response := FeedbackResponse{
+		Feedbacks: make([]struct {
+			FeedbackID   int       `json:"feedback_id"`
+			FeedbackTime time.Time `json:"feedback_time"`
+		}, 0, len(feedbacks)),
+	}
+
+	for _, fb := range feedbacks {
+		response.Feedbacks = append(response.Feedbacks, struct {
+			FeedbackID   int       `json:"feedback_id"`
+			FeedbackTime time.Time `json:"feedback_time"`
+		}{
+			FeedbackID:   fb.ID,
+			FeedbackTime: fb.FeedbackTime,
+		})
+	}
+
+	// Set the response content type and encode the response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
+	}
+}
+
+func GetFeedbackByFeedbackID(w http.ResponseWriter, r *http.Request) {
+	// Parse the problem_id from the request body
+	var requestData struct {
+		FeedbackID string `json:"feedback_id"`
+	}
+
+	// Decode the request JSON
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	feedbackID, err := strconv.Atoi(requestData.FeedbackID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid problem_id format: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Fetch the class feedback from the database
+	feedbacks, err := repository.GetClassFeedbackByFeedbackID(feedbackID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error fetching class feedback: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Sort feedbacks by FeedbackTime in descending order (latest first)
+	sort.Slice(feedbacks, func(i, j int) bool {
+		return feedbacks[i].FeedbackTime.After(feedbacks[j].FeedbackTime)
+	})
+
+	// Pick the latest feedback (first element after sorting)
+	var latestFeedback string
+	if len(feedbacks) > 0 {
+		latestFeedback = feedbacks[0].Feedback
+	}
+
+	response := struct {
+		Feedback string `json:"feedback"`
+	}{
+		Feedback: latestFeedback,
 	}
 
 	// Set the response content type and encode the response

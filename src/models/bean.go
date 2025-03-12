@@ -28,7 +28,13 @@ type Problem struct {
 	Tag                int
 	ProblemUploadedAt  time.Time
 	ProblemEndedAt     *time.Time `gorm:"default:null"`
-	ClassFeedback      string     `gorm:"type:longtext"`
+}
+
+type ClassFeedback struct {
+	ID           int       `gorm:"primaryKey;autoIncrement"`
+	ProblemID    int       `gorm:"not null;index"`
+	Feedback     string    `gorm:"type:text;not null"`
+	FeedbackTime time.Time `gorm:"autoCreateTime"`
 }
 
 type SubmissionTable struct {

@@ -526,35 +526,45 @@ func GetProblemDescription(problemID int) (string, error) {
 	return problemDescription, nil
 }
 
-// GetClassFeedback retrieves the class feedback for a specific problem
-func GetClassFeedback(problemID int) (string, error) {
-	var problem models.Problem
+// GetClassFeedbackByProblemID retrieves the class feedback for a specific problem
+func GetClassFeedbackByProblemID(problemID int) ([]models.ClassFeedback, error) {
+	var feedbacks []models.ClassFeedback
 
-	// Find the problem record by its ID
-	if err := models.DB.First(&problem, problemID).Error; err != nil {
-		// If no record is found, return the error
-		return "", fmt.Errorf("problem not found: %w", err)
+	// Find all feedback records for the given problem ID
+	if err := models.DB.Where("problem_id = ?", problemID).Find(&feedbacks).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve class feedback: %w", err)
 	}
 
-	// Return the class feedback, which could be empty
-	return problem.ClassFeedback, nil
+	return feedbacks, nil
+}
+
+func GetClassFeedbackByFeedbackID(feedbackID int) ([]models.ClassFeedback, error) {
+	var feedbacks []models.ClassFeedback
+
+	// Find all feedback records for the given problem ID
+	if err := models.DB.Where("id = ?", feedbackID).Find(&feedbacks).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve class feedback: %w", err)
+	}
+
+	return feedbacks, nil
 }
 
 func SaveClassFeedback(problemID int, feedback string) error {
-	// Create a new instance of the Problem model
+	// Check if the problem exists
 	var problem models.Problem
-
-	// Find the problem record by its ID
 	if err := models.DB.First(&problem, problemID).Error; err != nil {
-		// If no record is found, return the error
 		return fmt.Errorf("problem not found: %w", err)
 	}
 
-	// Update the class_feedback field with the provided feedback
-	problem.ClassFeedback = feedback
+	// Create a new ClassFeedback record
+	classFeedback := models.ClassFeedback{
+		ProblemID:    problemID,
+		Feedback:     feedback,
+		FeedbackTime: time.Now(), // Automatically capture the timestamp
+	}
 
-	// Save the changes back to the database
-	if err := models.DB.Save(&problem).Error; err != nil {
+	// Save the feedback to the database
+	if err := models.DB.Create(&classFeedback).Error; err != nil {
 		return fmt.Errorf("failed to save class feedback: %w", err)
 	}
 
