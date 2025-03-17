@@ -852,9 +852,13 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 		right:0;
 	}
 	#deactivate-button {
-		background-color: #AE1431;
+		background-color: linear-gradient(45deg, rgb(255, 0, 0), rgb(255, 102, 102));
 		color: #FFFFFF;
 	}
+#deactivate-button:hover {
+  background: linear-gradient(45deg, rgb(255, 102, 102), rgb(255, 0, 0));
+  color: white; /* Ensures text remains white on hover */
+}
 #feedback-dropdown {
     width: 100%; /* Make it span the full width of the container */
     max-width: 250px; /* Set a maximum width */
