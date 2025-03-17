@@ -867,9 +867,85 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 .content {
     margin-top: 30px; 
 }
-td {
-    transition: color 0.3s ease;
+
+.button.is-primary {
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white; /* Ensures text is white */
+  border: none;
 }
+
+.button.is-primary:hover {
+  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-info {
+  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-info:hover {
+  background: linear-gradient(45deg, #00bcd4, #1e90ff);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-success {
+ background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-success:hover {
+  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-info {
+  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-info:hover {
+  background: linear-gradient(45deg, #00bcd4, #1e90ff);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+td {
+  border: none; /* Removes border if you don't want one */
+  vertical-align: middle; /* Centers text vertically */
+  padding: 10px; /* Adds some spacing for better appearance */
+}
+
+
+.progress-container {
+  width: 100px; /* Adjust as needed */
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center; /* Centers progress bar inside container */
+  margin-top: 5px; 
+}
+
+.progress-bar {
+  height: 100%;
+  transition: width 0.5s ease-in-out;
+}
+
+/* If problem is active, change row background to gradient and text to white */
+td.active {
+  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Gradient background */
+  color: white !important; /* White text */
+}
+
+td.active a {
+  color: white !important;
+}
+
+
 
 </style>
 </head>
@@ -918,9 +994,9 @@ td {
 		</div>
 	</div>
  <!-- Feedback Box -->
-<div id="custom-prompt-box" class="box" style="background: #dfefff; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #000000; font-size: 1.1rem;">Summary of Class Performance</h3>
-    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching AI response...</p>
+<div id="custom-prompt-box" class="box" style="background: linear-gradient(45deg, #6a11cb, #2575fc); margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
+    <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Summary of Class Performance</h3>
+    <p id="loading-text" style="display: none; color: white; font-weight: bold;">Fetching AI response...</p>
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
 </div>
 
@@ -980,12 +1056,18 @@ td {
 			<tbody>
 				{{range .StudentInfo}}
 				<tr>
-					<td>{{if ne .CodingStat "Idle"}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#code-snapshot">{{.StudentName}}</a>{{else}}{{.StudentName}}{{end}}</td>
-					<td>{{if and (eq $.IsActive true) (ne .CodingStat "Idle") (ne .LastUpdatedAt.IsZero true) }}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">{{ formatTimeSince .LastUpdatedAt }} ago</a>{{end}}</td>
-					<td>{{.CodingStat}}</td>
-					<td>{{if ne .HelpStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#ask-for-help">{{.HelpStat}}</a>{{end}}</td>
-					<td>{{if ne .SubmissionStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#submission">{{.SubmissionStat}}</a>{{end}}</td>
-					<td style="color: {{if lt .Percentage 50}}#ff4d4d{{else if lt .Percentage 60}}#ffcc00{{else if lt .Percentage 80}}#ffeb3b{{else}}#4caf50{{end}};">{{.Percentage}}%</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">{{if ne .CodingStat "Idle"}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#code-snapshot">{{.StudentName}}</a>{{else}}{{.StudentName}}{{end}}</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">{{if and (eq $.IsActive true) (ne .CodingStat "Idle") (ne .LastUpdatedAt.IsZero true) }}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">{{ formatTimeSince .LastUpdatedAt }} ago</a>{{end}}</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">{{.CodingStat}}</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">{{if ne .HelpStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#ask-for-help">{{.HelpStat}}</a>{{end}}</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">{{if ne .SubmissionStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#submission">{{.SubmissionStat}}</a>{{end}}</td>
+					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{.Percentage}}%; background-color: 
+                    {{if lt .Percentage 50}}#ff4d4d{{else if lt .Percentage 60}}#ffcc00{{else if lt .Percentage 80}}#ffeb3b{{else}}#4caf50{{end}};">
+                </div>
+            </div>
+        </td>
 				</tr>
 				{{end}}
 			</tbody>
@@ -1250,6 +1332,72 @@ var PROBLEM_LIST_TEMPLATE = `
   height: 0;
 }
 
+.button.is-primary {
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-primary:hover {
+  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-info {
+  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-info:hover {
+  background: linear-gradient(45deg, #00bcd4, #1e90ff);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-success {
+ background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-success:hover {
+  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+.button.is-info {
+  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  color: white; /* Ensures text is white */
+  border: none;
+}
+
+.button.is-info:hover {
+  background: linear-gradient(45deg, #00bcd4, #1e90ff);
+  color: white; /* Ensures text remains white when hovered */
+}
+
+td {
+  color: white; /* Ensures text is white */
+  border: none; /* Removes border if you don't want one */
+  text-align: center !important; /* Centers text horizontally */
+  vertical-align: middle; /* Centers text vertically */
+  padding: 10px; /* Adds some spacing for better appearance */
+}
+
+tr {
+  text-align: center !important; /* Centers text horizontally */
+  vertical-align: middle; /* Centers text vertically */
+}
+
+td.active {
+  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Gradient for active problem */
+}
+
+td.inactive {
+  background: white; /* White background for inactive problem */
+}
+
+
 .slider {
   position: absolute;
   cursor: pointer;
@@ -1361,10 +1509,10 @@ button {
 
 .settings-button {
   position: fixed;
-  top: 20px; /* Adjust as needed */
-  right: 20px; /* Adjust as needed */
-  background-color: #2196F3;
-  color: white;
+  top: 10px; /* Adjust as needed */
+  left: 20px; /* Move to the left side */
+  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Apply gradient */
+  color: white; /* Ensures text is white */
   border: none;
   padding: 12px;
   border-radius: 50%;
@@ -1377,12 +1525,13 @@ button {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s ease;
+  transition: background 0.3s ease; /* Smooth transition for background */
 }
 
 .settings-button:hover {
-  background-color: #1976D2;
+  background: linear-gradient(45deg, #2575fc, #6a11cb); /* Inverted gradient on hover */
 }
+
 
 </style>
 <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
@@ -1416,13 +1565,13 @@ button {
 			<span class="icon is-small">
 			<i class="fa-solid fa-plus"></i>
 			</span>
-			<span style="color: #242424;">Broadcast New Exercise</span>
+			<span>Broadcast New Exercise</span>
 		</a>
 		<a id="export-button" class="button is-primary" href="">
 			<span class="icon is-small">
 			<i class="fa-solid fa-plus"></i>
 			</span>
-			<span style="color: #242424;">Export Score</span>
+			<span>Export Score</span>
 		</a>
 		{{end}}
 
@@ -1485,17 +1634,23 @@ button {
 				</thead>
 				<tbody>
 					{{range .Problems}}
-					<tr {{if eq .IsActive true}}class="is-selected"{{end}} style="color: #242424;">
-						<td><a href="/problem_dashboard?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">{{.Filename}}</a></td>
-						<td>{{ .UploadedAt.Format "Jan 02, 2006 3:04:05 PM" }}</td>
-						<td>{{.Attendance}}</td>
-						<td>{{.NumActive}}</td>
-						<td>{{.NumHelpRequest}}</td>
-						<td>{{.NumGradedCorrect}}</td>
-						<td>{{.NumGradedIncorrect}}</td>
-						<td>{{.NumNotGraded}}</td>
-					</tr>
-					{{end}}
+  <tr {{if eq .IsActive true}}class="is-selected"{{end}}>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">
+      <a href="/problem_dashboard?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
+        {{.Filename}}
+      </a>
+    </td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">
+      {{ .UploadedAt.Format "Jan 02, 2006 3:04:05 PM" }}
+    </td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.Attendance}}</td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumActive}}</td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumHelpRequest}}</td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumGradedCorrect}}</td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumGradedIncorrect}}</td>
+    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumNotGraded}}</td>
+  </tr>
+  {{end}}
 				</tbody>
 		</table>
 	</div>
@@ -2615,7 +2770,7 @@ var PROBLEM_FILE_UPLOAD_VIEW = `
 					<span class="file-icon">
 						<i class="fas fa-upload"></i>
 					</span>
-					<span class="file-label" style="color: #242424;">
+					<span class="file-label">
 						Select Exercise File
 					</span>
 					</span>
