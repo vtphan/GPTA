@@ -128,9 +128,9 @@ func CodeSnapshotFeedbackHandler(w http.ResponseWriter, r *http.Request, who str
 	})
 
 	// Update student status
-	repository.AddOrUpdateStudentStatus(codeSnapshot.StudentID, codeSnapshot.ProblemID, "", "Been helped", "", "")
+	repository.AddOrUpdateStudentStatus(codeSnapshot.StudentID, codeSnapshot.ProblemID, "", "Been helped", "")
 	if authorRole == "student" {
-		repository.AddOrUpdateStudentStatus(authorID, codeSnapshot.ProblemID, "", "", "", "Tutoring")
+		repository.AddOrUpdateStudentStatus(authorID, codeSnapshot.ProblemID, "", "", "")
 	}
 	fmt.Println("Feedback on code snapshot saved!")
 }
@@ -167,9 +167,9 @@ func MessageFeedbackHandler(w http.ResponseWriter, r *http.Request, who string, 
 		}
 
 		if messageType == "0" {
-			repository.AddOrUpdateStudentStatus(studentID, detail.ProblemID, "", "Been helped", "", "")
+			repository.AddOrUpdateStudentStatus(studentID, detail.ProblemID, "", "Been helped", "")
 			if authorRole == "student" {
-				repository.AddOrUpdateStudentStatus(authorID, detail.ProblemID, "", "", "", "Tutoring")
+				repository.AddOrUpdateStudentStatus(authorID, detail.ProblemID, "", "", "")
 			}
 		}
 

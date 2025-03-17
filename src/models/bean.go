@@ -37,6 +37,15 @@ type ClassFeedback struct {
 	FeedbackTime time.Time `gorm:"autoCreateTime"`
 }
 
+type StudentProgress struct {
+	ID           int       `gorm:"primaryKey;autoIncrement"`
+	ProblemID    int       `gorm:"not null;index"`
+	StudentID    int       `gorm:"not null;index"`
+	Explanation  string    `gorm:"type:text;not null"`
+	Percentage   int       `gorm:"not null"`
+	FeedbackTime time.Time `gorm:"autoCreateTime"`
+}
+
 type SubmissionTable struct {
 	ID                 int    `gorm:"primaryKey;autoIncrement"`
 	ProblemID          int    `gorm:"not null"`
@@ -136,7 +145,7 @@ type StudentStatus struct {
 	CodingStat     string `gorm:"size:50"`
 	HelpStat       string `gorm:"size:50"`
 	SubmissionStat string `gorm:"size:50"`
-	TutoringStat   string `gorm:"size:50"`
+	Percentage     int
 	LastUpdatedAt  time.Time
 }
 type Message struct {

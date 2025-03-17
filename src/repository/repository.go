@@ -298,14 +298,13 @@ func AddUserEventLog(name string, userID int, userType string, eventType string,
 	return userEventLog, nil
 }
 
-func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, tutoringStat string, lastUpdatedAt time.Time) (models.StudentStatus, error) {
+func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat string, submissionStat string, lastUpdatedAt time.Time) (models.StudentStatus, error) {
 	studentStatus := models.StudentStatus{
 		StudentID:      studentID,
 		ProblemID:      problemID,
 		CodingStat:     codingStat,
 		HelpStat:       helpStat,
 		SubmissionStat: submissionStat,
-		TutoringStat:   tutoringStat,
 		LastUpdatedAt:  lastUpdatedAt,
 	}
 	if err := models.DB.Create(&studentStatus).Error; err != nil {
@@ -317,6 +316,19 @@ func AddStudentStatus(studentID int, problemID int, codingStat string, helpStat 
 func UpdateStudentCodingStat(codingStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
 	studentStatus := models.StudentStatus{
 		CodingStat:    codingStat,
+		LastUpdatedAt: lastUpdatedAt,
+	}
+	if err := models.DB.Model(&models.StudentStatus{}).
+		Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Updates(studentStatus).Error; err != nil {
+		return fmt.Errorf("failed to update student coding status: %w", err)
+	}
+	return nil
+}
+
+func UpdateStudentPercentStat(percent int, lastUpdatedAt time.Time, studentID int, problemID int) error {
+	studentStatus := models.StudentStatus{
+		Percentage:    percent,
 		LastUpdatedAt: lastUpdatedAt,
 	}
 	if err := models.DB.Model(&models.StudentStatus{}).
@@ -350,20 +362,6 @@ func UpdateStudentHelpStat(helpStat string, lastUpdatedAt time.Time, studentID i
 		Updates(studentStatus).Error; err != nil {
 		return fmt.Errorf("failed to update student help status: %w", err)
 	}
-	return nil
-}
-
-func UpdateStudentTutoringStat(tutoringStat string, lastUpdatedAt time.Time, studentID int, problemID int) error {
-	studentStatus := models.StudentStatus{
-		TutoringStat:  tutoringStat,
-		LastUpdatedAt: lastUpdatedAt,
-	}
-	if err := models.DB.Model(&models.StudentStatus{}).
-		Where("student_id = ? AND problem_id = ?", studentID, problemID).
-		Updates(studentStatus).Error; err != nil {
-		return fmt.Errorf("failed to update student tutoring status: %w", err)
-	}
-
 	return nil
 }
 
@@ -547,6 +545,25 @@ func GetClassFeedbackByFeedbackID(feedbackID int) ([]models.ClassFeedback, error
 	}
 
 	return feedbacks, nil
+}
+
+func SaveStudentProgress(progress models.StudentProgress) error {
+
+	// Create a new StudentProgress record
+	studentProgress := models.StudentProgress{
+		ProblemID:    progress.ProblemID,
+		StudentID:    progress.StudentID,
+		Explanation:  progress.Explanation,
+		Percentage:   progress.Percentage,
+		FeedbackTime: time.Now(), // Automatically capture the timestamp
+	}
+
+	// Save the student progress to the database
+	if err := models.DB.Create(&studentProgress).Error; err != nil {
+		return fmt.Errorf("failed to save student progress: %w", err)
+	}
+
+	return nil
 }
 
 func SaveClassFeedback(problemID int, feedback string) error {
@@ -1346,7 +1363,6 @@ func FetchStudentStatus(problemID, studentID int) (*models.DashBoardStudentInfo,
 		CodingStat:     studentStatus.CodingStat,
 		HelpStat:       studentStatus.HelpStat,
 		SubmissionStat: studentStatus.SubmissionStat,
-		TutoringStat:   studentStatus.TutoringStat,
 	}, nil
 }
 
@@ -1427,7 +1443,6 @@ func FetchStudentStatuses(problemID, studentID int) (*models.DashBoardStudentInf
 		CodingStat:     result.CodingStat,
 		HelpStat:       result.HelpStat,
 		SubmissionStat: result.SubmissionStat,
-		TutoringStat:   result.TutoringStat,
 	}
 
 	return studentStats, nil

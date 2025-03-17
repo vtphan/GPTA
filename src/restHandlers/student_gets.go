@@ -21,7 +21,7 @@ func StudentGetsHandler(w http.ResponseWriter, r *http.Request, who string, uid 
 		js, err = json.Marshal(models.Students[uid].Boards)
 		for _, b := range models.Students[uid].Boards {
 			if b.Pid != 0 {
-				repository.AddOrUpdateStudentStatus(uid, b.Pid, "Working", "", "", "")
+				repository.AddOrUpdateStudentStatus(uid, b.Pid, "Working", "", "")
 				_ = repository.IncrementProblemStatActive(b.Pid)
 			}
 		}

@@ -122,7 +122,7 @@ func TeacherGradesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 			if err != nil {
 				log.Fatal(err)
 			}
-			repository.AddOrUpdateStudentStatus(sub.Uid, pid, "", "", "Graded Correct", "")
+			repository.AddOrUpdateStudentStatus(sub.Uid, pid, "", "", "Graded Correct")
 
 		} else {
 			// Students[student_id].SubmissionStatus = 3
@@ -139,7 +139,7 @@ func TeacherGradesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 			if err != nil {
 				log.Fatal(err)
 			}
-			repository.AddOrUpdateStudentStatus(sub.Uid, sub.Pid, "", "", "Graded Incorrect", "")
+			repository.AddOrUpdateStudentStatus(sub.Uid, sub.Pid, "", "", "Graded Incorrect")
 		}
 
 		// Update submission complete time

@@ -24,6 +24,7 @@ func create_tables() {
 	execSQL("CREATE TABLE IF NOT EXISTS problems (id INT AUTO_INCREMENT NOT NULL, teacher_id INT, course_id VARCHAR(50) NOT NULL, problem_description TEXT, answer TEXT, filename TEXT, merit INT, effort INT, attempts INT, topic_id INT, tag INT, problem_uploaded_at TIMESTAMP, problem_ended_at TIMESTAMP, PRIMARY KEY (`id`))")
 	execSQL("CREATE TABLE IF NOT EXISTS class_feedbacks (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, feedback TEXT NOT NULL, feedback_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`), FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE)")
 	execSQL("create table if not exists submissions (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, student_id INT NOT NULL, student_code text, snapshot_id INT default 0, submission_category INT, code_submitted_at timestamp, completed timestamp, verdict text, attempt_number INT, answer text, PRIMARY KEY (`id`))")
+	execSQL("CREATE TABLE IF NOT EXISTS student_progresses (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, student_id INT NOT NULL, explanation TEXT NOT NULL, percentage INT NOT NULL, feedback_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists scores (id INT AUTO_INCREMENT NOT NULL, problem_id INT NOT NULL, student_id INT, teacher_id INT, score INT, graded_submission_number INT, score_given_at timestamp, unique(problem_id,student_id), PRIMARY KEY (`id`))")
 	execSQL("create table if not exists feedbacks (id INT AUTO_INCREMENT NOT NULL, teacher_id INT, student_id INT, feedback text, feedback_given_at timestamp, submission_id INT, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists test_cases (id INT AUTO_INCREMENT NOT NULL, problem_id INT, student_id INT, test_cases text, added_at timestamp, PRIMARY KEY (`id`))")
@@ -37,7 +38,7 @@ func create_tables() {
 	execSQL("create table if not exists message_back_feedbacks (id INT AUTO_INCREMENT NOT NULL, message_feedback_id INT, author_id INT, author_role VARCHAR(50), useful VARCHAR(50), given_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists help_eligibles (id INT AUTO_INCREMENT NOT NULL, problem_id INT, student_id INT, became_eligible_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists user_event_logs (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(50), user_id INT, user_type VARCHAR(50), event_type VARCHAR(50), referral_info VARCHAR(50), event_time timestamp, PRIMARY KEY (`id`))")
-	execSQL("create table if not exists student_statuses (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, coding_stat VARCHAR(50), help_stat VARCHAR(50), submission_stat VARCHAR(50), tutoring_stat VARCHAR(50), last_updated_at timestamp, PRIMARY KEY (`id`))")
+	execSQL("create table if not exists student_statuses (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, coding_stat VARCHAR(50), help_stat VARCHAR(50), submission_stat VARCHAR(50), percentage int, last_updated_at timestamp, PRIMARY KEY (`id`))")
 	execSQL("create table if not exists problem_statistics (id INT AUTO_INCREMENT NOT NULL, problem_id INT not null, active INT default 0, submission INT default 0, help_request INT default 0, graded_correct INT default 0, graded_incorrect INT default 0, PRIMARY KEY (`id`))")
 	execSQL("CREATE TABLE IF NOT EXISTS global_maps ( id INT AUTO_INCREMENT NOT NULL,     teacher_map TEXT NOT NULL,  teacher_pass TEXT NOT NULL,  teacher_name_to_id TEXT NOT NULL,    teacher_id_to_name TEXT NOT NULL,    students TEXT NOT NULL,     bulletin_board TEXT NOT NULL,     working_subs TEXT NOT NULL,    submissions TEXT NOT NULL,    working_help_subs TEXT NOT NULL,  help_submissions TEXT NOT NULL,    active_problems TEXT NOT NULL,    help_eligible_students TEXT NOT NULL,     seen_help_submissions TEXT NOT NULL, snapshots TEXT NOT NULL,   student_snapshot TEXT NOT NULL,   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,     PRIMARY KEY (id));")
 	execSQL("CREATE TABLE IF NOT EXISTS courses ( id INT AUTO_INCREMENT PRIMARY KEY, course_id VARCHAR(50) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
@@ -152,7 +153,7 @@ func AddOrUpdateScore(decision string, pid, student_id, teacher_id, partial_cred
 	return mesg
 }
 
-func AddOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat, submissionStat, tutoringStat string) {
+func AddOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat, submissionStat string) {
 	status, err := GetStudentStatus(studentID, problemID)
 	if err != nil {
 		log.Fatalf("Error retrieving student status: %v", err)
@@ -179,19 +180,14 @@ func AddOrUpdateStudentStatus(studentID int, problemID int, codingStat, helpStat
 				log.Fatalf("Error updating submission stat: %v", err)
 			}
 		}
-		if tutoringStat != "" {
-			err = UpdateStudentTutoringStat(tutoringStat, now, studentID, problemID)
-			if err != nil {
-				log.Fatalf("Error updating tutoring stat: %v", err)
-			}
-		}
 	} else {
 		// No record exists: Insert new record
-		_, err = AddStudentStatus(studentID, problemID, codingStat, helpStat, submissionStat, tutoringStat, now)
+		_, err = AddStudentStatus(studentID, problemID, codingStat, helpStat, submissionStat, now)
 		if err != nil {
 			log.Fatalf("Error adding student status: %v", err)
 		}
 	}
+	// todo - update student status percentage
 }
 
 // -----------------------------------------------------------------

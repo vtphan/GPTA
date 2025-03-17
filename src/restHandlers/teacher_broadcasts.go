@@ -76,12 +76,6 @@ func TeacherBroadcastsHandler(w http.ResponseWriter, r *http.Request, who string
 	filename := r.FormValue("filename")
 	exact_answer := r.FormValue("exact_answer")
 
-	var existingProblem models.Problem
-	if err := models.DB.Where("course_id = ? AND filename = ?", models.CourseId, filename).First(&existingProblem).Error; err == nil {
-		http.Error(w, "Error: A problem with this filename already exists for the specified course.", http.StatusBadRequest)
-		return
-	}
-
 	// fmt.Printf("%d,Answer:%s, Merit:%d, Effort:%d, Attempts:%d, Tag:%s, Filename:%s\n", len(content), answer, merit, effort, attempts, tag, filename)
 
 	problem := &models.ProblemInfo{
@@ -130,7 +124,7 @@ func TeacherBroadcastsHandler(w http.ResponseWriter, r *http.Request, who string
 		models.Students[student_id].Boards = append(models.Students[student_id].Boards, b)
 		if b.Pid != 0 && student_id != 0 {
 			// Add student coding status as idle
-			repository.AddOrUpdateStudentStatus(student_id, b.Pid, "Idle", "", "", "")
+			repository.AddOrUpdateStudentStatus(student_id, b.Pid, "Idle", "", "")
 		}
 	}
 	fmt.Fprintf(w, "Content copied to white boards.")

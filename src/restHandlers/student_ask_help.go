@@ -45,7 +45,7 @@ func StudentAskHelpHandler(w http.ResponseWriter, r *http.Request, who string, u
 			if err != nil {
 				log.Fatal(err)
 			}
-			repository.AddOrUpdateStudentStatus(uid, pid, "", "Asked for help", "", "")
+			repository.AddOrUpdateStudentStatus(uid, pid, "", "Asked for help", "")
 		}
 	} else {
 		msg = "Invalid filename"

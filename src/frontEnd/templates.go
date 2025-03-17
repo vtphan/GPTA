@@ -714,12 +714,11 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 			<h2 class="title is-2">{{.StudentName}}'s Dashboard for {{.ProblemName}}</h2>
 		</div>
 	-->
-
 		<div class="row status">
-			<span>Coding Status: <strong>{{ .Status.CodingStat }} </strong></span>
+			<span>Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
-			<span>Submission Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
-			<span>Tutoring Status: <strong>{{ .Status.TutoringStat }} </strong></span>
+			<span>Submission: <strong> {{ .Status.SubmissionStat }} </strong></span>
+			<span>Progress: <strong>{{ .Status.Percentage }} </strong></span>
 		</div>
 
 		<div class="tabs">
@@ -868,6 +867,10 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 .content {
     margin-top: 30px; 
 }
+td {
+    transition: color 0.3s ease;
+}
+
 </style>
 </head>
 <body>
@@ -921,7 +924,10 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
 </div>
 
-	<h4 class="title is-4">Statistics for {{.ProblemName}}</h4>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h4 class="title is-4">Statistics for {{.ProblemName}}</h4>
+    <button id="student-progress-button" class="button is-primary">Generate Students Progress</button>
+</div>
 	<table class="table">
 			<thead>
 				<tr>
@@ -965,10 +971,10 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 				<tr>
 					<th>Student</th>
 					<th>Active</th>
-					<th>Coding Status</th>
+					<th>Status</th>
 					<th>Help Status</th>
-					<th>Submission Status</th>
-					<th>Tutoring Status</th>
+					<th>Submission</th>
+					<th>Progress</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -979,7 +985,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 					<td>{{.CodingStat}}</td>
 					<td>{{if ne .HelpStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#ask-for-help">{{.HelpStat}}</a>{{end}}</td>
 					<td>{{if ne .SubmissionStat ""}}<a href="/student_dashboard_code_snapshot?student_id={{.StudentID}}&problem_id={{$.ProblemID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}#submission">{{.SubmissionStat}}</a>{{end}}</td>
-					<td>{{.TutoringStat}}</td>
+					<td style="color: {{if lt .Percentage 50}}#ff4d4d{{else if lt .Percentage 60}}#ffcc00{{else if lt .Percentage 80}}#ffeb3b{{else}}#4caf50{{end}};">{{.Percentage}}%</td>
 				</tr>
 				{{end}}
 			</tbody>
@@ -1017,7 +1023,6 @@ document.getElementById('api-call-button').addEventListener('click', function() 
     // Prepare the request data
     const requestData = {
         problem_id: problemId,
-        problem_description: "Create Fibonacci" // This can be dynamic based on your needs
     };
 
     // Send the API request using fetch
@@ -1171,6 +1176,55 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+document.getElementById('student-progress-button').addEventListener('click', function() {
+    // Get the button element
+    const button = document.getElementById('student-progress-button');
+    
+    // Change button text to "Generating..."
+    button.textContent = 'Generating...';
+    
+    // Prepare the request data
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get('problem_id');
+    
+    const requestData = {
+        problem_id: problemId,
+    };
+
+    // Send the API request using fetch
+    fetch('/summarize_student_progress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('API Response:', data);
+
+        // Restore button text to normal after the request is completed
+        button.textContent = 'Generate Students Progress';
+
+        // Check for the correct property in the response (message)
+        if (data.message && data.message !== "") {
+            // Show a success prompt if the message is valid
+            alert(data.message);
+			location.reload();
+        } else {
+            // Show an alert if no message is found
+            alert("No progress data found!");
+        }
+    })
+    .catch(error => {
+        // Restore button text to normal in case of error
+        button.textContent = 'Generate Students Progress';
+        
+        // Show an error alert if the request fails
+        alert("Error: " + JSON.stringify(error));
+    });
+});
+
 
 	</script>
 </body>
@@ -2909,10 +2963,10 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		</div>
 		-->
 		<div class="row status">
-			<span>Coding Status: <strong>{{ .Status.CodingStat }} </strong></span>
+			<span>Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
-			<span>Submission Status: <strong> {{ .Status.SubmissionStat }} </strong></span>
-			<span>Tutoring Status: <strong>{{ .Status.TutoringStat }} </strong></span>
+			<span>Submission: <strong> {{ .Status.SubmissionStat }} </strong></span>
+			<span>Progress: <strong>{{ .Status.Percentage }} </strong></span>
 		</div>
 
 		<div class="tabs">

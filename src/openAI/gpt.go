@@ -33,6 +33,14 @@ func SummarizeClassPerformance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func SummarizeStudentProgress(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		ProcessStudentProgress(w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	}
+}
+
 //func EffectiveFeedbackInstructionWithExample(c *gin.Context) {
 //	processHandlers(c, getFeedbackWithInstructionsWithExample)
 //}
@@ -329,4 +337,61 @@ func GetFeedbackByFeedbackID(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
 	}
+}
+
+func ProcessStudentProgress(w http.ResponseWriter, r *http.Request) {
+	var requestData struct {
+		ProblemID string `json:"problem_id"`
+	}
+
+	//Parse JSON request body
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Convert FeedbackID from string to int
+	problemID, err := strconv.Atoi(requestData.ProblemID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid problem_id format: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	problemDescription, err := repository.GetProblemDescription(problemID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch problem description: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Get the latest code snapshots from the database using the problem_id
+	latestCodeSnapshots, err := repository.GetLatestCodeSnapshots(problemID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch latest code snapshots: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	NewInstructions := "NewInstructions := `You are given multiple code submissions from students. Your task is to:\n1. Analyze each student's submission and compare it with the correct solution.\n2. Provide a one-line explanation of the student's feedback.\n3. Calculate a percentage (0-100) indicating how close their submission is to the correct solution.\n4. Return the response strictly in the following JSON format:\n[\n  {\n    \"student_id\": 1,\n    \"explanation\": \"one line explanation for the student feedback\",\n    \"percentage\": 25\n  },\n  {\n    \"student_id\": 2,\n    \"explanation\": \"one line explanation for the student feedback\",\n    \"percentage\": 85\n  }\n]\nOnly return valid JSON. Do not include any additional text or formatting outside the JSON structure.`\n\n"
+	// Combine all code snapshots into the prompt
+	codeData := ""
+	for _, snapshot := range latestCodeSnapshots {
+		codeData += fmt.Sprintf("Student ID: %d\nTimestamp: %s\nCode:\n%s\n\n", snapshot.StudentID, snapshot.LastUpdatedAt, snapshot.Code)
+	}
+
+	// Build the full prompt
+	prompt := fmt.Sprintf(
+		"Problem Description:\n%s\n\nInstructions: %s\nCode Submissions:\n%s",
+		problemDescription, NewInstructions, codeData,
+	)
+
+	// Create Claude request
+	messages := []map[string]string{
+		{"role": "user", "content": prompt},
+	}
+
+	// Create a Gin context from http.ResponseWriter and http.Request
+	c, _ := gin.CreateTestContext(w)
+	c.Request = r
+
+	// Call Claude API request function
+	makeRequestClaude3(c, messages, problemID)
 }

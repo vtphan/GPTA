@@ -75,7 +75,7 @@ func ProblemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 				CodingStat:     status.CodingStat,
 				HelpStat:       status.HelpStat,
 				SubmissionStat: status.SubmissionStat,
-				TutoringStat:   status.TutoringStat,
+				Percentage:     status.Percentage,
 			})
 		}
 	}

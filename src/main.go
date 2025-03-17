@@ -109,6 +109,7 @@ func init_handlers() {
 	http.HandleFunc("/peer_tutoring", Authorize(restHandlers.PeerTutorHandler, "student"))
 	http.HandleFunc("/process_code_with_prompt", openAI.ProcessCodeWithPromptHandler)
 	http.HandleFunc("/summarize_class_performance", openAI.SummarizeClassPerformance)
+	http.HandleFunc("/summarize_student_progress", openAI.SummarizeStudentProgress)
 	http.HandleFunc("/get_class_feedback", openAI.GetLatestFeedbackByProblemID)
 	http.HandleFunc("/get_feedback_by_id", openAI.GetFeedbackByFeedbackID)
 	http.HandleFunc("/get_courses", restHandlers.GetCoursesHandler)

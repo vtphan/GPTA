@@ -52,7 +52,7 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 			// Autograding if possible
 			correct_answer = models.ActiveProblems[filename].Info.Answer
 			decision := ""
-			repository.AddOrUpdateStudentStatus(uid, pid, "", "", "submitted", "")
+			repository.AddOrUpdateStudentStatus(uid, pid, "", "", "submitted")
 			if answer != "" && correct_answer != "" {
 				scoring_mesg := ""
 				if correct_answer == answer {
@@ -64,7 +64,7 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 					if err != nil {
 						log.Fatal(err)
 					}
-					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Correct", "")
+					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Correct")
 				} else if models.ActiveProblems[filename].Info.ExactAnswer {
 					decision = "incorrect"
 					scoring_mesg = repository.AddOrUpdateScore("incorrect", pid, uid, 0, -1)
@@ -73,7 +73,7 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 					if err != nil {
 						log.Fatal(err)
 					}
-					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Incorrect", "")
+					repository.AddOrUpdateStudentStatus(uid, pid, "", "", "Graded Incorrect")
 				} else {
 					scoring_mesg = "Answer appears to be incorrect. It will be looked at."
 				}
@@ -135,7 +135,7 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 						if err != nil {
 							log.Fatal(err)
 						}
-						repository.AddOrUpdateStudentStatus(uid, pid, "", "", "", "Qualified")
+						repository.AddOrUpdateStudentStatus(uid, pid, "", "", "")
 					}
 				}
 			}
