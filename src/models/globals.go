@@ -262,6 +262,7 @@ type DashBoardStudentInfo struct {
 	HelpStat       string
 	SubmissionStat string
 	Percentage     int
+	Explanation    string
 }
 
 type AnswerStatInfo struct {

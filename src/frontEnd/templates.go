@@ -682,7 +682,7 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 		<span class="icon is-small">
 			<i class="fas fa-book" aria-hidden="true"></i>
 		  </span>
-			<span>Dashboard for Problem: {{.ProblemName}}</span>
+			<span>Exercise Dashboard</span>
 		</a>
 	   </li>
 	  <li class="is-active">
@@ -718,7 +718,7 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 			<span>Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
 			<span>Submission: <strong> {{ .Status.SubmissionStat }} </strong></span>
-			<span>Progress: <strong>{{ .Status.Percentage }} </strong></span>
+			<span>Progress: <strong>{{ .Status.Percentage }}%</strong></span>
 		</div>
 
 		<div class="tabs">
@@ -873,7 +873,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 }
 
 .button.is-primary {
-  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  background: cornflowerblue;
   color: white; /* Ensures text is white */
   border: none;
 }
@@ -884,7 +884,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 }
 
 .button.is-info {
-  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  background: cornflowerblue;
   color: white; /* Ensures text is white */
   border: none;
 }
@@ -895,7 +895,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 }
 
 .button.is-success {
- background: linear-gradient(45deg, #6a11cb, #2575fc);
+  background: cornflowerblue;
   color: white; /* Ensures text is white */
   border: none;
 }
@@ -906,7 +906,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 }
 
 .button.is-info {
-  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  background: cornflowerblue;
   color: white; /* Ensures text is white */
   border: none;
 }
@@ -939,16 +939,6 @@ td {
   transition: width 0.5s ease-in-out;
 }
 
-/* If problem is active, change row background to gradient and text to white */
-td.active {
-  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Gradient background */
-  color: white !important; /* White text */
-}
-
-td.active a {
-  color: white !important;
-}
-
 
 
 </style>
@@ -970,7 +960,7 @@ td.active a {
 	  <span class="icon is-small">
 		<i class="fas fa-book" aria-hidden="true"></i>
 	  </span>
-	  <span>Dashboard for Problem: {{.ProblemName}}</span>
+	  <span>Exercise Dashboard</span>
 	</a>
   </li>
 </ul>
@@ -983,31 +973,29 @@ td.active a {
 <div class="content">
 	{{if eq .UserRole "teacher"}} 
 		{{if eq .IsActive true}}
-			<button id="deactivate-button" class="button is-danger">Deactivate!</button>
+			<button id="deactivate-button" class="button is-danger">Deactivate</button>
 		{{end}}
 	{{end}}
-	<button id="api-call-button" class="button is-primary"> Generate New AI Assessment</button>
+	<button id="api-call-button" class="button is-primary"> Request New Feedback</button>
  <select id="feedback-dropdown">
         <option value="">AI Assessment</option>
     </select>
-	<h4 class="title is-4">Exercise Statement</h4>
-	<div class="accordions">
+
+    <button id="student-progress-button" class="button is-primary">Update Student Progress</button>
+
+	<div class="accordions" style="margin-top: 10px;">
 		<h3>{{.ProblemName}}</h3>
 		<div>
 			<textarea id="editor">{{ .Code }}</textarea>
 		</div>
 	</div>
  <!-- Feedback Box -->
-<div id="custom-prompt-box" class="box" style="background: linear-gradient(45deg, #6a11cb, #2575fc); margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
+<div id="custom-prompt-box" class="box" style="background: cornflowerblue; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
     <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Summary of Class Performance</h3>
     <p id="loading-text" style="display: none; color: white; font-weight: bold;">Fetching AI response...</p>
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: center;">
-    <h4 class="title is-4">Statistics for {{.ProblemName}}</h4>
-    <button id="student-progress-button" class="button is-primary">Generate Students Progress</button>
-</div>
 	<table class="table">
 			<thead>
 				<tr>
@@ -1068,7 +1056,7 @@ td.active a {
 					<td class="{{if ne .CodingStat "Idle"}}active{{end}}">
             <div class="progress-container">
                 <div class="progress-bar" style="width: {{.Percentage}}%; background-color: 
-                    {{if lt .Percentage 50}}#ff4d4d{{else if lt .Percentage 60}}#ffcc00{{else if lt .Percentage 80}}#ffeb3b{{else}}#4caf50{{end}};">
+                    {{if lt .Percentage 50}}#ff4d4d{{else if lt .Percentage 60}}#ffcc00{{else if lt .Percentage 80}}#ffeb3b{{else}}#008000{{end}};">
                 </div>
             </div>
         </td>
@@ -1145,7 +1133,7 @@ document.getElementById('api-call-button').addEventListener('click', function() 
 			$('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
 			var problemId = new URLSearchParams(window.location.search).get('problem_id');
 			$('#deactivate-button').click(function(){
-				if (confirm("Deactivate the problem?") == true) {
+				if (confirm("After you deactivate this exercise, students can no longer submit their work to this exercise.  Further, you cannot undo this action.  If you want to deactivate this exercise, click OK.") == true) {
 					$.post("/teacher_deactivates_problems", {filename: {{.ProblemName}}, problem_id: problemId, uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} })
 					.done(function(data){
 						if (data == "-1"){
@@ -1337,18 +1325,18 @@ var PROBLEM_LIST_TEMPLATE = `
 }
 
 .button.is-primary {
-  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  background: cornflowerblue !important;
   color: white; /* Ensures text is white */
   border: none;
 }
 
 .button.is-primary:hover {
-  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  background: linear-gradient(45deg, #2575fc, #6a11cb) !important;
   color: white; /* Ensures text remains white when hovered */
 }
 
 .button.is-info {
-  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  background: cornflowerblue !important;
   color: white; /* Ensures text is white */
   border: none;
 }
@@ -1359,29 +1347,28 @@ var PROBLEM_LIST_TEMPLATE = `
 }
 
 .button.is-success {
- background: linear-gradient(45deg, #6a11cb, #2575fc);
+  background: cornflowerblue !important;
   color: white; /* Ensures text is white */
   border: none;
 }
 
 .button.is-success:hover {
-  background: linear-gradient(45deg, #2575fc, #6a11cb);
+  background: linear-gradient(45deg, #2575fc, #6a11cb) !important;
   color: white; /* Ensures text remains white when hovered */
 }
 
 .button.is-info {
-  background: linear-gradient(45deg, #1e90ff, #00bcd4);
+  background: cornflowerblue !important;
   color: white; /* Ensures text is white */
   border: none;
 }
 
 .button.is-info:hover {
-  background: linear-gradient(45deg, #00bcd4, #1e90ff);
+  background: linear-gradient(45deg, #00bcd4, #1e90ff) !important;
   color: white; /* Ensures text remains white when hovered */
 }
 
 td {
-  color: white; /* Ensures text is white */
   border: none; /* Removes border if you don't want one */
   text-align: center !important; /* Centers text horizontally */
   vertical-align: middle; /* Centers text vertically */
@@ -1394,12 +1381,14 @@ tr {
 }
 
 td.active {
-  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Gradient for active problem */
+  background: white; /* Gradient for active problem */
+  color: black !important;
 }
 
 td.inactive {
-  background: white; /* White background for inactive problem */
+  background: #f6f6f6; /* White background for inactive problem */
 }
+
 
 
 .slider {
@@ -1515,7 +1504,7 @@ button {
   position: fixed;
   top: 10px; /* Adjust as needed */
   left: 20px; /* Move to the left side */
-  background: linear-gradient(45deg, #6a11cb, #2575fc); /* Apply gradient */
+  background: cornflowerblue; /* Apply gradient */
   color: white; /* Ensures text is white */
   border: none;
   padding: 12px;
@@ -1562,20 +1551,19 @@ button {
 
 	</nav>
 	<div class="content">
-	<div class="topcorner">{{.Username}}({{.UserRole}})</div>
-		<h2 class="title is-2">Exercises</h2>
+	<div class="topcorner" style="margin-top: 78px; margin-bottom: 10px;">{{.Username}}({{.UserRole}})</div>
 		{{if ne .UserRole "student"}}
-		<a id="new-problem" class="button is-success" href="">
+		<a id="new-problem" class="button is-success" href="" style="margin-top: 80px; margin-bottom: 10px;">
 			<span class="icon is-small">
 			<i class="fa-solid fa-plus"></i>
 			</span>
-			<span>Broadcast New Exercise</span>
+			<span>Add a New Exercise</span>
 		</a>
-		<a id="export-button" class="button is-primary" href="">
+		<a id="export-button" class="button is-primary" href="" style="margin-top: 80px; margin-bottom: 10px;">
 			<span class="icon is-small">
 			<i class="fa-solid fa-plus"></i>
 			</span>
-			<span>Export Score</span>
+			<span>Export Performance Data</span>
 		</a>
 		{{end}}
 
@@ -1975,7 +1963,7 @@ var SETTINGS_VIEW = `
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <style>
     body {
-      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      background: cornflowerblue;
       font-family: "Arial", sans-serif;
       min-height: 100vh;
       display: flex;
@@ -2105,7 +2093,7 @@ var SETTINGS_VIEW = `
       width: 100%;
     }
     .button.is-primary {
-      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      background: cornflowerblue;
       color: white;
       border: none;
     }
@@ -2113,7 +2101,7 @@ var SETTINGS_VIEW = `
       background: linear-gradient(45deg, #2575fc, #6a11cb);
     }
     .button.is-info {
-      background: linear-gradient(45deg, #1e90ff, #00bcd4);
+      background: cornflowerblue;
       color: white;
       border: none;
     }
@@ -2143,7 +2131,7 @@ var SETTINGS_VIEW = `
 </head>
 <body>
   <div class="dashboard-box">
-  <h1 class="title">Course Settings</h1>
+  <h1 class="title">Welcome Shashwat Dadhich</h1>
   
   <div class="grid-container">
     
@@ -2402,7 +2390,7 @@ var TEACHER_LOGIN = `
     />
     <style>
       body {
-        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        background: cornflowerblue;
         font-family: "Arial", sans-serif;
         min-height: 100vh;
         display: flex;
@@ -2566,7 +2554,7 @@ var ADMIN_DASHBOARD = `
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
       body {
-        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        background: cornflowerblue;
         font-family: "Arial", sans-serif;
         min-height: 100vh;
         display: flex;
@@ -2635,7 +2623,7 @@ var ADMIN_DASHBOARD = `
       width: 100%;
     }
     .button.is-primary {
-      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      background: cornflowerblue;
       color: white;
       border: none;
     }
@@ -2761,7 +2749,7 @@ var PROBLEM_FILE_UPLOAD_VIEW = `
 			<span class="icon is-small">
 				<i class="fas fa-book" aria-hidden="true"></i>
 			</span>
-			<span>Problem Broadcast</span>
+			<span>Add a new exercise</span>
 			</a>
 		</li>
 		</ul>
@@ -2966,21 +2954,21 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 	<script src="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible"></script>
 	<style>
 		#code-snapshot {
-			background: darkseagreen;
+			background: cornflowerblue;
 			padding: 20px;
 			margin: 30px;
 			padding-bottom: 0px;
 			border-radius: 25px;
 		}
 		#ask-for-help {
-			background: #c1bb91;
+			background: #4a4a4a;
 			padding: 20px;
 			margin: 30px;
 			padding-bottom: 0px;
 			border-radius: 25px;
 		}
 		#submission {
-			background: #ada192;;
+			background: #4a4a4a;;
 			padding: 20px;
 			margin: 30px;
 			padding-bottom: 0px;
@@ -3089,7 +3077,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		<span class="icon is-small">
 			<i class="fas fa-book" aria-hidden="true"></i>
 		  </span>
-			<span>Dashboard for Problem: {{ .Feedback.ProblemName}}</span>
+			<span>Exercise Dashboard</span>
 		</a>
 	   </li>
 	  <li class="is-active">
@@ -3125,7 +3113,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 			<span>Status: <strong>{{ .Status.CodingStat }} </strong></span>
 			<span>Help Status: <strong>{{ .Status.HelpStat }} </strong></span>
 			<span>Submission: <strong> {{ .Status.SubmissionStat }} </strong></span>
-			<span>Progress: <strong>{{ .Status.Percentage }} </strong></span>
+			<span>Progress: <strong>{{ .Status.Percentage }}%</strong></span>
 		</div>
 
 		<div class="tabs">
@@ -3134,42 +3122,43 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 				<li><a href="/student_dashboard_feedback_provision?student_id={{.Feedback.StudentID}}&problem_id={{.Feedback.ProblemID}}&uid={{.Feedback.UserID}}&role={{.Feedback.UserRole}}{{if ne .Feedback.Password ""}}&password={{.Feedback.Password}}{{end}}">Feedback History</a></li>
 			</ul>
 		</div>
-
+<div class="feedback-box">
+			<p><strong>Explanation:</strong> {{ .Status.Explanation }}</p>
+		</div>
 	</div>
 
 	<div class="content">
-		<h3>Student's latest code snapshot: </h3>
 		<div id="code-snapshot">
 			<div class="box" style="padding: 0px; margin-bottom: 3.5rem; border: 5px solid; border-radius: 10px;">
 				<div class="message-header">
 					<div class="column is-two-thirds">
 						<p>Latest Code Snapshot at {{.Feedback.LastSnapshot.LastUpdated.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 					</div>
+				<button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
+        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
+        style="margin-top:3px; margin-bottom: 3px; margin-right: 21px; color: #ffff;">
+        Get Feedback from AI
+    </button>
+<button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Send Inline Feedback</button>
 				</div>	
 				<div id="feedback-block-99999"></div>
-				<div style="background: darkseagreen;">
+				<div style="background: #4a4a4a;">
 					<textarea id="snapshot-editor"> {{ .Feedback.LastSnapshot.Code }} </textarea>
 					<div class="actions">
-    <button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
-    <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
-    <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
-        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
-        style="margin-top:3px; margin-bottom: 3px; color: #000000;">
-        Get feedback from AI
-    </button>
+    <button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Check My Feedback</button>
 </div>
 					<div id="code-snapshot-feedback-block"></div>
 
 				<!-- Initially hidden feedback container -->
-<div id="custom-prompt-box" class="box" style="background: #c1bb91; margin-top: 10px; display: none;">
+<div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; display: none;">
     <!-- Feedback heading, hidden initially -->
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #000000; display: none;">Feedback</h3>
+    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #ffff; display: none;">AI Feedback</h3>
     
     <!-- Loading Indicator -->
-    <p id="loading-text" style="display: none; color: #000000; font-weight: bold;">Fetching AI response...</p>
+    <p id="loading-text" style="display: none; color: #ffff; font-weight: bold;">Fetching AI response...</p>
     
     <!-- Hidden initially, shown only after response is received -->
-    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none;" readonly></textarea>
+    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 6px; padding: 5px;" readonly></textarea>
 </div>
 
 			</div>
@@ -3177,7 +3166,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		
 
 		{{ if .Feedback.Messages}}
-		<h3>Student's help requests: </h3>
+		<h3 style="color: white;">Student's help requests:</h3>
 		<div id="ask-for-help">
 			<section class="section" style="padding: 0px;">
 				{{range $index, $el := .Feedback.Messages}}
@@ -3198,14 +3187,13 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 								<div id="feedback-block-{{ $index }}"></div>
 							</div>
 								
-							<div style="background: #c1bb91;">
+							<div style="background: #4a4a4a;">
 									<div>
 										<textarea class="feedback-editor" id="feedback-editor-{{ $index }}">{{ .Code }}</textarea>
 									</div>
 
 									<div class="actions">
 										<button class="button is-info help-check" id="help-check-feedback-{{ $index }}" onclick="messageFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Check My Feedback</button>
-										<button class="button is-info chatgpt-feedback" id="chatgpt-feedback-{{ $index }}" onclick="getChatGptFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >ChatGPT Feedback</button>
 										<button class="button is-info help-send" id="help-send-feedback-{{ $index }}" onclick="sendMessageFeedback( {{ $index }} ,{{ .Code }} , {{ .ID }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;" >Send Feedback</button>
 										
 									</div>
@@ -3220,7 +3208,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		{{ end }}
 		{{ if ne .UserRole "student"}}
 		{{ if .Submission.Submissions}}
-		<h3>Student's submissions: </h3> 
+		<h3 style="color: white;">Student's submissions: </h3> 
 		<div id="submission">
 			{{range $index, $el := .Submission.Submissions}}
 				{{ if eq .Grade "" }}
@@ -3232,7 +3220,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 							{{if eq .Grade ""}} Not Graded {{else}} Graded {{if eq .Grade "correct"}} <span class="tag is-success">correct</span> {{else if eq .Grade "incorrect"}} <span class="tag is-danger">incorrect</span> {{else}} {{.Grade}} {{end}} {{end}}
 						</div>
 
-						<div class="column buttons" style="padding-left: 1px;">
+						<div class="column buttons" style="padding-left: 1px; display: contents;">
 							{{if eq .Grade ""}}
 								<button class="button"><label><input type="radio" name="grade-{{$index}}"  value="correct" onchange="setGrade( {{ $index }}, 'correct')" />Correct </label></button>
 								<button class="button"><label><input type="radio" name="grade-{{$index}}"  value="incorrect" onchange="setGrade( {{ $index }}, 'incorrect')" />Incorrect </label></button>
@@ -3248,13 +3236,13 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					</div>
 					-->
 					
-					<div style="background: #ada192;">
+					<div style="background: #4a4a4a;">
 						<div>
 							<textarea class="submission-editor" id="editor-{{.ID}}">{{ .Code }}</textarea>
 						</div>
 						<div class="sub-actions">
-							<button class="button is-info sub-check" id="sub-check-{{ $index }}" onclick="checkSubFeedback( {{ $index }}, {{.ID}}, {{.SnapshotID}},{{ .Code }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;">Check My Feedback</button>
-							<button class="button is-info sub-submit" id="sub-submit-{{ $index }}" onclick="sendGradeFeedback( {{ $index }}, {{.ID}}, {{.SnapshotID}},{{ .Code }})" style="margin-top:3px; margin-bottom: 3px; color: #000000;">Submit</button>
+							<button class="button is-info sub-check" id="sub-check-{{ $index }}" onclick="checkSubFeedback( {{ $index }}, {{.ID}}, {{.SnapshotID}},{{ .Code }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;">Check My Feedback</button>
+							<button class="button is-info sub-submit" id="sub-submit-{{ $index }}" onclick="sendGradeFeedback( {{ $index }}, {{.ID}}, {{.SnapshotID}},{{ .Code }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;">Submit</button>
 						</div>
 						<div id="sub-feedback-block-{{ $index }}"></div>
 					</div>

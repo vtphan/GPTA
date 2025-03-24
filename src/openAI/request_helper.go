@@ -175,7 +175,7 @@ func makeRequestClaude3(c *gin.Context, messages []map[string]string, problemId 
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"model":      ClaudeModel,
 		"messages":   messages,
-		"max_tokens": 2048, // Increased token limit for detailed feedback
+		"max_tokens": 4096, // Increased token limit for detailed feedback
 	})
 
 	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
@@ -244,7 +244,7 @@ func makeRequestClaude3(c *gin.Context, messages []map[string]string, problemId 
 		if err := repository.SaveStudentProgress(studentProgress); err != nil {
 			fmt.Println("Error saving student progress:", err)
 		}
-		if err := repository.UpdateStudentPercentStat(studentProgress.Percentage, time.Now(), feedback.StudentID, problemId); err != nil {
+		if err := repository.UpdateStudentPercentStat(studentProgress.Percentage, feedback.Explanation, time.Now(), feedback.StudentID, problemId); err != nil {
 			fmt.Println("Error saving student progress:", err)
 		}
 	}

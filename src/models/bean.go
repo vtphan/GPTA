@@ -146,6 +146,7 @@ type StudentStatus struct {
 	HelpStat       string `gorm:"size:50"`
 	SubmissionStat string `gorm:"size:50"`
 	Percentage     int
+	Explanation    string
 	LastUpdatedAt  time.Time
 }
 type Message struct {

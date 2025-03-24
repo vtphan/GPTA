@@ -326,10 +326,11 @@ func UpdateStudentCodingStat(codingStat string, lastUpdatedAt time.Time, student
 	return nil
 }
 
-func UpdateStudentPercentStat(percent int, lastUpdatedAt time.Time, studentID int, problemID int) error {
+func UpdateStudentPercentStat(percent int, explanation string, lastUpdatedAt time.Time, studentID int, problemID int) error {
 	studentStatus := models.StudentStatus{
 		Percentage:    percent,
 		LastUpdatedAt: lastUpdatedAt,
+		Explanation:   explanation,
 	}
 	if err := models.DB.Model(&models.StudentStatus{}).
 		Where("student_id = ? AND problem_id = ?", studentID, problemID).
@@ -1363,6 +1364,8 @@ func FetchStudentStatus(problemID, studentID int) (*models.DashBoardStudentInfo,
 		CodingStat:     studentStatus.CodingStat,
 		HelpStat:       studentStatus.HelpStat,
 		SubmissionStat: studentStatus.SubmissionStat,
+		Percentage:     studentStatus.Percentage,
+		Explanation:    studentStatus.Explanation,
 	}, nil
 }
 
