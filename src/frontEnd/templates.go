@@ -976,13 +976,17 @@ td {
 			<button id="deactivate-button" class="button is-danger">Deactivate</button>
 		{{end}}
 	{{end}}
+	{{if eq .UserRole "teacher"}} 
 	<button id="api-call-button" class="button is-primary"> Request New Feedback</button>
+{{end}}
+{{if eq .UserRole "teacher"}} 
  <select id="feedback-dropdown">
         <option value="">AI Assessment</option>
     </select>
-
+{{end}}
+{{if eq .UserRole "teacher"}} 
     <button id="student-progress-button" class="button is-primary">Update Student Progress</button>
-
+{{end}}
 	<div class="accordions" style="margin-top: 10px;">
 		<h3>{{.ProblemName}}</h3>
 		<div>
@@ -990,12 +994,13 @@ td {
 		</div>
 	</div>
  <!-- Feedback Box -->
+{{if eq .UserRole "teacher"}} 
 <div id="custom-prompt-box" class="box" style="background: cornflowerblue; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
     <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Summary of Class Performance</h3>
     <p id="loading-text" style="display: none; color: white; font-weight: bold;">Fetching AI response...</p>
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
 </div>
-
+{{end}}
 	<table class="table">
 			<thead>
 				<tr>
@@ -2131,7 +2136,7 @@ var SETTINGS_VIEW = `
 </head>
 <body>
   <div class="dashboard-box">
-  <h1 class="title">Welcome Shashwat Dadhich</h1>
+  <h1 class="title">Welcome {{.Username}}</h1>
   
   <div class="grid-container">
     
@@ -3134,12 +3139,16 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					<div class="column is-two-thirds">
 						<p>Latest Code Snapshot at {{.Feedback.LastSnapshot.LastUpdated.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 					</div>
+{{if eq .UserRole "teacher"}} 
 				<button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
         onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
         style="margin-top:3px; margin-bottom: 3px; margin-right: 21px; color: #ffff;">
         Get Feedback from AI
     </button>
+{{end}}
+{{if eq .UserRole "teacher"}} 
 <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Send Inline Feedback</button>
+	{{end}}
 				</div>	
 				<div id="feedback-block-99999"></div>
 				<div style="background: #4a4a4a;">

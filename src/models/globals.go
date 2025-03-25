@@ -52,6 +52,8 @@ var AdminPass = map[string]string{
 }
 var Passcode string
 
+var LoggedInTeacher string
+
 //---------------------------------------------------------
 // Semaphores
 //---------------------------------------------------------

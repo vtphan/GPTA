@@ -101,6 +101,7 @@ func TeacherSigninCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		Value:   sessionToken,
 		Expires: expiresAt,
 	})
+	models.LoggedInTeacher = name
 	fmt.Fprintf(w, "%d", models.TeacherNameToId[name])
 }
 
@@ -118,14 +119,20 @@ func TeacherSigninHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type SettingsData struct {
+	Username string
+}
+
 func SettingsViewHandler(w http.ResponseWriter, r *http.Request) {
+	username := models.LoggedInTeacher
+	data := SettingsData{Username: username}
 	temp := template.New("")
 	t, err := temp.Parse(frontEnd.SETTINGS_VIEW)
 	if err != nil {
 		log.Fatal(err)
 	}
 	w.Header().Set("Content-Type", "text/html")
-	err = t.Execute(w, "")
+	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
