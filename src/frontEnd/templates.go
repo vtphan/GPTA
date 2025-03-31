@@ -3331,6 +3331,10 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
         transition: 0.4s;
         border-radius: 20px;
     }
+	#custom-prompt-response {
+    display: none; /* Initially hidden */
+	 margin-top: 10px; 
+}
 
     .slider::before {
         position: absolute;
@@ -3467,12 +3471,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					<div class="column is-two-thirds">
 						<p>Latest Code Snapshot at {{.Feedback.LastSnapshot.LastUpdated.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 					</div>
-{{if eq .UserRole "teacher"}} 
-				<button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
-        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
-        style="margin-top:3px; margin-bottom: 3px; margin-right: 21px; color: #ffff;">
-        Get Feedback from AI
-    </button>
+{{if eq .UserRole "teacher"}}
 {{end}}
 {{if eq .UserRole "teacher"}} 
 <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Send Inline Feedback</button>
@@ -3484,23 +3483,28 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					<div class="actions">
     <button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Check My Feedback</button>
 </div>
-					<div id="code-snapshot-feedback-block"></div>
-
-				<!-- Initially hidden feedback container -->
-<div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; display: none;">
-    <!-- Feedback heading, hidden initially -->
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #ffff; display: none;">AI Feedback</h3>
-    
-    <!-- Loading Indicator -->
-    <p id="loading-text" style="display: none; color: #ffff; font-weight: bold;">Fetching AI response...</p>
-    
-    <!-- Hidden initially, shown only after response is received -->
-    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 6px; padding: 5px;" readonly></textarea>
-</div>
+					
+		</div>
 
 			</div>
-		</div>
-		
+
+<div id="code-snapshot-feedback-block"></div>
+
+<div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; padding: 10px;">
+    <!-- Flex container to keep heading and button on the same line -->
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 id="feedback-heading" style="color: #ffffff; margin: 0;">AI Feedback</h3>
+        <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
+            onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
+            style="margin-left: auto; color: #ffffff;">
+            Get Feedback from AI
+        </button>
+    </div>
+
+    <!-- Hidden initially, shown only after response is received -->
+    <textarea id="custom-prompt-response"></textarea>
+</div>
+
 
 		{{ if .Feedback.Messages}}
 		<h3 style="color: white;">Student's help requests:</h3>
@@ -3657,12 +3661,12 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					}
 				});
 			}
-// Add a new function to handle sending the code and custom prompt
+
 function sendCustomPromptFeedback(code, userID, customPrompt) {
-    // Show the feedback box but hide heading and textarea
     $('#custom-prompt-box').show();
-    $('#loading-text').show();
-    $('#feedback-heading').hide(); 
+    
+    let button = $('#submit-custom-prompt');
+    button.text('Fetching AI Response...').prop('disabled', true);
     $('#custom-prompt-response').hide();
 
     return $.ajax({
@@ -3677,21 +3681,35 @@ function sendCustomPromptFeedback(code, userID, customPrompt) {
             "Content-Type": "application/json",
         }
     }).done(function(data) {
-        $('#loading-text').hide(); // Hide loading text once response arrives
+        button.text('Get Feedback from AI').prop('disabled', false);
 
         if (data.response) {
-            $('#feedback-heading').show(); // Show heading
-            $('#custom-prompt-response').val(data.response).show(); // Show textarea with response
+            $('#feedback-heading').show();
+            $('#custom-prompt-response').val(data.response).show();
+
+            // Initialize CodeMirror on the response textarea
+            let editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+                lineNumbers: true,
+                mode: "python",
+                theme: "monokai",
+                matchBrackets: true,
+                indentUnit: 4,
+                indentWithTabs: true,
+                readOnly: false
+            });
+            editor.setSize(null, "650px");
+			 $(editor.getWrapperElement()).css("margin-top", "10px");
         } else {
-            $('#custom-prompt-box').hide(); // Hide entire box if no response
+            $('#custom-prompt-box').hide();
             alert("No feedback found!");
         }
     }).fail(function(err) {
-        $('#loading-text').hide();
+        button.text('Get Feedback from AI').prop('disabled', false);
         $('#custom-prompt-box').hide();
         alert("Error: " + JSON.stringify(err));
     });
 }
+
 
 
 
