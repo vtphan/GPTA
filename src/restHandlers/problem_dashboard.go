@@ -21,6 +21,48 @@ func GetName(uid int, role string) string {
 	return name
 }
 
+func ScaffoldingDashboardHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
+	// Parse query params
+	problemID, err := strconv.Atoi(r.URL.Query().Get("problem_id"))
+	if err != nil {
+		http.Error(w, "Invalid problem_id", http.StatusBadRequest)
+		return
+	}
+
+	// Fetch scaffoldings from DB
+	var scaffoldings []models.Scaffolding
+	result := models.DB.Where("problem_id = ?", problemID).Find(&scaffoldings)
+	if result.Error != nil {
+		http.Error(w, "Error fetching scaffoldings", http.StatusInternalServerError)
+		return
+	}
+
+	// Organize scaffoldings by strategy and level
+	scaffoldMap := make(map[int]map[int][]models.Scaffolding)
+	for _, s := range scaffoldings {
+		if _, exists := scaffoldMap[s.ScaffoldingStrategy]; !exists {
+			scaffoldMap[s.ScaffoldingStrategy] = make(map[int][]models.Scaffolding)
+		}
+		scaffoldMap[s.ScaffoldingStrategy][s.ScaffoldingLevel] = append(scaffoldMap[s.ScaffoldingStrategy][s.ScaffoldingLevel], s)
+	}
+
+	// Template processing
+	temp := template.New("")
+	ownFuncs := template.FuncMap{}
+	t, err := temp.Funcs(ownFuncs).Parse(frontEnd.SCAFFOLDING_TEMPLATE)
+	if err != nil {
+		http.Error(w, "Error parsing template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	err = t.Execute(w, scaffoldMap)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func ProblemDashboardHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	problemID, _ := strconv.Atoi(r.FormValue("problem_id"))
 	role := r.FormValue("role")

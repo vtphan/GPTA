@@ -8,6 +8,7 @@ import (
 	"github.com/GPTA/src/repository"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -250,4 +251,108 @@ func makeRequestClaude3(c *gin.Context, messages []map[string]string, problemId 
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Student progress saved successfully"})
+}
+
+func makeRequestClaude4(c *gin.Context, messages []map[string]string, problemId int, scaffoldingStrategy int) {
+	var existingScaffolding []models.Scaffolding
+	models.DB.Where("problem_id = ? AND scaffolding_strategy = ?", problemId, scaffoldingStrategy).Find(&existingScaffolding)
+
+	existingLevels := make(map[int]bool)
+	for _, record := range existingScaffolding {
+		existingLevels[record.ScaffoldingLevel] = true
+	}
+
+	if len(existingLevels) >= 3 {
+		c.JSON(http.StatusConflict, gin.H{"message": "Scaffolding already exists for the given problem ID and strategy"})
+		return
+	}
+
+	requestBody, _ := json.Marshal(map[string]interface{}{
+		"model":      ClaudeModel,
+		"messages":   messages,
+		"max_tokens": 2048, // Increased token limit for detailed feedback
+	})
+
+	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("x-api-key", ClaudeAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Anthropic-Version", "2023-06-01")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "API request failed"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	// Parse JSON response
+	var responseJSON map[string]interface{}
+	json.Unmarshal(body, &responseJSON)
+
+	var extractedJSON string
+	if contentArray, found := responseJSON["content"].([]interface{}); found && len(contentArray) > 0 {
+		if firstContent, ok := contentArray[0].(map[string]interface{}); ok {
+			if text, exists := firstContent["text"].(string); exists {
+				extractedJSON = text
+			}
+		}
+	}
+
+	if extractedJSON == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response structure from Claude API"})
+		return
+	}
+
+	extractedJSON = strings.TrimSpace(extractedJSON)
+
+	if !json.Valid([]byte(extractedJSON)) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+		return
+	}
+
+	type ScaffoldingVariations struct {
+		Struggling       string `json:"struggling"`
+		Developing       string `json:"developing"`
+		NearlyProficient string `json:"nearly_proficient"`
+	}
+
+	var variations ScaffoldingVariations
+	if err := json.Unmarshal([]byte(extractedJSON), &variations); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse scaffolding variations JSON"})
+		return
+	}
+
+	levels := map[int]string{
+		models.ScaffoldingLevelStruggling:       variations.Struggling,
+		models.ScaffoldingLevelDeveloping:       variations.Developing,
+		models.ScaffoldingLevelNearlyProficient: variations.NearlyProficient,
+	}
+
+	var newScaffoldings []models.Scaffolding
+	for level, material := range levels {
+		if !existingLevels[level] {
+			newScaffoldings = append(newScaffoldings, models.Scaffolding{
+				ProblemID:           problemId,
+				ScaffoldingStrategy: scaffoldingStrategy,
+				ScaffoldingLevel:    level,
+				ScaffoldingMaterial: material,
+				Time:                time.Now(),
+			})
+		}
+	}
+
+	if err := models.DB.Create(&newScaffoldings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert scaffolding records"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Scaffolding inserted successfully"})
 }

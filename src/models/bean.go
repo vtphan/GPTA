@@ -221,3 +221,26 @@ type TeacherClass struct {
 	TeacherID int    `gorm:"not null"`
 	CourseID  string `gorm:"not null"`
 }
+
+type Scaffolding struct {
+	ID                  uint      `gorm:"primaryKey;autoIncrement"`
+	ProblemID           int       `gorm:"not null"`
+	ScaffoldingStrategy int       `gorm:"not null"`
+	ScaffoldingLevel    int       `gorm:"not null"`
+	ScaffoldingMaterial string    `gorm:"type:longtext;not null"`
+	Time                time.Time `gorm:"autoCreateTime"`
+}
+
+const (
+	ScaffoldingLevelStruggling       = 1 // Struggling
+	ScaffoldingLevelDeveloping       = 2 // Developing
+	ScaffoldingLevelNearlyProficient = 3 // Nearly Proficient
+)
+
+const (
+	ScaffoldingStrategyFillInTheBlanks        = 1 // Fill-in-the-Blanks
+	ScaffoldingStrategyStepByStepTasks        = 2 // Step-by-Step Tasks
+	ScaffoldingStrategyGuidedCodeWithHints    = 3 // Guided Code with Hints
+	ScaffoldingStrategyDebugThisCode          = 4 // Debug This Code
+	ScaffoldingStrategyIncrementalFeatureImpl = 5 // Incremental Feature Implementation
+)

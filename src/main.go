@@ -92,6 +92,7 @@ func init_handlers() {
 
 	http.HandleFunc("/view_exercises", Authorize(restHandlers.ProblemListHandler, ""))
 	http.HandleFunc("/problem_dashboard", Authorize(restHandlers.ProblemDashboardHandler, ""))
+	http.HandleFunc("/scaffolding_dashboard", Authorize(restHandlers.ScaffoldingDashboardHandler, ""))
 	http.HandleFunc("/student_dashboard_feedback_provision", Authorize(restHandlers.StudentDashboardFeedbackProvisionHandler, ""))
 	http.HandleFunc("/save_message_feedback", Authorize(restHandlers.MessageFeedbackHandler, ""))
 	http.HandleFunc("/student_dashboard_submissions", Authorize(restHandlers.StudentDashboardSubmissionHandler, ""))
@@ -109,6 +110,7 @@ func init_handlers() {
 	http.HandleFunc("/peer_tutoring", Authorize(restHandlers.PeerTutorHandler, "student"))
 	http.HandleFunc("/process_code_with_prompt", openAI.ProcessCodeWithPromptHandler)
 	http.HandleFunc("/summarize_class_performance", openAI.SummarizeClassPerformance)
+	http.HandleFunc("/process_scaffolding", openAI.SummarizeScaffolding)
 	http.HandleFunc("/summarize_student_progress", openAI.SummarizeStudentProgress)
 	http.HandleFunc("/get_class_feedback", openAI.GetLatestFeedbackByProblemID)
 	http.HandleFunc("/get_feedback_by_id", openAI.GetFeedbackByFeedbackID)
