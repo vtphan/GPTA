@@ -1222,19 +1222,14 @@ td {
 		{{end}}
 	{{end}}
 	{{if eq .UserRole "teacher"}} 
-	<button id="api-call-button" class="button is-primary"> Request New Feedback</button>
+	<button id="api-call-button" class="button is-primary">Generate Summary</button>
 {{end}}
 {{if eq .UserRole "teacher"}} 
- <select id="feedback-dropdown">
-        <option value="">AI Assessment</option>
-    </select>
-{{end}}
-{{if eq .UserRole "teacher"}} 
-    <button id="student-progress-button" class="button is-primary">Update Student Progress</button>
+    <button id="student-progress-button" class="button is-primary">Estimate Student Progress</button>
 {{end}}
 {{if eq .UserRole "teacher"}}
     <select id="scaffolding-dropdown">
-        <option value="">Scaffolding Strategy</option>
+        <option value="">Generate Scaffolds</option>
         <option value="1">Fill-in-the-Blanks</option>
         <option value="2">Step-by-Step Tasks</option>
         <option value="3">Guided Code with Hints</option>
@@ -1243,7 +1238,7 @@ td {
     </select>
 {{end}}
 {{if eq .UserRole "teacher"}} 
-    <button id="scaffolding-view-button" class="button is-primary">View Generated Scaffoldings</button>
+    <button id="scaffolding-view-button" class="button is-primary">Generate Scaffolds</button>
 {{end}}
 	<div class="accordions" style="margin-top: 10px;">
 		<h3>{{.ProblemName}}</h3>
@@ -1254,7 +1249,7 @@ td {
  <!-- Feedback Box -->
 {{if eq .UserRole "teacher"}} 
 <div id="custom-prompt-box" class="box" style="background: cornflowerblue; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Summary of Class Performance</h3>
+    <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Common Errors and Misconceptions</h3>
     <p id="loading-text" style="display: none; color: white; font-weight: bold;">Fetching AI response...</p>
     <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
 </div>
@@ -3795,6 +3790,55 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 			top:0;
 			right:0;
 		}
+/* Dropdown Styling */
+#scaffolding-dropdown {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 2px solid #007bff;
+    background-color: #ffffff !important; /* Ensures White Background */
+    color: #333;
+    width: 280px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    appearance: none; /* Removes default arrow */
+}
+
+/* Hover Effect */
+#scaffolding-dropdown:hover {
+    border-color: #0056b3;
+}
+
+/* Focus Effect */
+#scaffolding-dropdown:focus {
+    outline: none;
+    border-color: #0056b3;
+    box-shadow: 0px 0px 8px rgba(0, 123, 255, 0.5);
+}
+
+/* Optgroup Styling (Category Headings) */
+#scaffolding-dropdown optgroup {
+    font-weight: bold;
+    color: #007bff !important; /* Blue Text */
+    font-size: 18px;
+    padding: 5px;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+}
+
+/* Individual Option Styling */
+#scaffolding-dropdown option {
+    padding: 10px;
+    color: #333;
+    background-color: #ffffff;
+}
+
+/* Workaround: Make optgroup labels more visible */
+#scaffolding-dropdown optgroup::before {
+    content: "⬤ "; /* Add bullet point */
+    font-size: 14px;
+    color: #0056b3;
+}
 	</style>
 	</head>
 	<body>
@@ -3861,7 +3905,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 			</ul>
 		</div>
 <div class="feedback-box">
-			<p><strong>Explanation:</strong> {{ .Status.Explanation }}</p>
+			<p><strong>Brief AI Assessment:</strong> {{ .Status.Explanation }}</p>
 		</div>
 	</div>
 
@@ -3892,13 +3936,25 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 <div id="code-snapshot-feedback-block"></div>
 
 <div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; padding: 10px;">
-    <!-- Flex container to keep heading and button on the same line -->
     <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h3 id="feedback-heading" style="color: #ffffff; margin: 0;">AI Feedback</h3>
+        <h3 id="feedback-heading" style="color: #ffffff; margin: 0;">AI & Scaffolding Feedback</h3>
+
+        <!-- Dropdown for scaffolding selection -->
+        <select id="scaffolding-dropdown" style="margin-right: 10px; padding: 5px;">
+            <option value="">Loading scaffolding...</option>
+        </select>
+
         <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
-            onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
-            style="margin-left: auto; color: #ffffff;">
+            onclick="sendCustomPromptFeedback()" 
+            style="color: #ffffff;">
             Get Feedback from AI
+        </button>
+
+        <!-- New button to send scaffolding feedback -->
+        <button class="button is-info" id="send-scaffolding-feedback" 
+            onclick="sendScaffoldingFeedback()" 
+            style="color: #ffffff; margin-left: 10px;">
+            Send Feedback
         </button>
     </div>
 
@@ -4062,6 +4118,221 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					}
 				});
 			}
+function sendScaffoldingFeedback() {
+    let feedback = window.editor ? window.editor.getValue().trim() : $("#custom-prompt-response").val().trim();
+    
+    if (feedback === "") {
+        alert("Scaffolding feedback cannot be empty!");
+        return;
+    }
+
+    $.post("/save_snapshot_feedback", {
+        feedback: feedback,
+        snapshot_id: {{ .Feedback.LastSnapshot.ID }},
+        uid: {{ .Feedback.UserID }},
+        role: "{{ .Feedback.UserRole }}"
+    })
+    .done(function(response) {
+        alert("Scaffolding feedback posted successfully!");
+        
+        // Redirection after posting feedback
+        window.location.replace("/student_dashboard_feedback_provision?student_id={{ .Feedback.StudentID }}&problem_id={{ .Feedback.ProblemID }}&uid={{ .Feedback.UserID }}&role={{ .Feedback.UserRole }}{{ if ne .Feedback.Password "" }}&password={{ .Feedback.Password }}{{ end }}");
+    })
+    .fail(function() {
+        alert("Could not post scaffolding feedback. Please try again!");
+    });
+}
+
+
+$(document).ready(function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const problem_id = urlParams.get('problem_id');
+
+    if (problem_id) {
+        fetchScaffoldingData(problem_id);
+    } else {
+        console.warn("No problem_id found in URL.");
+        $("#scaffolding-dropdown").html('<option value="">No problem ID provided</option>');
+    }
+
+    // Event listener for dropdown change
+    $("#scaffolding-dropdown").change(function () {
+    const selectedOption = $(this).find("option:selected");
+    console.log("Selected Option:", selectedOption.text()); // Debugging
+
+    // Get the parent <optgroup> of the selected <option>
+    const optgroupElement = selectedOption.parent("optgroup");
+    console.log("Optgroup Element:", optgroupElement.length ? optgroupElement[0] : "Not found"); // Debugging
+
+    const selectedCategory = optgroupElement.attr("label");
+    console.log("Selected Category:", selectedCategory || "Undefined"); // Debugging
+
+    if (selectedCategory) {
+        const selectedLevel = selectedOption.val();
+        const levelNumber = selectedLevel.split(" ")[1];
+
+        const scaffoldingStrategy = getScaffoldingStrategyFromCategory(selectedCategory);
+        fetchScaffoldingMaterial(problem_id, levelNumber, scaffoldingStrategy);
+    } else {
+        console.warn("No category found for selected option.");
+    }
+});
+
+});
+
+function fetchScaffoldingData(problem_id) {
+    $.ajax({
+        url: "/get_scaffolding",
+        type: "POST",
+        data: JSON.stringify({ problem_id: parseInt(problem_id) }),
+        contentType: "application/json",
+        success: function (data) {
+            console.log("Received scaffolding data:", data); // Debugging
+            let dropdown = $("#scaffolding-dropdown");
+            dropdown.empty();
+
+            // Define categories
+            const categories = {
+                1: "Fill in the Blanks",
+                2: "Step-by-Step Tasks",
+                3: "Guided Code With Hints",
+                4: "Debug This Code",
+                5: "Incremental Feature Implementation"
+            };
+
+            // Group scaffolding data by strategy
+            let groupedData = {};
+            data.forEach(function(item) {
+                let category = categories[item.ScaffoldingStrategy] || "Other";
+                if (!groupedData[category]) groupedData[category] = [];
+                groupedData[category].push("Level " + item.ScaffoldingLevel);
+            });
+
+            // Populate dropdown correctly with optgroups
+            Object.keys(groupedData).forEach(function(category) {
+                let optgroup = $("<optgroup>").attr("label", category);
+
+                groupedData[category].forEach(function(level) {
+                    optgroup.append($("<option>").val(level).text(level));
+                });
+
+                dropdown.append(optgroup);
+            });
+        },
+        error: function (err) {
+            console.error("Error fetching scaffolding:", err);
+            $("#scaffolding-dropdown").html("<option value=''>Failed to load</option>");
+        }
+    });
+}
+
+function fetchScaffoldingMaterial(problem_id, scaffolding_level, scaffolding_strategy) {
+    $.ajax({
+        url: "/get_scaffolding_material",
+        type: "POST",
+        data: JSON.stringify({
+            problem_id: parseInt(problem_id),
+            scaffolding_level: parseInt(scaffolding_level),
+            scaffolding_strategy: scaffolding_strategy
+        }),
+        contentType: "application/json",
+        success: function (data) {
+            console.log("Scaffolding material response:", data); // Debugging log
+
+            if (data && data.scaffolding_material) {
+                // Destroy previous CodeMirror instance before updating the textarea
+                if (window.editor) {
+                    window.editor.toTextArea(); // Convert back to textarea
+                    window.editor = null; // Reset the instance
+                }
+
+                // Update the textarea's value before initializing CodeMirror
+                $("#custom-prompt-response").val(data.scaffolding_material).show();
+                
+                // Ensure the feedback box is visible
+                $("#custom-prompt-box").show();
+
+                // Initialize CodeMirror once
+                window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+                    lineNumbers: true,
+                    mode: "python",
+                    theme: "monokai",
+                    matchBrackets: true,
+                    indentUnit: 4,
+                    indentWithTabs: true,
+                    readOnly: false
+                });
+                window.editor.setSize(null, "650px");
+                $(window.editor.getWrapperElement()).css("margin-top", "10px");
+
+                // ✅ Ensure CodeMirror gets the updated value
+                window.editor.setValue(data.scaffolding_material);
+
+            } else {
+                console.warn("No scaffolding material found.");
+
+                // Reset the editor if no data is available
+                if (window.editor) {
+                    window.editor.toTextArea();
+                    window.editor = null;
+                }
+
+                $("#custom-prompt-response").val("No scaffolding material available").show();
+
+                // Reinitialize CodeMirror with the new message
+                window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+                    lineNumbers: true,
+                    mode: "python",
+                    theme: "monokai",
+                    matchBrackets: true,
+                    indentUnit: 4,
+                    indentWithTabs: true,
+                    readOnly: false
+                });
+                window.editor.setSize(null, "650px");
+                window.editor.setValue("No scaffolding material available");
+            }
+        },
+        error: function (err) {
+            console.error("Error fetching scaffolding material:", err);
+
+            // Reset the editor on error
+            if (window.editor) {
+                window.editor.toTextArea();
+                window.editor = null;
+            }
+
+            $("#custom-prompt-response").val("Failed to load scaffolding material.").show();
+
+            // Reinitialize CodeMirror with error message
+            window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+                lineNumbers: true,
+                mode: "python",
+                theme: "monokai",
+                matchBrackets: true,
+                indentUnit: 4,
+                indentWithTabs: true,
+                readOnly: false
+            });
+            window.editor.setSize(null, "650px");
+            window.editor.setValue("Failed to load scaffolding material.");
+        }
+    });
+}
+
+
+// Helper function to map the category to the correct strategy
+function getScaffoldingStrategyFromCategory(category) {
+    const strategyMapping = {
+        "Fill in the Blanks": "1",
+        "Step-by-Step Tasks": "2",
+        "Guided Code With Hints": "3",
+        "Debug This Code": "4",
+        "Incremental Feature Implementation": "5"
+    };
+
+    return strategyMapping[category] || "";
+}
 
 function sendCustomPromptFeedback(code, userID, customPrompt) {
     $('#custom-prompt-box').show();
@@ -4086,10 +4357,18 @@ function sendCustomPromptFeedback(code, userID, customPrompt) {
 
         if (data.response) {
             $('#feedback-heading').show();
-            $('#custom-prompt-response').val(data.response).show();
 
-            // Initialize CodeMirror on the response textarea
-            let editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+            // Destroy the previous CodeMirror instance before updating the textarea
+            if (window.editor) {
+                window.editor.toTextArea(); // Convert back to textarea
+                window.editor = null; // Reset the instance
+            }
+
+            // Update the textarea with the new response
+            $("#custom-prompt-response").val(data.response).show();
+
+            // Reinitialize CodeMirror on the response textarea
+            window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
                 lineNumbers: true,
                 mode: "python",
                 theme: "monokai",
@@ -4098,8 +4377,12 @@ function sendCustomPromptFeedback(code, userID, customPrompt) {
                 indentWithTabs: true,
                 readOnly: false
             });
-            editor.setSize(null, "650px");
-			 $(editor.getWrapperElement()).css("margin-top", "10px");
+            window.editor.setSize(null, "650px");
+            $(window.editor.getWrapperElement()).css("margin-top", "10px");
+
+            // ✅ Ensure the new response is correctly displayed in CodeMirror
+            window.editor.setValue(data.response);
+
         } else {
             $('#custom-prompt-box').hide();
             alert("No feedback found!");
