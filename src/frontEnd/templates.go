@@ -824,6 +824,241 @@ var FEEDBACK_PROVISION_TEMPLATE = `
 	</body>
 	</html>
 `
+var SCAFFOLDING_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/dracula.min.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/material.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/shadowfox.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/base16-dark.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/ayu-dark.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/tomorrow-night-bright.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/cobalt.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/lucario.min.css" />
+
+
+
+    <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+
+    <style>
+         body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .accordions {
+            margin-top: 20px;
+            margin-bottom: 20px !important; /* Added margin for spacing */
+        }
+        .editor-container {
+            margin-top: 10px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h3 {
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px; /* Added spacing */
+        }
+        .CodeMirror {
+            height: auto;
+            min-height: 250px;
+            font-size: 14px;
+            padding-left: 10px; /* Prevent overlap */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+		<h1 style="font-size: 2.5em; margin-bottom: 20px;">Scaffoldings</h1>
+        {{if or (index . 1) (index . 2) (index . 3) (index . 4) (index . 5)}}
+            <!-- If at least one scaffolding data exists, render the sections -->
+            
+            {{if index . 1}} <!-- Check if scaffolding data exists for index 1 -->
+            <div class="accordions">
+                <h3>Fill-in-the-Blanks</h3>
+                <div>
+                    {{range $level, $scaffoldings := index . 1}}
+                        <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
+                            Level {{$level}} 
+                            {{if eq $level 1}}(Struggling){{end}}
+                            {{if eq $level 2}}(Developing){{end}}
+                            {{if eq $level 3}}(Nearly Proficient){{end}}
+                        </h4>
+
+                        {{range $scaffoldings}}
+                        <div class="editor-container">
+                            <textarea class="code-editor">{{.ScaffoldingMaterial}}</textarea>
+                        </div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}} <!-- End check for scaffolding data -->
+
+            {{if index . 2}} <!-- Check if scaffolding data exists for index 2 -->
+            <div class="accordions">
+                <h3>Step-by-Step Tasks</h3>
+                <div>
+                    {{range $level, $scaffoldings := index . 2}}
+                        <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
+                            Level {{$level}} 
+                            {{if eq $level 1}}(Struggling){{end}}
+                            {{if eq $level 2}}(Developing){{end}}
+                            {{if eq $level 3}}(Nearly Proficient){{end}}
+                        </h4>
+
+                        {{range $scaffoldings}}
+                        <div class="editor-container">
+                            <textarea class="code-editor">{{.ScaffoldingMaterial}}</textarea>
+                        </div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}} <!-- End check for scaffolding data -->
+
+            {{if index . 3}} <!-- Check if scaffolding data exists for index 3 -->
+            <div class="accordions">
+                <h3>Guided Code with Hints</h3>
+                <div>
+                    {{range $level, $scaffoldings := index . 3}}
+                        <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
+                            Level {{$level}} 
+                            {{if eq $level 1}}(Struggling){{end}}
+                            {{if eq $level 2}}(Developing){{end}}
+                            {{if eq $level 3}}(Nearly Proficient){{end}}
+                        </h4>
+
+                        {{range $scaffoldings}}
+                        <div class="editor-container">
+                            <textarea class="code-editor">{{.ScaffoldingMaterial}}</textarea>
+                        </div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}} <!-- End check for scaffolding data -->
+
+            {{if index . 4}} <!-- Check if scaffolding data exists for index 4 -->
+            <div class="accordions">
+                <h3>Debug This Code</h3>
+                <div>
+                    {{range $level, $scaffoldings := index . 4}}
+                        <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
+                            Level {{$level}} 
+                            {{if eq $level 1}}(Struggling){{end}}
+                            {{if eq $level 2}}(Developing){{end}}
+                            {{if eq $level 3}}(Nearly Proficient){{end}}
+                        </h4>
+
+                        {{range $scaffoldings}}
+                        <div class="editor-container">
+                            <textarea class="code-editor">{{.ScaffoldingMaterial}}</textarea>
+                        </div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}} <!-- End check for scaffolding data -->
+
+            {{if index . 5}} <!-- Check if scaffolding data exists for index 5 -->
+            <div class="accordions">
+                <h3>Code Writing from Scratch</h3>
+                <div>
+                    {{range $level, $scaffoldings := index . 5}}
+                        <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
+                            Level {{$level}} 
+                            {{if eq $level 1}}(Struggling){{end}}
+                            {{if eq $level 2}}(Developing){{end}}
+                            {{if eq $level 3}}(Nearly Proficient){{end}}
+                        </h4>
+
+                        {{range $scaffoldings}}
+                        <div class="editor-container">
+                            <textarea class="code-editor">{{.ScaffoldingMaterial}}</textarea>
+                        </div>
+                        {{end}}
+                    {{end}}
+                </div>
+            </div>
+            {{end}} <!-- End check for scaffolding data -->
+
+        {{else}} <!-- If no scaffolding data exists, show the fallback message -->
+            <div class="no-data-message" style="text-align: center; font-weight: bold; background-color: aliceblue;">
+    <p>No scaffolding data generated yet.</p>
+</div>
+
+
+        {{end}} <!-- End check for any scaffolding data -->
+
+    </div>
+</body>
+    <script>
+     $(document).ready(function () {
+        $(".accordions").accordion({
+            header: "h3",
+            active: false,
+            collapsible: true,
+            heightStyle: "content",
+            activate: function (event, ui) {
+                if (ui.newPanel.length) {
+                    ui.newPanel.css("max-height", "900px").css("overflow-y", "auto");
+                    ui.newPanel.find(".CodeMirror").each(function () {
+                        this.CodeMirror.refresh();
+                    });
+                }
+            }
+        });
+
+        $(".code-editor").each(function (index, textarea) {
+            let content = $(textarea).text().trim();
+            let editor = CodeMirror.fromTextArea(textarea, {
+                lineNumbers: true,
+                mode: "python",
+                theme: "monokai",
+                matchBrackets: true,
+                indentUnit: 4,
+                indentWithTabs: true,
+                readOnly: true
+            });
+
+            if (content) {
+                editor.setValue(content);
+            } else {
+                editor.setValue("// No content available...");
+            }
+
+            editor.refresh();
+        });
+    });
+    </script>
+</body>
+</html>
+`
+
 var PROBLEM_DASHBOARD_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
@@ -870,6 +1105,16 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
 }
 .content {
     margin-top: 30px; 
+}
+
+#scaffolding-dropdown {
+    width: 100%; /* Make it span the full width of the container */
+    max-width: 250px; /* Set a maximum width */
+    padding: 10px; /* Add padding to the dropdown */
+    border-radius: 5px; /* Rounded corners */
+    border: 1px solid #ccc; /* Light border */
+    background: #ffffff; /* White background */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
 }
 
 .button.is-primary {
@@ -986,6 +1231,19 @@ td {
 {{end}}
 {{if eq .UserRole "teacher"}} 
     <button id="student-progress-button" class="button is-primary">Update Student Progress</button>
+{{end}}
+{{if eq .UserRole "teacher"}}
+    <select id="scaffolding-dropdown">
+        <option value="">Scaffolding Strategy</option>
+        <option value="1">Fill-in-the-Blanks</option>
+        <option value="2">Step-by-Step Tasks</option>
+        <option value="3">Guided Code with Hints</option>
+        <option value="4">Debug This Code</option>
+        <option value="5">Incremental Feature Implementation</option>
+    </select>
+{{end}}
+{{if eq .UserRole "teacher"}} 
+    <button id="scaffolding-view-button" class="button is-primary">View Generated Scaffoldings</button>
 {{end}}
 	<div class="accordions" style="margin-top: 10px;">
 		<h3>{{.ProblemName}}</h3>
@@ -1304,7 +1562,77 @@ document.getElementById('student-progress-button').addEventListener('click', fun
     });
 });
 
+document.getElementById("scaffolding-dropdown").addEventListener("change", sendScaffoldingStrategy);
 
+function sendScaffoldingStrategy() {
+    const dropdown = document.getElementById("scaffolding-dropdown");
+    const selectedStrategy = dropdown.value;
+    if (!selectedStrategy) return;
+
+    // Retrieve problem_id from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get("problem_id");
+
+    if (!problemId) {
+        alert("Error: Problem ID is missing!");
+        return;
+    }
+
+    // Disable the dropdown and show "Generating..."
+    dropdown.disabled = true;
+    const originalText = dropdown.options[dropdown.selectedIndex].text;
+    dropdown.options[dropdown.selectedIndex].text = "Generating...";
+
+    const requestData = {
+        problem_id: problemId,
+        scaffolding_strategy: selectedStrategy
+    };
+
+    fetch("/process_scaffolding", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        if (status === 409) {
+            alert(body.message); // Show message from backend (Scaffolding already exists)
+        } else if (status === 200) {
+            alert("Scaffolding strategy submitted successfully!");
+        } else {
+            alert("Unexpected response from server!");
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error submitting scaffolding strategy!");
+    })
+    .finally(() => {
+        // Re-enable the dropdown and restore the original text
+        dropdown.disabled = false;
+        dropdown.options[dropdown.selectedIndex].text = originalText;
+    });
+}
+ document.addEventListener("DOMContentLoaded", function() {
+        var button = document.getElementById("scaffolding-view-button");
+        if (button) {
+            button.addEventListener("click", function() {
+                // Get the current URL parameters
+                var urlParams = new URLSearchParams(window.location.search);
+                var problemId = urlParams.get("problem_id");
+                var uid = urlParams.get("uid");
+                var role = urlParams.get("role");
+
+                if (problemId && uid && role) {
+                    window.location.href = "/scaffolding_dashboard?problem_id=" + problemId + "&uid=" + uid + "&role=" + role;
+                } else {
+                    alert("Missing required parameters in the URL.");
+                }
+            });
+        }
+    });
 	</script>
 </body>
 </html>
@@ -3404,6 +3732,10 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
         transition: 0.4s;
         border-radius: 20px;
     }
+	#custom-prompt-response {
+    display: none; /* Initially hidden */
+	 margin-top: 10px; 
+}
 
     .slider::before {
         position: absolute;
@@ -3540,12 +3872,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					<div class="column is-two-thirds">
 						<p>Latest Code Snapshot at {{.Feedback.LastSnapshot.LastUpdated.Format "Jan 02, 2006 3:04:05 PM"}}</p>
 					</div>
-{{if eq .UserRole "teacher"}} 
-				<button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
-        onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
-        style="margin-top:3px; margin-bottom: 3px; margin-right: 21px; color: #ffff;">
-        Get Feedback from AI
-    </button>
+{{if eq .UserRole "teacher"}}
 {{end}}
 {{if eq .UserRole "teacher"}} 
 <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Send Inline Feedback</button>
@@ -3557,23 +3884,28 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					<div class="actions">
     <button class="button is-info" id="snapshot-check-feedback" onclick="codeSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Check My Feedback</button>
 </div>
-					<div id="code-snapshot-feedback-block"></div>
-
-				<!-- Initially hidden feedback container -->
-<div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; display: none;">
-    <!-- Feedback heading, hidden initially -->
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: #ffff; display: none;">AI Feedback</h3>
-    
-    <!-- Loading Indicator -->
-    <p id="loading-text" style="display: none; color: #ffff; font-weight: bold;">Fetching AI response...</p>
-    
-    <!-- Hidden initially, shown only after response is received -->
-    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 6px; padding: 5px;" readonly></textarea>
-</div>
+					
+		</div>
 
 			</div>
-		</div>
-		
+
+<div id="code-snapshot-feedback-block"></div>
+
+<div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; padding: 10px;">
+    <!-- Flex container to keep heading and button on the same line -->
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 id="feedback-heading" style="color: #ffffff; margin: 0;">AI Feedback</h3>
+        <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
+            onclick="sendCustomPromptFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" 
+            style="margin-left: auto; color: #ffffff;">
+            Get Feedback from AI
+        </button>
+    </div>
+
+    <!-- Hidden initially, shown only after response is received -->
+    <textarea id="custom-prompt-response"></textarea>
+</div>
+
 
 		{{ if .Feedback.Messages}}
 		<h3 style="color: white;">Student's help requests:</h3>
@@ -3730,12 +4062,12 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 					}
 				});
 			}
-// Add a new function to handle sending the code and custom prompt
+
 function sendCustomPromptFeedback(code, userID, customPrompt) {
-    // Show the feedback box but hide heading and textarea
     $('#custom-prompt-box').show();
-    $('#loading-text').show();
-    $('#feedback-heading').hide(); 
+    
+    let button = $('#submit-custom-prompt');
+    button.text('Fetching AI Response...').prop('disabled', true);
     $('#custom-prompt-response').hide();
 
     return $.ajax({
@@ -3750,21 +4082,35 @@ function sendCustomPromptFeedback(code, userID, customPrompt) {
             "Content-Type": "application/json",
         }
     }).done(function(data) {
-        $('#loading-text').hide(); // Hide loading text once response arrives
+        button.text('Get Feedback from AI').prop('disabled', false);
 
         if (data.response) {
-            $('#feedback-heading').show(); // Show heading
-            $('#custom-prompt-response').val(data.response).show(); // Show textarea with response
+            $('#feedback-heading').show();
+            $('#custom-prompt-response').val(data.response).show();
+
+            // Initialize CodeMirror on the response textarea
+            let editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
+                lineNumbers: true,
+                mode: "python",
+                theme: "monokai",
+                matchBrackets: true,
+                indentUnit: 4,
+                indentWithTabs: true,
+                readOnly: false
+            });
+            editor.setSize(null, "650px");
+			 $(editor.getWrapperElement()).css("margin-top", "10px");
         } else {
-            $('#custom-prompt-box').hide(); // Hide entire box if no response
+            $('#custom-prompt-box').hide();
             alert("No feedback found!");
         }
     }).fail(function(err) {
-        $('#loading-text').hide();
+        button.text('Get Feedback from AI').prop('disabled', false);
         $('#custom-prompt-box').hide();
         alert("Error: " + JSON.stringify(err));
     });
 }
+
 
 
 

@@ -44,6 +44,7 @@ func create_tables() {
 	execSQL("CREATE TABLE IF NOT EXISTS courses ( id INT AUTO_INCREMENT PRIMARY KEY, course_id VARCHAR(50) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
 	execSQL("CREATE TABLE IF NOT EXISTS student_classes ( id INT AUTO_INCREMENT PRIMARY KEY, student_id INT NOT NULL, course_id VARCHAR(50) NOT NULL);")
 	execSQL("CREATE TABLE IF NOT EXISTS teacher_classes ( id INT AUTO_INCREMENT PRIMARY KEY, teacher_id INT NOT NULL, course_id VARCHAR(50) NOT NULL);")
+	execSQL("create table if not exists scaffoldings (Id INT AUTO_INCREMENT NOT NULL, problem_id INT, scaffolding_strategy INT, scaffolding_level INT, scaffolding_material LONGTEXT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`Id`))")
 	// foreign key example: http://www.sqlitetutorial.net/sqlite-foreign-key/
 }
 
