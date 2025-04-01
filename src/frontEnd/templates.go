@@ -1835,6 +1835,407 @@ $(document).ready(function(){
 </html>
 `
 
+var EXERCISE_LIST_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Exercises</title>
+<meta http-equiv="refresh" content="10000000">
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9fafb;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.user-info {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 14px;
+  background-color: cornflowerblue;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.page-title {
+  text-align: center;
+  margin-top: 70px;
+  margin-bottom: 30px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.exercise-list {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.exercise-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f4f8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exercise-item:last-child {
+  border-bottom: none;
+}
+
+.exercise-item:hover {
+  background-color: #f7fafc;
+}
+
+.exercise-item.active {
+  background-color: #ebf5ff;
+}
+
+.exercise-name {
+  flex-grow: 1;
+}
+
+.exercise-link {
+  text-decoration: none;
+  color: #4a5568;
+  font-weight: 500;
+  display: block;
+  width: 100%;
+}
+
+.exercise-link:hover {
+  color: cornflowerblue;
+}
+
+.exercise-date {
+  color: #718096;
+  font-size: 14px;
+  min-width: 180px;
+  text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+</style>
+<script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+  <div class="user-info">
+    {{.Username}} ({{.UserRole}})
+  </div>
+  
+  <div class="content">
+    <div class="page-title">
+      Available Exercises
+    </div>
+    
+    {{if ne .UserRole "student"}}
+    <div class="action-buttons">
+      <a id="new-problem" class="button is-success" href="">
+        <span>Add Exercise</span>
+      </a>
+      <a id="export-button" class="button is-primary" href="">
+        <span>Export Data</span>
+      </a>
+    </div>
+    {{end}}
+    
+    <div class="exercise-list">
+      {{range .Problems}}
+      <div class="exercise-item {{if eq .IsActive true}}active{{end}}">
+        <div class="exercise-name">
+          <a href="/view_user_feedback?student_id={{$.UserID}}&problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}" class="exercise-link">
+            {{.Filename}}
+          </a>
+        </div>
+        <div class="exercise-date">
+          {{ .UploadedAt.Format "Jan 02, 2006 3:04 PM" }}
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+</body>
+</html>
+`
+
+var EXERCISE_FEEDBACK_TEMPLATE = `
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<title>Student Dashboard</title>
+	<meta http-equiv="refresh" content="120" >
+	<script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" integrity="sha512-hGVnilhYD74EGnPbzyvje74/Urjrg5LSNGx0ARG1Ucqyiaz+lFvtsXk/1jCwT9/giXP0qoXSlVDjxNxjLvmqAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" integrity="sha512-/mavDpedrvPG/0Grj2Ughxte/fsm42ZmZWWpHz1jCbzd5ECv8CB7PomGtw0NAnhHmE/lkDFkRMupjoohbKNA1Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" integrity="sha512-GAled7oA9WlRkBaUQlUEgxm37hf43V2KEMaEiWlvBO/ueP2BLvBLKN5tIJu4VZOTwo6Z4XvrojYngoN9dJw2ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" integrity="sha512-6sALqOPMrNSc+1p5xOhPwGIzs6kIlST+9oGWlI4Wwcbj1saaX9J3uzO3Vub016dmHV7hM+bMi/rfXLiF5DNIZg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" integrity="sha512-R6PH4vSzF2Yxjdvb2p2FA06yWul+U0PDDav4b/od/oXf9Iw37zl10plvwOXelrjV2Ai7Eo3vyHeyFUjhXdBCVQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+	<script src="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible"></script>
+	<style>
+		.status {
+			display: flex;
+			justify-content: space-between;
+		}
+		.menu {
+			padding: 10px;
+			padding-left: 100px;
+			padding-right: 100px;
+		}
+		.show {
+			top: 6%;
+			position: fixed;
+			z-index: 200;
+			background: white;
+		}
+		.content {
+			padding-top: 3%;
+		}
+		.topcorner{
+			position:absolute;
+			top:0;
+			right:0;
+		}
+	</style>
+	</head>
+	<body>
+	<div class="container">
+	<nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
+	<div class="navbar-start"> 
+	<ul>
+	  <li>
+		<a id="view-exercise-link" href="#">
+		  <span class="icon is-small">
+			<i class="fas fa-home" aria-hidden="true"></i>
+		  </span>
+		  <span>Exercises</span>
+		</a>
+	  </li>
+	</ul>
+	</div>
+	<div class="navbar-end"> 
+		<div class="navbar-item"> <a href="#">{{.Username}} ({{.UserRole}})</a> </div>
+	</div>
+	</nav>
+	<div class="content">
+	<div class="column is-two-thirds show" style="width: 70%;">
+	</div>
+		
+	<div class="content">
+    <div>
+        <section class="section" style="padding: 20px">
+            <h2 class="title is-3" style="padding-left: 20px">Feedback History</h2>
+            {{if .Messages}}
+                {{range .Messages}}
+                    <article class="message" style="margin-left: 25px; padding-bottom: 20px;">
+                        <div class="message-header">
+                            <p>{{if eq .Type 0}}{{.Name}} asked for help{{else if eq .Event "at_submission"}} Submission Snapshot taken {{else}} Regular Snapshot taken {{end}} at ({{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}})</p>
+                        </div>
+                        <div class="message-body">
+                            {{.Message}}
+                        </div>
+                        <div style="margin-left:20px;">
+                            {{if .Code }}
+                                {{range .Feedbacks}}
+                                    <article class="message" style="margin-left: 25px;">
+                                        <div class="message-header">
+                                            <p>Reply from {{.Name}} given at {{.GivenAt.Format "Jan 02, 2006 3:04:05 PM"}} </p>
+                                        </div>
+                                        <div class="message-body">
+                                            <div class="columns">
+                                                <div class="column is-four-fifths">
+                                                    <textarea class="message-feedback">{{ .Feedback }}</textarea>
+                                                </div>
+                                                {{ if not (eq .Upvote 0) }}
+                                                <div class="column" style="text-align: center;">
+                                                    <div style="font-size: 32px;">
+                                                        {{.Upvote}}
+                                                    </div>
+                                                    <p> Student found it helpful.</p>
+                                                </div>
+                                                {{ end }}
+                                            </div>
+                                        </div>
+                                    </article>
+                                {{end}}
+                            {{ end }}
+                        </div>
+                    </article>
+                {{end}}
+            {{else}}
+                <div class="notification is-info is-light" style="margin-left: 25px; margin-right: 25px;">
+                    <p>No feedback available</p>
+                </div>
+            {{end}}
+        </section>
+    </div>
+</div>
+	</div>
+	<script>
+		$(document).ready(function(){
+			$('#view-exercise-link').attr("href", "/view_feedback"+window.location.search);
+			$('#problem-dashboard-link').attr("href", "/problem_dashboard"+window.location.search+"&problem_id={{.ProblemID}}");
+		
+
+			var snapshotEditors = document.getElementsByClassName("message-feedback");
+			
+			for (let i = 0; i<snapshotEditors.length; i++){
+				var code = CodeMirror.fromTextArea(snapshotEditors[i], {lineNumbers: true, mode: "{{getEditorMode .ProblemName}}", theme: "monokai", matchBrackets: true, indentUnit: 4, indentWithTabs: true, readOnly: "nocursor"});
+				code.setSize("100%", 500);
+			}
+		});
+
+		function autoFeedbackSubmit(backFeedback, fID) {
+			$.ajax({
+				url: "/save_snapshot_back_feedback",
+				type: "POST",
+				data:  {
+					feedback: backFeedback,
+					feedback_id: fID,
+					uid: {{.UserID}},
+					role: "{{.UserRole}}",
+					{{if ne .Password ""}}password: "{{.Password}}",{{end}}
+				},
+				success: function(data){
+					console.log("Success!")
+				}
+			});
+			
+			location.reload();
+		}
+	</script>
+	</body>
+	</html>
+`
+
+var STUDENT_PROBLEM_LIST_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Feedback</title>
+  <meta http-equiv="refresh" content="10000000">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <style>
+    /* Basic styles for a pleasing accordion */
+    .collapsible {
+      background-color: #f6f6f6;
+      color: #333;
+      cursor: pointer;
+      padding: 18px;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 18px;
+      transition: background-color 0.3s ease;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .collapsible:hover, .collapsible.active {
+      background-color: #e2e2e2;
+    }
+    .content {
+      padding: 0 18px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .feedback-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    .feedback-item:last-child {
+      border-bottom: none;
+    }
+    .feedback-header {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">My Feedback</h1>
+      {{range .Problems}}
+        <button class="collapsible">
+          {{.Filename}} <span style="font-size: 14px; color: #666;">(Posted at {{.UploadedAt.Format "Jan 02, 2006 3:04:05 PM"}})</span>
+        </button>
+        <div class="content">
+          <div class="content">
+            <p><strong>Attendance:</strong> {{.Attendance}}</p>
+            <p><strong>Active Students:</strong> {{.NumActive}}</p>
+            <p><strong>Help Requests:</strong> {{.NumHelpRequest}}</p>
+            <p><strong>Graded Correct:</strong> {{.NumGradedCorrect}}</p>
+            <p><strong>Graded Incorrect:</strong> {{.NumGradedIncorrect}}</p>
+            <p><strong>Not Graded:</strong> {{.NumNotGraded}}</p>
+            <hr>
+            <h2 class="subtitle">Feedbacks</h2>
+            {{if .Feedbacks}}
+              {{range .Feedbacks}}
+                <div class="feedback-item">
+                  <p class="feedback-header">{{.GivenBy}} <small>({{.FeedbackTime.Format "Jan 02, 2006 3:04:05 PM"}})</small></p>
+                  <p>{{.Feedback}}</p>
+                </div>
+              {{end}}
+            {{else}}
+              <p>No feedback available for this exercise.</p>
+            {{end}}
+          </div>
+        </div>
+      {{end}}
+    </div>
+  </section>
+  <script>
+    // Collapsible accordion functionality
+    $(document).ready(function(){
+      var coll = document.getElementsByClassName("collapsible");
+      for (var i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function() {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.maxHeight){
+            content.style.maxHeight = null;
+          } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+          } 
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+`
+
 var SUBMISSION_VIEW_TEMPLATE = `
 	<!DOCTYPE html>
 	<html>

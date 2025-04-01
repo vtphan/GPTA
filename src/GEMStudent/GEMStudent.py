@@ -83,6 +83,11 @@ LOGGED_IN_MENU = [
                 "id": "gemsViewExercises",
                 "command": "gems_view_exercises",
             },
+            {
+                "caption": "View Feedback",
+                "id": "gemsViewFeedback",
+                "command": "gems_view_feedback",
+            },
             {"caption": "-", "id": "side-bar-separator"},
             {
                 "caption": "Attendance",
@@ -1363,6 +1368,16 @@ class gemsViewExercises(sublime_plugin.ApplicationCommand):
             {"password": info["Password"], "uid": info["Uid"], "role": "student", "course_id": info["CourseId"]}
         )
         webbrowser.open(gemsSERVER + "/view_exercises?" + p)
+
+class gemsViewFeedback(sublime_plugin.ApplicationCommand):
+    def run(self):
+        global gemsSERVER
+        with open(gemsFILE, "r") as f:
+            info = json.loads(f.read())
+        p = urllib.parse.urlencode(
+            {"password": info["Password"], "uid": info["Uid"], "role": "student", "course_id": info["CourseId"]}
+        )
+        webbrowser.open(gemsSERVER + "/view_feedback?" + p)
 
 
 class gemsPeerTutoring(sublime_plugin.ApplicationCommand):

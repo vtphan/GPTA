@@ -6,14 +6,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os/signal"
+	"strings"
+	"syscall"
+
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
 	"github.com/GPTA/src/restHandlers"
 	"gorm.io/gorm"
-	"os/signal"
-	"strings"
-	"syscall"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -91,6 +92,8 @@ func init_handlers() {
 	http.HandleFunc("/set_peer_tutor", Authorize(restHandlers.SetPeerTutorHandler, "teacher"))
 
 	http.HandleFunc("/view_exercises", Authorize(restHandlers.ProblemListHandler, ""))
+	http.HandleFunc("/view_feedback", Authorize(restHandlers.ExerciseListHandler, ""))
+	http.HandleFunc("/view_user_feedback", Authorize(restHandlers.StudentFeedbackProvisionHandler, ""))
 	http.HandleFunc("/problem_dashboard", Authorize(restHandlers.ProblemDashboardHandler, ""))
 	http.HandleFunc("/student_dashboard_feedback_provision", Authorize(restHandlers.StudentDashboardFeedbackProvisionHandler, ""))
 	http.HandleFunc("/save_message_feedback", Authorize(restHandlers.MessageFeedbackHandler, ""))
@@ -178,7 +181,7 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file, course_file := "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/gem_config.json", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/teachers.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/students.txt", "/Users/shashwatdadhich/go/src/github.com/GPTA/Examples/courses.txt"
+	config_file, teacher_file, student_file, course_file := "/Users/ajay/MS/GPTA/Examples/gem_config.json", "/Users/ajay/MS/GPTA/Examples/teachers.txt", "/Users/ajay/MS/GPTA/Examples/students.txt", "/Users/ajay/MS/GPTA/Examples/courses.txt"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
