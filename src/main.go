@@ -114,6 +114,8 @@ func init_handlers() {
 	http.HandleFunc("/process_code_with_prompt", openAI.ProcessCodeWithPromptHandler)
 	http.HandleFunc("/summarize_class_performance", openAI.SummarizeClassPerformance)
 	http.HandleFunc("/process_scaffolding", openAI.SummarizeScaffolding)
+	http.HandleFunc("/get_scaffolding", openAI.GetScaffolding)
+	http.HandleFunc("/get_scaffolding_material", openAI.GetScaffoldingMaterial)
 	http.HandleFunc("/summarize_student_progress", openAI.SummarizeStudentProgress)
 	http.HandleFunc("/get_class_feedback", openAI.GetLatestFeedbackByProblemID)
 	http.HandleFunc("/get_feedback_by_id", openAI.GetFeedbackByFeedbackID)

@@ -404,6 +404,58 @@ func ProcessStudentProgress(w http.ResponseWriter, r *http.Request) {
 	// Call Claude API request function
 	makeRequestClaude3(c, messages, problemID)
 }
+func GetScaffoldingMaterial(w http.ResponseWriter, r *http.Request) {
+	var requestData struct {
+		ProblemID           int    `json:"problem_id"`
+		ScaffoldingLevel    int    `json:"scaffolding_level"`
+		ScaffoldingStrategy string `json:"scaffolding_strategy"`
+	}
+
+	// Decode the request body into the requestData struct
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for scaffolding material
+	var scaffolding models.Scaffolding
+	if err := models.DB.Where("problem_id = ? AND scaffolding_level = ? AND scaffolding_strategy = ?",
+		requestData.ProblemID, requestData.ScaffoldingLevel, requestData.ScaffoldingStrategy).
+		First(&scaffolding).Error; err != nil {
+		// Handle error if no scaffolding material found or DB error
+		http.Error(w, "Failed to fetch scaffolding material", http.StatusInternalServerError)
+		return
+	}
+
+	// Send the response with scaffolding material
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // Explicitly return 200 OK status code
+	json.NewEncoder(w).Encode(struct {
+		ScaffoldingMaterial string `json:"scaffolding_material"`
+	}{
+		ScaffoldingMaterial: scaffolding.ScaffoldingMaterial,
+	})
+}
+
+func GetScaffolding(w http.ResponseWriter, r *http.Request) {
+	var requestData struct {
+		ProblemID int `json:"problem_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	var scaffoldings []models.Scaffolding
+	if err := models.DB.Where("problem_id = ?", requestData.ProblemID).Find(&scaffoldings).Error; err != nil {
+		http.Error(w, "Failed to fetch scaffolding records", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(scaffoldings)
+}
 
 func ProcessScaffolding(w http.ResponseWriter, r *http.Request) {
 	var requestData struct {
@@ -459,6 +511,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "strugglin", "developing", and "nearly_proficient".
@@ -493,6 +551,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs.
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -531,6 +595,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -568,6 +638,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -605,11 +681,18 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
+
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
 - The output should be **pure JSON** with no extra characters, sentences, or formatting.
-- dont even write "Here is my attempt at the scaffolded solutions in valid JSON format:" just give the json object
+- Do **not** write "Here is my attempt at the scaffolded solutions in valid JSON format:"—just return the JSON object directly.
 `
 
 	default:
