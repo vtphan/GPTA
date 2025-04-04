@@ -511,6 +511,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "strugglin", "developing", and "nearly_proficient".
@@ -545,6 +551,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs.
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -583,6 +595,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -620,6 +638,12 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
@@ -657,11 +681,18 @@ Return the response strictly in **JSON format** as shown below:
 }
 
 Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
+
 - Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
 - Do not include any additional text, formatting, or explanations outside of the JSON structure.
 - The JSON keys must exactly match "struggling", "developing", and "nearly_proficient".
 - The output should be **pure JSON** with no extra characters, sentences, or formatting.
-- dont even write "Here is my attempt at the scaffolded solutions in valid JSON format:" just give the json object
+- Do **not** write "Here is my attempt at the scaffolded solutions in valid JSON format:"—just return the JSON object directly.
 `
 
 	default:

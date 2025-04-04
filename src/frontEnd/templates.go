@@ -888,11 +888,33 @@ var SCAFFOLDING_TEMPLATE = `
             font-size: 14px;
             padding-left: 10px; /* Prevent overlap */
         }
+#scaffolding-dropdown {
+    width: 100%; /* Make it span the full width of the container */
+    max-width: 250px; /* Set a maximum width */
+    padding: 10px; /* Add padding to the dropdown */
+    border-radius: 5px; /* Rounded corners */
+    border: 1px solid #ccc; /* Light border */
+    background: #ffffff; /* White background */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
+}
+
     </style>
 </head>
 <body>
     <div class="container">
-		<h1 style="font-size: 2.5em; margin-bottom: 20px;">Scaffoldings</h1>
+		<div style="display: flex; justify-content: center; align-items: center; position: relative; width: 100%; padding: 20px;">
+    <h1 style="font-size: 2.5em; margin: 0;">Scaffoldings</h1>
+    <select id="scaffolding-dropdown" 
+        style="position: absolute; right: 20px; padding: 8px; font-size: 1em;">
+        <option value="">Generate Scaffolds</option>
+        <option value="1">Fill-in-the-Blanks</option>
+        <option value="2">Step-by-Step Tasks</option>
+        <option value="3">Guided Code with Hints</option>
+        <option value="4">Debug This Code</option>
+        <option value="5">Incremental Feature Implementation</option>
+    </select>
+</div>
+
         {{if or (index . 1) (index . 2) (index . 3) (index . 4) (index . 5)}}
             <!-- If at least one scaffolding data exists, render the sections -->
             
@@ -1054,6 +1076,60 @@ var SCAFFOLDING_TEMPLATE = `
             editor.refresh();
         });
     });
+document.getElementById("scaffolding-dropdown").addEventListener("change", sendScaffoldingStrategy);
+
+function sendScaffoldingStrategy() {
+    const dropdown = document.getElementById("scaffolding-dropdown");
+    const selectedStrategy = dropdown.value;
+    if (!selectedStrategy) return;
+
+    // Retrieve problem_id from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get("problem_id");
+
+    if (!problemId) {
+        alert("Error: Problem ID is missing!");
+        return;
+    }
+
+    // Disable the dropdown and show "Generating..."
+    dropdown.disabled = true;
+    const originalText = dropdown.options[dropdown.selectedIndex].text;
+    dropdown.options[dropdown.selectedIndex].text = "Generating...";
+
+    const requestData = {
+        problem_id: problemId,
+        scaffolding_strategy: selectedStrategy
+    };
+
+    fetch("/process_scaffolding", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        if (status === 409) {
+            alert(body.message); // Show message from backend (Scaffolding already exists)
+        } else if (status === 200) {
+            alert("Scaffolding strategy submitted successfully!");
+			window.location.reload();
+        } else {
+            alert("Unexpected response from server!");
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error submitting scaffolding strategy!");
+    })
+    .finally(() => {
+        // Re-enable the dropdown and restore the original text
+        dropdown.disabled = false;
+        dropdown.options[dropdown.selectedIndex].text = originalText;
+    });
+}
     </script>
 </body>
 </html>
@@ -1115,6 +1191,7 @@ var PROBLEM_DASHBOARD_TEMPLATE = `
     border: 1px solid #ccc; /* Light border */
     background: #ffffff; /* White background */
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); 
+	display: none;
 }
 
 .button.is-primary {
