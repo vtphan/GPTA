@@ -1,16 +1,41 @@
 package restHandlers
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/GPTA/src/frontEnd"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 )
+
+type problemData struct {
+	ID                 int
+	Filename           string
+	UploadedAt         time.Time
+	IsActive           bool
+	Attendance         int
+	NumActive          int
+	NumHelpRequest     int
+	NumGradedCorrect   int
+	NumGradedIncorrect int
+	NumNotGraded       int
+	LatestFeedbackTime *time.Time
+}
+
+type problemListData struct {
+	Problems         []*problemData
+	PeerTutorAllowed bool
+	UserID           int
+	UserRole         string
+	Password         string
+	Username         string
+}
 
 func ExerciseListHandler(w http.ResponseWriter, r *http.Request, who string, uid int) {
 	role := r.FormValue("role")
@@ -47,12 +72,13 @@ func ExerciseListHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		}
 	}
 	// Convert database problems to ProblemData format
-	var problems = make([]*ProblemData, 0)
+	var problems = make([]*problemData, 0)
 	for _, problem := range problemsFromDB {
 		// Get stats for each problem
 		nActive, nHelp, nNotGraded, nCorrect, nIncorrect := repository.GetProblemStats(problem.ID)
 
-		problems = append(problems, &ProblemData{
+		// Create the problem data structure
+		problemData := &problemData{
 			ID:                 problem.ID,
 			Filename:           problem.Filename,
 			UploadedAt:         problem.ProblemUploadedAt,
@@ -63,11 +89,33 @@ func ExerciseListHandler(w http.ResponseWriter, r *http.Request, who string, uid
 			NumGradedCorrect:   nCorrect,
 			NumGradedIncorrect: nIncorrect,
 			NumNotGraded:       nNotGraded,
-		})
+			LatestFeedbackTime: nil, // Initialize to nil
+		}
+
+		students := repository.GetAllStudents()
+
+		// For teachers, find the latest feedback time across all students for this problem
+		// For students, just check their own feedback
+		messages, err := FetchMessages(students, problem.ID, uid, role)
+		if err != nil {
+			log.Printf("Error fetching messages for problem %d, student %d: %v", problem.ID, uid, err)
+		} else {
+			var latestTime *time.Time
+			for _, msg := range messages {
+				for _, feedback := range msg.Feedbacks {
+					if latestTime == nil || feedback.GivenAt.After(*latestTime) {
+						latestTime = &feedback.GivenAt
+					}
+				}
+			}
+			problemData.LatestFeedbackTime = latestTime
+		}
+
+		problems = append(problems, problemData)
 	}
 
 	// Prepare the ProblemListData for the template
-	problemListData := &ProblemListData{
+	problemListData := &problemListData{
 		Problems:         problems,
 		PeerTutorAllowed: models.PeerTutorAllowed,
 		UserID:           uid,
@@ -75,7 +123,9 @@ func ExerciseListHandler(w http.ResponseWriter, r *http.Request, who string, uid
 		Password:         password,
 		Username:         GetName(uid, role),
 	}
-
+	for i, problem := range problemListData.Problems {
+		fmt.Printf("Problem %d: %+v\n", i+1, *problem)
+	}
 	// Render the template
 	temp := template.New("")
 	t, err := temp.Parse(frontEnd.EXERCISE_LIST_TEMPLATE)

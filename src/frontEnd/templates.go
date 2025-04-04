@@ -2204,60 +2204,95 @@ body {
   color: #333;
 }
 
-.exercise-list {
+.exercise-table {
+  width: 100%;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   overflow: hidden;
+  border-collapse: collapse;
 }
 
-.exercise-item {
-  padding: 16px 20px;
+.exercise-table th {
+  background-color: #f5f7fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #edf2f7;
+  cursor: pointer;
+  position: relative;
+}
+
+.exercise-table th:hover {
+  background-color: #edf2f7;
+}
+
+.exercise-table th.sorted-asc::after {
+  content: "";
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.exercise-table th.sorted-desc::after {
+  content: "";
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.exercise-table td {
+  padding: 16px;
   border-bottom: 1px solid #f0f4f8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  vertical-align: middle;
 }
 
-.exercise-item:last-child {
+.exercise-table tr:last-child td {
   border-bottom: none;
 }
 
-.exercise-item:hover {
+.exercise-table tr:hover {
   background-color: #f7fafc;
 }
 
-.exercise-item.active {
+.exercise-table tr.active {
   background-color: #ebf5ff;
-}
-
-.exercise-name {
-  flex-grow: 1;
 }
 
 .exercise-link {
   text-decoration: none;
   color: #4a5568;
   font-weight: 500;
-  display: block;
-  width: 100%;
 }
 
 .exercise-link:hover {
   color: cornflowerblue;
 }
 
-.exercise-date {
-  color: #718096;
-  font-size: 14px;
-  min-width: 180px;
-  text-align: right;
-}
-
 .action-buttons {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
+  gap: 10px;
+}
+
+.sort-icon {
+  font-size: 12px;
+  margin-left: 8px;
+}
+.status {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status.published {
+  background-color: #48bb78;
+}
+
+.status.drafted {
+  background-color: #e53e3e;
 }
 </style>
 <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
@@ -2272,7 +2307,7 @@ body {
   
   <div class="content">
     <div class="page-title">
-      Available Exercises
+      Feedback History
     </div>
     
     {{if ne .UserRole "student"}}
@@ -2286,22 +2321,83 @@ body {
     </div>
     {{end}}
     
-    <div class="exercise-list">
-      {{range .Problems}}
-      <div class="exercise-item {{if eq .IsActive true}}active{{end}}">
-        <div class="exercise-name">
-          <a href="/view_user_feedback?student_id={{$.UserID}}&problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}" class="exercise-link">
-            {{.Filename}}
-          </a>
-        </div>
-        <div class="exercise-date">
-          {{ .UploadedAt.Format "Jan 02, 2006 3:04 PM" }}
-        </div>
-      </div>
-      {{end}}
-    </div>
+    <table class="exercise-table">
+      <thead>
+        <tr>
+          <th width="60%">Exercise</th>
+          <th width="20%" class="sortable sort-date" data-sort="date">Exercise Posted At &#8597;</th>
+			<th width="20%" class="sortable sort-feedback" data-sort="feedback">Feedback Time &#8597;</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Problems}}
+        <tr class="{{if eq .IsActive true}}active{{end}}">
+          <td>
+            <a href="/view_user_feedback?student_id={{$.UserID}}&problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}" class="exercise-link">
+              <span class="status {{if eq .IsActive true}}published{{else}}drafted{{end}}"></span>
+              {{.Filename}}
+            </a>
+          </td>
+          <td data-timestamp="{{.UploadedAt.Unix}}">
+            {{ .UploadedAt.Format "Jan 02, 2006 3:04 PM" }}
+          </td>
+          <td data-timestamp="{{if .LatestFeedbackTime}}{{.LatestFeedbackTime.Unix}}{{else}}0{{end}}">
+			{{- if .LatestFeedbackTime }}
+				{{ .LatestFeedbackTime.Format "Jan 02, 2006 3:04 PM" }}
+			{{- else }}
+				No Feedback
+			{{- end }}
+			</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
   </div>
 </div>
+
+<script>
+$(document).ready(function() {
+  function sortTable(columnIndex, sortClass) {
+    const tbody = $('table.exercise-table tbody');
+    const rows = tbody.find('tr').toArray();
+    const header = $('.' + sortClass);
+
+    // Toggle sort direction
+    let sortDirection = header.hasClass('sorted-asc') ? 'desc' : 'asc';
+
+    // Remove old icons and reset sorting classes
+    $('.sortable').removeClass('sorted-asc sorted-desc').find('.sort-icon').remove();
+
+    // Apply new sorting indicator (use string concatenation)
+    let icon = document.createElement("span");
+    icon.className = "sort-icon";
+    icon.textContent = sortDirection === 'asc' ?  "" : "";
+    header.addClass(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc').append(icon);
+
+    // Sort rows
+    rows.sort(function(a, b) {
+      const aValue = parseInt($(a).find('td').eq(columnIndex).attr('data-timestamp')) || 0;
+      const bValue = parseInt($(b).find('td').eq(columnIndex).attr('data-timestamp')) || 0;
+
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+
+    // Reattach sorted rows
+    $.each(rows, function(index, row) {
+      tbody.append(row);
+    });
+  }
+
+  // Click handlers for sorting
+  $('.sort-date').click(function() {
+    sortTable(1, 'sort-date');
+  });
+
+  $('.sort-feedback').click(function() {
+    sortTable(2, 'sort-feedback');
+  });
+});
+</script>
 </body>
 </html>
 `
