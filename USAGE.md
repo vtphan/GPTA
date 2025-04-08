@@ -41,7 +41,7 @@ If instructors and TAs can revise points for effort if they see fit. For example
 # 5 points, 3 for effort. Maximum attempts: 2.
 ```
 
-Here is a concrete example: [exercise1.py](Examples/exercise1.py)
+Here is a concrete example: [exercise1.py](Examples/edit_distance.py)
 
 ### Multiple-choice questions and automatic grading
 

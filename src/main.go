@@ -71,7 +71,7 @@ func init_handlers() {
 	http.HandleFunc("/teacher_broadcasts", Authorize(restHandlers.TeacherBroadcastsHandler, "teacher"))
 	http.HandleFunc("/teacher_gets_passcode", Authorize(restHandlers.TeacherGetsPasscodeHandler, "teacher"))
 	http.HandleFunc("/student_gets_passcode", Authorize(restHandlers.StudentGetsPasscodeHandler, "student"))
-
+	http.Handle("/scaffolding-guidance-html.html", http.FileServer(http.Dir("/Users/shashwatdadhich/go/src/github.com/GPTA")))
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "pong") })
 
 	http.HandleFunc("/get_testcase", Authorize(restHandlers.Testcase_getsHandler, ""))
@@ -125,8 +125,6 @@ func init_handlers() {
 	http.HandleFunc("/add_students", restHandlers.AddStudentsHandler)
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
 	http.HandleFunc("/logout", LogoutHandler)
-
-	http.HandleFunc("/ai_prompts", restHandlers.GetAllAIPrompts)
 }
 
 // -----------------------------------------------------------------

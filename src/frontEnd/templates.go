@@ -904,6 +904,12 @@ var SCAFFOLDING_TEMPLATE = `
     <div class="container">
 		<div style="display: flex; justify-content: center; align-items: center; position: relative; width: 100%; padding: 20px;">
     <h1 style="font-size: 2.5em; margin: 0;">Scaffoldings</h1>
+	<a href="/scaffolding-guidance-html.html" 
+   target="_blank" 
+   style="position: absolute; left: 20px; font-size: 1em; text-decoration: none; color: #007bff;">
+  Guidelines
+</a>
+
     <select id="scaffolding-dropdown" 
         style="position: absolute; right: 20px; padding: 8px; font-size: 1em;">
         <option value="">Generate Scaffolds</option>
@@ -1008,7 +1014,7 @@ var SCAFFOLDING_TEMPLATE = `
 
             {{if index . 5}} <!-- Check if scaffolding data exists for index 5 -->
             <div class="accordions">
-                <h3>Code Writing from Scratch</h3>
+                <h3>Incremental Feature Implementation</h3>
                 <div>
                     {{range $level, $scaffoldings := index . 5}}
                         <h4 style="font-weight: bold; font-size: 1.25em; margin-bottom: 10px; margin-top: 10px;">
@@ -2276,95 +2282,60 @@ body {
   color: #333;
 }
 
-.exercise-table {
-  width: 100%;
+.exercise-list {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   overflow: hidden;
-  border-collapse: collapse;
 }
 
-.exercise-table th {
-  background-color: #f5f7fa;
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  color: #4a5568;
-  border-bottom: 2px solid #edf2f7;
-  cursor: pointer;
-  position: relative;
-}
-
-.exercise-table th:hover {
-  background-color: #edf2f7;
-}
-
-.exercise-table th.sorted-asc::after {
-  content: "";
-  margin-left: 8px;
-  font-size: 12px;
-}
-
-.exercise-table th.sorted-desc::after {
-  content: "";
-  margin-left: 8px;
-  font-size: 12px;
-}
-
-.exercise-table td {
-  padding: 16px;
+.exercise-item {
+  padding: 16px 20px;
   border-bottom: 1px solid #f0f4f8;
-  vertical-align: middle;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.exercise-table tr:last-child td {
+.exercise-item:last-child {
   border-bottom: none;
 }
 
-.exercise-table tr:hover {
+.exercise-item:hover {
   background-color: #f7fafc;
 }
 
-.exercise-table tr.active {
+.exercise-item.active {
   background-color: #ebf5ff;
+}
+
+.exercise-name {
+  flex-grow: 1;
 }
 
 .exercise-link {
   text-decoration: none;
   color: #4a5568;
   font-weight: 500;
+  display: block;
+  width: 100%;
 }
 
 .exercise-link:hover {
   color: cornflowerblue;
 }
 
+.exercise-date {
+  color: #718096;
+  font-size: 14px;
+  min-width: 180px;
+  text-align: right;
+}
+
 .action-buttons {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
-  gap: 10px;
-}
-
-.sort-icon {
-  font-size: 12px;
-  margin-left: 8px;
-}
-.status {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.status.published {
-  background-color: #48bb78;
-}
-
-.status.drafted {
-  background-color: #e53e3e;
 }
 </style>
 <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
@@ -2379,7 +2350,7 @@ body {
   
   <div class="content">
     <div class="page-title">
-      Feedback History
+      Available Exercises
     </div>
     
     {{if ne .UserRole "student"}}
@@ -2393,83 +2364,22 @@ body {
     </div>
     {{end}}
     
-    <table class="exercise-table">
-      <thead>
-        <tr>
-          <th width="60%">Exercise</th>
-          <th width="20%" class="sortable sort-date" data-sort="date">Exercise Posted At &#8597;</th>
-			<th width="20%" class="sortable sort-feedback" data-sort="feedback">Feedback Time &#8597;</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{range .Problems}}
-        <tr class="{{if eq .IsActive true}}active{{end}}">
-          <td>
-            <a href="/view_user_feedback?student_id={{$.UserID}}&problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}" class="exercise-link">
-              <span class="status {{if eq .IsActive true}}published{{else}}drafted{{end}}"></span>
-              {{.Filename}}
-            </a>
-          </td>
-          <td data-timestamp="{{.UploadedAt.Unix}}">
-            {{ .UploadedAt.Format "Jan 02, 2006 3:04 PM" }}
-          </td>
-          <td data-timestamp="{{if .LatestFeedbackTime}}{{.LatestFeedbackTime.Unix}}{{else}}0{{end}}">
-			{{- if .LatestFeedbackTime }}
-				{{ .LatestFeedbackTime.Format "Jan 02, 2006 3:04 PM" }}
-			{{- else }}
-				No Feedback
-			{{- end }}
-			</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
+    <div class="exercise-list">
+      {{range .Problems}}
+      <div class="exercise-item {{if eq .IsActive true}}active{{end}}">
+        <div class="exercise-name">
+          <a href="/view_user_feedback?student_id={{$.UserID}}&problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}" class="exercise-link">
+            {{.Filename}}
+          </a>
+        </div>
+        <div class="exercise-date">
+          {{ .UploadedAt.Format "Jan 02, 2006 3:04 PM" }}
+        </div>
+      </div>
+      {{end}}
+    </div>
   </div>
 </div>
-
-<script>
-$(document).ready(function() {
-  function sortTable(columnIndex, sortClass) {
-    const tbody = $('table.exercise-table tbody');
-    const rows = tbody.find('tr').toArray();
-    const header = $('.' + sortClass);
-
-    // Toggle sort direction
-    let sortDirection = header.hasClass('sorted-asc') ? 'desc' : 'asc';
-
-    // Remove old icons and reset sorting classes
-    $('.sortable').removeClass('sorted-asc sorted-desc').find('.sort-icon').remove();
-
-    // Apply new sorting indicator (use string concatenation)
-    let icon = document.createElement("span");
-    icon.className = "sort-icon";
-    icon.textContent = sortDirection === 'asc' ?  "" : "";
-    header.addClass(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc').append(icon);
-
-    // Sort rows
-    rows.sort(function(a, b) {
-      const aValue = parseInt($(a).find('td').eq(columnIndex).attr('data-timestamp')) || 0;
-      const bValue = parseInt($(b).find('td').eq(columnIndex).attr('data-timestamp')) || 0;
-
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    });
-
-    // Reattach sorted rows
-    $.each(rows, function(index, row) {
-      tbody.append(row);
-    });
-  }
-
-  // Click handlers for sorting
-  $('.sort-date').click(function() {
-    sortTable(1, 'sort-date');
-  });
-
-  $('.sort-feedback').click(function() {
-    sortTable(2, 'sort-feedback');
-  });
-});
-</script>
 </body>
 </html>
 `
@@ -3852,11 +3762,15 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" integrity="sha512-R6PH4vSzF2Yxjdvb2p2FA06yWul+U0PDDav4b/od/oXf9Iw37zl10plvwOXelrjV2Ai7Eo3vyHeyFUjhXdBCVQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/abcdef.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/twilight.min.css">
+
 	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
 	<script src="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-collapsible"></script>
 	<style>
 		#code-snapshot {
-			background: cornflowerblue;
 			padding: 20px;
 			margin: 30px;
 			padding-bottom: 0px;
@@ -4137,7 +4051,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 
 
 		{{ if .Feedback.Messages}}
-		<h3 style="color: white;">Student's help requests:</h3>
+		<h3 style="color: black;">Student's help requests:</h3>
 		<div id="ask-for-help">
 			<section class="section" style="padding: 0px;">
 				{{range $index, $el := .Feedback.Messages}}
@@ -4179,7 +4093,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 		{{ end }}
 		{{ if ne .UserRole "student"}}
 		{{ if .Submission.Submissions}}
-		<h3 style="color: white;">Student's submissions: </h3> 
+		<h3 style="color: black;">Student's submissions: </h3> 
 		<div id="submission">
 			{{range $index, $el := .Submission.Submissions}}
 				{{ if eq .Grade "" }}
@@ -4428,8 +4342,8 @@ function fetchScaffoldingMaterial(problem_id, scaffolding_level, scaffolding_str
                 // Initialize CodeMirror once
                 window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
                     lineNumbers: true,
-                    mode: "python",
-                    theme: "monokai",
+                    mode: "markdown",
+                    theme: "twilight",
                     matchBrackets: true,
                     indentUnit: 4,
                     indentWithTabs: true,
