@@ -1936,6 +1936,11 @@ button {
   background: linear-gradient(45deg, #2575fc, #6a11cb); /* Inverted gradient on hover */
 }
 
+a.is-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 
 </style>
 <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
@@ -1963,20 +1968,26 @@ button {
 	</nav>
 	<div class="content">
 	<div class="topcorner" style="margin-top: 78px; margin-bottom: 10px;">{{.Username}}({{.UserRole}})</div>
-		{{if ne .UserRole "student"}}
-		<a id="new-problem" class="button is-success" href="" style="margin-top: 80px; margin-bottom: 10px;">
-			<span class="icon is-small">
-			<i class="fa-solid fa-plus"></i>
-			</span>
-			<span>Add a New Exercise</span>
-		</a>
-		<a id="export-button" class="button is-primary" href="" style="margin-top: 80px; margin-bottom: 10px;">
-			<span class="icon is-small">
-			<i class="fa-solid fa-plus"></i>
-			</span>
-			<span>Export Performance Data</span>
-		</a>
-		{{end}}
+		<a id="new-problem" 
+   class="button is-success {{if eq .UserRole "student"}}is-disabled{{end}}" 
+   href="{{if ne .UserRole "student"}}/your-link{{end}}" 
+   style="margin-top: 80px; margin-bottom: 10px;">
+	<span class="icon is-small">
+		<i class="fa-solid fa-plus"></i>
+	</span>
+	<span>Add a New Exercise</span>
+</a>
+
+<a id="export-button" 
+   class="button is-primary {{if eq .UserRole "student"}}is-disabled{{end}}" 
+   href="{{if ne .UserRole "student"}}/your-export-link{{end}}" 
+   style="margin-top: 80px; margin-bottom: 10px;">
+	<span class="icon is-small">
+		<i class="fa-solid fa-plus"></i>
+	</span>
+	<span>Export Performance Data</span>
+</a>
+
 
 		<div class="drawer" id="settings-drawer" style="font-family: Arial, sans-serif; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
 
@@ -4021,7 +4032,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 			</div>
 
 <div id="code-snapshot-feedback-block"></div>
-
+{{if ne .UserRole "student"}}
 <div id="custom-prompt-box" class="box" style="background: #4a4a4a; margin-top: 10px; padding: 10px;">
     <div style="display: flex; align-items: center; justify-content: space-between;">
         <h3 id="feedback-heading" style="color: #ffffff; margin: 0;">AI & Scaffolding Feedback</h3>
@@ -4048,7 +4059,7 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
     <!-- Hidden initially, shown only after response is received -->
     <textarea id="custom-prompt-response"></textarea>
 </div>
-
+{{end}}
 
 		{{ if .Feedback.Messages}}
 		<h3 style="color: black;">Student's help requests:</h3>
