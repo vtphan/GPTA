@@ -5,14 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/GPTA/src/models"
-	"github.com/GPTA/src/repository"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
+	"gorm.io/gorm"
 )
 
 // -----------------------------------------------------------------
@@ -453,6 +455,70 @@ func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Course added successfully"})
+}
+
+// load ai prompt from files on server, update to db on server start.
+func LoadAIPromptsFromFiles(promptsFolder string) error {
+	if _, err := os.Stat(promptsFolder); os.IsNotExist(err) {
+		return fmt.Errorf("prompts directory does not exist: %s", promptsFolder)
+	}
+
+	files, err := os.ReadDir(promptsFolder)
+	if err != nil {
+		return fmt.Errorf("error reading prompts directory: %w", err)
+	}
+
+	// Iterate through each file
+	for _, file := range files {
+		// Skip if not a .txt file
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".txt") {
+			title := strings.TrimSuffix(file.Name(), ".txt")
+
+			filePath := filepath.Join(promptsFolder, file.Name())
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				fmt.Printf("Error reading file %s: %v\n", file.Name(), err)
+				continue
+			}
+
+			promptText := string(content)
+
+			// Check if a record with this title already exists
+			var existingPrompt models.AIPrompt
+			err = models.DB.Where("title = ?", title).First(&existingPrompt).Error
+
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					newPrompt := models.AIPrompt{
+						Title:      title,
+						PromptText: promptText,
+					}
+
+					if err := models.DB.Create(&newPrompt).Error; err != nil {
+						fmt.Printf("Error creating prompt record for %s: %v\n", title, err)
+					} else {
+						fmt.Printf("Created new prompt record: %s\n", title)
+					}
+				} else {
+					fmt.Printf("Database error for %s: %v\n", title, err)
+				}
+			} else {
+				// Record exists, check if content is different
+				if existingPrompt.PromptText != promptText {
+					existingPrompt.PromptText = promptText
+					if err := models.DB.Save(&existingPrompt).Error; err != nil {
+						fmt.Printf("Error updating prompt record for %s: %v\n", title, err)
+					} else {
+						fmt.Printf("Updated prompt record: %s\n", title)
+					}
+				} else {
+					fmt.Printf("Prompt record %s is up to date\n", title)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 //-----------------------------------------------------------------

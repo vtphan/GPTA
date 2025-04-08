@@ -125,6 +125,8 @@ func init_handlers() {
 	http.HandleFunc("/add_students", restHandlers.AddStudentsHandler)
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
 	http.HandleFunc("/logout", LogoutHandler)
+
+	http.HandleFunc("/ai_prompts", restHandlers.GetAllAIPrompts)
 }
 
 // -----------------------------------------------------------------
@@ -186,6 +188,7 @@ func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
 	config_file, teacher_file, student_file, course_file := "/Users/ajay/MS/GPTA/Examples/gem_config.json", "/Users/ajay/MS/GPTA/Examples/teachers.txt", "/Users/ajay/MS/GPTA/Examples/students.txt", "/Users/ajay/MS/GPTA/Examples/courses.txt"
+	ai_prompts_file := "/Users/ajay/MS/GPTA/src/prompts"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
@@ -207,6 +210,9 @@ func main() {
 	}
 	if student_file != "" {
 		restHandlers.AddMultiple(student_file, "student")
+	}
+	if ai_prompts_file != "" {
+		restHandlers.LoadAIPromptsFromFiles(ai_prompts_file)
 	}
 	init_handlers()
 	courses, err := repository.LoadTeachers()

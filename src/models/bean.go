@@ -244,3 +244,16 @@ const (
 	ScaffoldingStrategyDebugThisCode          = 4 // Debug This Code
 	ScaffoldingStrategyIncrementalFeatureImpl = 5 // Incremental Feature Implementation
 )
+
+type AIPrompt struct {
+	ID          int       `gorm:"column:id;primaryKey;autoIncrement"`
+	Title       string    `gorm:"column:title;not null;type:varchar(255)"`
+	Description string    `gorm:"column:description;type:text"`
+	PromptText  string    `gorm:"column:prompt_text;not null;type:text"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (AIPrompt) TableName() string {
+	return "ai_prompts"
+}
