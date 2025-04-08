@@ -4321,7 +4321,9 @@ function fetchScaffoldingData(problem_id) {
                 let optgroup = $("<optgroup>").attr("label", category);
 
                 groupedData[category].forEach(function(level) {
-                    optgroup.append($("<option>").val(level).text(level));
+                    // Combining the level and the category name
+                    let optionText = level + " (" + category + ")";
+                    optgroup.append($("<option>").val(level).text(optionText));
                 });
 
                 dropdown.append(optgroup);
