@@ -1936,6 +1936,12 @@ button {
   background: linear-gradient(45deg, #2575fc, #6a11cb); /* Inverted gradient on hover */
 }
 
+.settings-button.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 a.is-disabled {
   pointer-events: none;
   opacity: 0.5;
@@ -2029,9 +2035,13 @@ a.is-disabled {
     </button>
 
 </div>
-		<button class="settings-button" id="settings-button">
-			<i class="fas fa-cogs"></i>
-		</button>
+		<button 
+	class="settings-button {{if eq .UserRole "student"}}is-disabled{{end}}" 
+	id="settings-button"
+	{{if eq .UserRole "student"}}disabled{{end}}>
+	<i class="fas fa-cogs"></i>
+</button>
+
 
 		<table class="table sortable">
 				<thead>
