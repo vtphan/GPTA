@@ -525,6 +525,26 @@ func GetProblemDescription(problemID int) (string, error) {
 	return problemDescription, nil
 }
 
+func GetLatestFeedbackForStudentAndProblem(studentID, problemID int) (string, error) {
+	var feedback string
+
+	err := models.DB.
+		Table("message_feedbacks MF").
+		Select("MF.feedback").
+		Joins("JOIN messages M ON MF.message_id = M.id").
+		Joins("JOIN code_snapshots C ON M.snapshot_id = C.id").
+		Where("C.student_id = ? AND C.problem_id = ?", studentID, problemID).
+		Order("MF.given_at DESC").
+		Limit(1).
+		Scan(&feedback).Error
+
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch latest feedback: %v", err)
+	}
+
+	return feedback, nil
+}
+
 // GetClassFeedbackByProblemID retrieves the class feedback for a specific problem
 func GetClassFeedbackByProblemID(problemID int) ([]models.ClassFeedback, error) {
 	var feedbacks []models.ClassFeedback
@@ -535,6 +555,24 @@ func GetClassFeedbackByProblemID(problemID int) ([]models.ClassFeedback, error) 
 	}
 
 	return feedbacks, nil
+}
+
+func GetLatestClassFeedbackByProblemID(problemID int) (*models.ClassFeedback, error) {
+	var feedback models.ClassFeedback
+
+	// Find the latest feedback record for the given problem ID, ordered by FeedbackTime descending
+	if err := models.DB.Where("problem_id = ?", problemID).
+		Order("feedback_time desc").
+		First(&feedback).Error; err != nil {
+		// If no feedback is found, return nil, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		// If another error occurs, return the error
+		return nil, fmt.Errorf("failed to retrieve latest class feedback: %w", err)
+	}
+
+	return &feedback, nil
 }
 
 func GetClassFeedbackByFeedbackID(feedbackID int) ([]models.ClassFeedback, error) {
@@ -868,6 +906,44 @@ func GetLatestCodeSnapshots(problemID int) ([]models.CodeSnapshot, error) {
 	}
 
 	return codeSnapshots, nil
+}
+func GetLatestCodeSnapshotForStudent(problemID int, studentID int) (*models.CodeSnapshot, error) {
+	var codeSnapshot models.CodeSnapshot
+
+	err := models.DB.
+		Where("problem_id = ? AND student_id = ?", problemID, studentID).
+		Order("last_updated_at DESC").
+		Limit(1).
+		Find(&codeSnapshot).Error
+
+	if err != nil {
+		log.Printf("Failed to fetch latest code snapshot for student %d: %v", studentID, err)
+		return nil, err
+	}
+
+	return &codeSnapshot, nil
+}
+
+func GetLatestScaffoldingText(studentID, problemID int) (string, error) {
+	var scaffolding string
+
+	result := models.DB.
+		Table("assigned_scaffoldings").
+		Select("scaffolding").
+		Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Order("assigned_at DESC").
+		Limit(1).
+		Scan(&scaffolding)
+
+	if result.Error != nil {
+		return "", fmt.Errorf("failed to fetch latest scaffolding: %v", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return "", nil // No scaffolding found
+	}
+
+	return scaffolding, nil
 }
 
 func GetProblemDetail(problemID int) (string, time.Time, error) {

@@ -841,7 +841,8 @@ var SCAFFOLDING_TEMPLATE = `
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/tomorrow-night-bright.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/cobalt.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/lucario.min.css" />
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.1/mode/markdown/markdown.js"></script>
+	
 
 
     <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
@@ -1065,7 +1066,7 @@ var SCAFFOLDING_TEMPLATE = `
             let content = $(textarea).text().trim();
             let editor = CodeMirror.fromTextArea(textarea, {
                 lineNumbers: true,
-                mode: "python",
+                mode: "markdown",
                 theme: "monokai",
                 matchBrackets: true,
                 indentUnit: 4,
@@ -1140,6 +1141,4438 @@ function sendScaffoldingStrategy() {
 </body>
 </html>
 `
+
+var SC_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RapidResponse</title>
+    <!-- Included Feather Icons for UI elements -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=1.1">
+</head>
+<style>
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background-color: #f9fafb;
+    color: #111827;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Styles */
+.header-content {
+    background-color: #1d4ed8;
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    position: relative; /* Added to ensure proper z-index context */
+    z-index: 1; /* Base z-index for header */
+}
+
+.header-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+
+.header-info {
+    display: flex;
+    gap: 1rem;
+    white-space: nowrap;
+}
+
+/* Timer Styles - Simplified for one row */
+.timer-container {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 0 10px;
+}
+
+.timer-display {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+    margin-right: 8px;
+    min-width: 50px;
+}
+
+.timer-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.timer-btn {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    padding: 0;
+}
+
+.timer-btn:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.timer-btn.reset {
+    background-color: rgba(239, 68, 68, 0.5);
+}
+
+.timer-btn.reset:hover {
+    background-color: rgba(239, 68, 68, 0.7);
+}
+
+.timer-btn.pause {
+    background-color: rgba(245, 158, 11, 0.5);
+}
+
+.timer-btn.pause:hover {
+    background-color: rgba(245, 158, 11, 0.7);
+}
+
+.timer-warning {
+    color: #fef08a;
+    animation: pulse 1.5s infinite;
+}
+
+/* Add this for responsive design */
+@media (max-width: 960px) {
+    .header-content {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .header-title {
+        order: 1;
+    }
+    
+    .timer-container {
+        order: 2;
+        margin-left: auto;
+    }
+    
+    .header-info {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: center;
+    }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+
+/* Main Layout */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative; /* Added to ensure proper z-index context */
+}
+
+/* Collapsible elements */
+.collapsible {
+    cursor: pointer;
+    position: relative;
+}
+
+.collapsible:after {
+    content: '\25BC'; /* Down arrow */
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    color: rgba(176, 177, 180, 0.4); /* Very light gray with more transparency */
+    transition: transform 0.3s, opacity 0.2s;
+}
+
+.collapsible.collapsed:after {
+    transform: rotate(-90deg);
+}
+
+.collapsible-content {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* Left Sidebar */
+.error-analysis {
+    width: 33.333%;
+    padding: 1rem;
+    background-color: white;
+    border-right: 1px solid #e5e7eb;
+    overflow-y: auto;
+}
+
+/* Exercise Description */
+.exercise-box {
+    background-color: #f0f9ff;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #bae6fd;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-top: 25px; /* Increased to make room for the title */
+}
+
+.exercise-box-header {
+    font-weight: bold;
+    font-size: 0.75rem;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #0369a1;
+}
+
+/* Remove the pseudo-element since we now have an explicit header */
+.exercise-box::before {
+    content: none;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.section-title i {
+    margin-right: 0.5rem;
+}
+
+.error-box {
+    background-color: #fee2e2;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #fecaca;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.error-box::before {
+    content: 'ERROR PATTERNS';
+    font-size: 0.75rem;
+    font-weight: bold;
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background-color: #fee2e2;
+    padding: 0 6px;
+    color: #b91c1c;
+    border-radius: 4px;
+}
+
+/* ==== OUTER FRAME ==================================================== */
+.code-box{
+    background:#f3f4f6;
+    border:1px solid #d1d5db;
+    border-radius:.375rem;
+    position:relative;
+
+    padding:.75rem;          /* normal inner padding               */
+    overflow:visible;        /* so the label can hang over the edge*/
+    margin-bottom: 1.5rem;
+}
+
+/* label pill */
+.code-box::before{
+    content:"STUDENT CODE";
+    position:absolute; 
+    top:-10px; 
+    left:10px;
+    font:600 .75rem/1 sans-serif;
+    padding:0 6px;
+    border-radius:4px;
+    background:#f3f4f6;
+    color:#4b5563;
+    pointer-events:none;
+}
+
+/* ==== SCROLLABLE AREA =============================================== */
+.code-scroll{
+    /* scrolling */
+    overflow:auto;           /* both axes, only when needed         */
+    max-height:24rem;        /* optional vertical cap               */
+
+    /* code look‑&‑feel */
+    font-family:monospace;
+    white-space:pre;         /* preserve indentation, no wrapping   */
+    line-height:1.35;
+    /* optional extra styles … */
+}
+
+.reasoning-box {
+    background-color: #eff6ff;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dbeafe;
+    position: relative;
+    padding-top: 25px; /* Increased to make room for the title */
+}
+
+.reasoning-box-header {
+    font-weight: bold;
+    font-size: 0.75rem;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #1d4ed8;
+}
+
+/* Remove the pseudo-element since we now have an explicit header */
+.reasoning-box::before {
+    content: none;
+}
+
+/* Tooltips - Position below icon */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 8px;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 300px;
+    background-color: #605f5f;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 9999; /* High z-index to be above other elements */
+    top: 125%; /* Position below instead of above */
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.875rem;
+    font-weight: normal;
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    bottom: 100%; /* Changed from top to bottom */
+    left: 50%;
+    /* margin-left: -5px;
+    border-width: 5px; */
+    border-style: solid;
+    border-color: transparent transparent #333 transparent; /* Changed arrow direction */
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Scaffolding Section */
+.scaffolding-section {
+    width: 66.667%;
+    padding: 1rem;
+    overflow-y: auto;
+    position: relative; /* Added to ensure proper z-index context */
+}
+
+.scaffolds-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    position: relative; /* Added to create stacking context */
+}
+
+.scaffolds-subtitle {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: normal;
+}
+
+.scaffold-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.scaffold-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease-in-out;
+    background-color: white;
+}
+
+.scaffold-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.scaffold-card.selected {
+    border: 2px solid #3b82f6;
+}
+
+.scaffold-header {
+    padding: 1rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+.scaffold-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.scaffold-name {
+    font-weight: 600;
+    font-size: 1.125rem;
+    display: flex;
+    align-items: center;
+}
+
+.scaffold-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Badge Colors */
+.badge-effort-low {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-effort-moderate {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-effort-high {
+    background-color: #ffedd5;
+    color: #9a3412;
+}
+
+.badge-action-low {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-action-moderate {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+}
+
+.badge-action-high {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.scaffold-support {
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.scaffold-metrics {
+    font-size: 0.875rem;
+    color: #4b5563;
+    line-height: 1.4;
+}
+
+.scaffold-detail {
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem;
+    background-color: #f9fafb;
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.detail-title {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.content-box {
+    background-color: white;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.content-box pre {
+    font-family: monospace;
+    white-space: pre-wrap;
+    background-color: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+}
+
+.content-box strong {
+    font-weight: 600;
+}
+
+.scaffold-reasoning {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.action-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+}
+
+.apply-button {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.apply-button:hover {
+    background-color: #1d4ed8;
+}
+
+.apply-button i {
+    margin-right: 0.5rem;
+}
+
+.copy-button {
+    background-color: #4b5563;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.copy-button:hover {
+    background-color: #374151;
+}
+
+.copy-button i {
+    margin-right: 0.5rem;
+}
+
+/* Quick Nav */
+.quick-nav {
+    position: fixed;
+    bottom: 50px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+}
+
+.quick-nav-btn {
+    background-color: #3b82f6;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.quick-nav-btn:hover {
+    background-color: #2563eb;
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
+    background-color: #e5e7eb;
+    padding: 0.75rem;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.875rem;
+    border-top: 1px solid #d1d5db;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .error-analysis, .scaffolding-section {
+        width: 100%;
+    }
+    
+    .timer-container {
+        position: static;
+        margin: 10px auto;
+        width: 90%;
+    }
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #10b981;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+/* Previous Scaffold Box */
+.previous-scaffold-box {
+    background-color: #ede9fe;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #cbd5e1;
+    margin-bottom: 1.5rem;
+    position: relative;
+    display: none; /* Hide by default, will show only if there's content */
+}
+
+.previous-scaffold-box::before {
+    content: 'PREVIOUS SCAFFOLD';
+    font-size: 0.75rem;
+    font-weight: bold;
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background-color: #ede9fe;
+    padding: 0 6px;
+    color: #7c3aed;
+    border-radius: 4px;
+}
+
+.previous-scaffold-content {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+</style>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <h1 class="header-title">RapidResponse</h1>
+            <div class="header-info">
+            </div>
+            <div class="timer-container">
+                <div class="timer-display" id="timerDisplay">00:00</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Sidebar - Error Analysis -->
+        <div class="error-analysis">
+            <!-- Collapsible Exercise Box -->
+            <div class="exercise-box collapsible collapsed" id="exerciseBox">
+                <div class="exercise-box-header">EXERCISE</div>
+                <div class="collapsible-content collapsed" id="exerciseDescription"></div>
+            </div>
+            
+            <div class="code-box" id="studentCode"><pre class="code-scroll"></pre></div>
+            <div class="error-box" id="errorPatterns"></div>
+            <div class="previous-scaffold-box" id="previousScaffoldBox"></div>
+            
+            <!-- Collapsible Reasoning Box -->
+            <div class="reasoning-box collapsible collapsed" id="reasoningBox">
+                <div class="reasoning-box-header">PEDAGOGICAL REASONING</div>
+                <div class="collapsible-content collapsed" id="pedagogicalReasoning"></div>
+            </div>
+        </div>
+
+        <!-- Center - Scaffolding Options -->
+        <div class="scaffolding-section">
+            <div>
+                <h2 class="scaffolds-title">
+                    Scaffolding Strategies
+                    <span class="scaffolds-subtitle">(ordered from lowest to highest effort)</span>
+                    <div class="tooltip">
+                        <i data-feather="info" size="16"></i>
+                        <span class="tooltiptext">Select the appropriate scaffold based on student needs and time constraints</span>
+                    </div>
+                </h2>
+            </div>
+
+            <div class="scaffold-grid" id="scaffoldGrid">
+                <!-- Scaffold cards will be inserted here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Nav Buttons -->
+    <div class="quick-nav">
+        <div class="quick-nav-btn" id="scrollToTop" title="Scroll to Top">
+            <i data-feather="arrow-up"></i>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        Crafting Scaffolds to Bridge Learning Gaps
+    </footer>
+
+    <script>
+// Initialize Feather Icons
+document.addEventListener('DOMContentLoaded', () => {
+    feather.replace();
+});
+
+// Format content with Markdown-like syntax
+function formatContent(content) {
+    const backtick = String.fromCharCode(96);
+    const tripleBacktick = backtick + backtick + backtick;
+    const codeBlockRegex = new RegExp(tripleBacktick + '(.*?)' + tripleBacktick, 'gs');
+
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(codeBlockRegex, '<pre>$1</pre>')
+        .replace(/\n/g, '<br>');
+}
+
+
+// Stopwatch functionality (replaced timer)
+function initializeTimer() {
+    let timerDisplay = document.getElementById('timerDisplay');
+    let startButton = document.getElementById('startTimer');
+    let pauseButton = document.getElementById('pauseTimer');
+    let resetButton = document.getElementById('resetTimer');
+
+    let totalSeconds = 0; // Start from 0 for a stopwatch
+    let timerInterval;
+    let isRunning = false;
+
+    function updateDisplay() {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        timerDisplay.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+
+        // Add highlight class when more than 10 minutes have passed
+        if (totalSeconds >= 600) { // 10 minutes = 600 seconds
+            timerDisplay.classList.add('timer-warning');
+        } else {
+            timerDisplay.classList.remove('timer-warning');
+        }
+    }
+
+    function startTimer() {
+        if (!isRunning) {
+            isRunning = true;
+            if (startButton) startButton.disabled = true;
+            if (pauseButton) pauseButton.disabled = false;
+
+            timerInterval = setInterval(() => {
+                totalSeconds++;
+                updateDisplay();
+
+                // Optional: Notify when reaching 10 minutes
+                if (totalSeconds === 600) {
+                    showNotification("10 minutes have passed in this session.");
+                }
+            }, 1000);
+        }
+    }
+
+    function pauseTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        if (startButton) startButton.disabled = false;
+        if (pauseButton) pauseButton.disabled = true;
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        totalSeconds = 0;
+        updateDisplay();
+        if (startButton) startButton.disabled = false;
+        if (pauseButton) pauseButton.disabled = true;
+        timerDisplay.classList.remove('timer-warning');
+    }
+
+    // Event listeners - only add if buttons exist
+    if (startButton) startButton.addEventListener('click', startTimer);
+    if (pauseButton) pauseButton.addEventListener('click', pauseTimer);
+    if (resetButton) resetButton.addEventListener('click', resetTimer);
+
+    // Initialize display
+    updateDisplay();
+
+    // Start automatically regardless of button presence
+    setTimeout(() => {
+        startTimer();
+    }, 1500);
+}
+
+// Notification function
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+// Populate the dashboard with data
+function populateDashboard() {
+    // Fill error analysis section
+    document.getElementById('exerciseDescription').textContent = studentData.exerciseDescription;
+    document.getElementById('errorPatterns').textContent = studentData.errorPatterns;
+    // document.getElementById('studentCode').textContent = studentData.studentCode;
+    const codeBox  = document.getElementById('studentCode');
+    let codePre  = codeBox.querySelector('.code-scroll');
+    if (!codePre) {                         // first time the page runs
+        codePre           = document.createElement('pre');
+        codePre.className = 'code-scroll';
+        codeBox.appendChild(codePre);
+    }
+
+codePre.textContent = studentData.studentCode;
+
+    document.getElementById('pedagogicalReasoning').textContent = studentData.reasoning;
+    const previousScaffoldBox = document.getElementById('previousScaffoldBox');
+    if (studentData.previousScaffold && studentData.previousScaffold.trim() !== '') {
+        previousScaffoldBox.style.display = 'block';
+
+        // Clear any existing content first
+        previousScaffoldBox.innerHTML = '';
+
+        // Create and append the content div
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'previous-scaffold-content';
+        contentDiv.innerHTML = formatContent(studentData.previousScaffold);
+        previousScaffoldBox.appendChild(contentDiv);
+    } else {
+        previousScaffoldBox.style.display = 'none';
+    }
+
+    // Create scaffold cards
+    const scaffoldGrid = document.getElementById('scaffoldGrid');
+
+    studentData.scaffolds.forEach((scaffold, index) => {
+        // Create main card element
+        const card = document.createElement('div');
+        card.className = 'scaffold-card';
+        card.dataset.index = index;
+
+        // Create header section
+        const header = document.createElement('div');
+        header.className = 'scaffold-header';
+
+        // Title row with badges
+        const titleRow = document.createElement('div');
+        titleRow.className = 'scaffold-title-row';
+
+        const name = document.createElement('h3');
+        name.className = 'scaffold-name';
+        name.innerHTML = scaffold.strategy + ' <span style="font-size: 0.8rem; color: #6b7280; margin-left: 8px;">(~' + scaffold.estimatedTime + ')</span>';
+
+        const badges = document.createElement('div');
+        badges.className = 'scaffold-badges';
+
+        const effortBadge = document.createElement('span');
+        effortBadge.className = 'badge badge-effort-' + scaffold.effortLevel.toLowerCase();
+        effortBadge.innerHTML = '<i data-feather="activity" size="14"></i> ' + scaffold.effortLevel + ' Effort';
+
+        const actionBadge = document.createElement('span');
+        actionBadge.className = 'badge badge-action-' + scaffold.actionabilityLevel.toLowerCase();
+		actionBadge.innerHTML = '<i data-feather="zap" size="14"></i> ' + scaffold.actionabilityLevel + ' Actionability';
+
+        badges.appendChild(effortBadge);
+        badges.appendChild(actionBadge);
+        titleRow.appendChild(name);
+        titleRow.appendChild(badges);
+
+        // Support and metrics sections
+        const support = document.createElement('div');
+        support.className = 'scaffold-support';
+        support.innerHTML = '<strong>Learning Support:</strong> ' + scaffold.learningSupport;
+
+        const metrics = document.createElement('div');
+        metrics.className = 'scaffold-metrics';
+        metrics.innerHTML = '<strong>Success Metrics:</strong> ' + scaffold.implementationSuccessMetrics;
+
+        // Assemble header
+        header.appendChild(titleRow);
+        header.appendChild(support);
+        header.appendChild(metrics);
+
+        // Create detail section (hidden by default)
+        const detail = document.createElement('div');
+        detail.className = 'scaffold-detail';
+        detail.id = 'scaffold-detail-' + index;
+
+        // Content to share
+        const contentTitle = document.createElement('h4');
+        contentTitle.className = 'detail-title';
+        contentTitle.textContent = 'Content to Share with Student:';
+
+        const contentBox = document.createElement('div');
+        contentBox.className = 'content-box';
+        contentBox.innerHTML = formatContent(scaffold.content);
+
+        // Reasoning
+        const reasoningTitle = document.createElement('h4');
+        reasoningTitle.className = 'detail-title';
+        reasoningTitle.textContent = 'Recommendation Reasoning:';
+
+        const reasoning = document.createElement('p');
+        reasoning.className = 'scaffold-reasoning';
+        reasoning.textContent = scaffold.recommendationReasoning;
+
+        // Action buttons
+        const actionRow = document.createElement('div');
+        actionRow.className = 'action-row';
+
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.innerHTML = '<i data-feather="copy"></i> Copy to Clipboard';
+        copyButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+
+            // Replace deprecated document.execCommand with Clipboard API
+            const textToCopy = scaffold.content.replace(/\*\*/g, '').replaceAll(String.fromCharCode(96) + String.fromCharCode(96) + String.fromCharCode(96), '');
+
+// Use the modern Clipboard API
+navigator.clipboard.writeText(textToCopy)
+.then(() => {
+showNotification('Scaffold content copied to clipboard!');
+})
+.catch(err => {
+console.error('Could not copy text: ', err);
+showNotification('Failed to copy to clipboard. Please try again.');
+});
+});
+
+const applyButton = document.createElement('button');
+applyButton.className = 'apply-button';
+applyButton.innerHTML = '<i data-feather="arrow-right-circle"></i> Apply This Scaffold';
+applyButton.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showNotification('Preparing scaffold for editing...');
+
+  const editableContent = formatContent(scaffold.content);
+
+  // Create popup overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 
+  'position: fixed; top: 0; left: 0; width: 100%; height: 100%;' +
+  'background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;';
+
+
+  // Create popup modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-box';
+  modal.style.cssText = 
+  'background: white; padding: 20px; border-radius: 10px; width: 600px; max-width: 90%;' +
+  'box-shadow: 0 0 10px rgba(0,0,0,0.3);';
+
+
+  const title = document.createElement('h4');
+  title.textContent = 'Edit Scaffold Content';
+  title.style.marginBottom = '10px';
+
+  const textarea = document.createElement('textarea');
+  textarea.style.cssText = 'width: 100%; height: 200px; margin-bottom: 10px;';
+  textarea.value = editableContent.replace(/<br\s*\/?>/g, '\n');
+
+  const confirmButton = document.createElement('button');
+  confirmButton.textContent = 'Confirm & Send';
+  confirmButton.style.cssText = 'margin-right: 10px;';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+
+  // Confirm button event
+  confirmButton.addEventListener('click', async () => {
+    const editedContent = textarea.value.replace(/\n/g, '<br>'); // convert newlines to HTML
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = parseInt(urlParams.get('student_id'));
+    const problemId = parseInt(urlParams.get('problem_id'));
+    const snapshotId = parseInt(urlParams.get('snapshot_id'));
+    const authorId = parseInt(urlParams.get('uid'));
+    const authorRole = urlParams.get('role');
+
+    const timerText = document.getElementById('timerDisplay')?.textContent || "00:00";
+    const [minutes, seconds] = timerText.split(':').map(Number);
+    const duration = (minutes * 60) + seconds;
+
+    try {
+      const response = await fetch('/assign_scaffold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: studentId,
+          problem_id: problemId,
+          duration: duration,
+          scaffolding: editedContent,
+          snapshot_id: snapshotId,
+          uid: authorId,
+          role: authorRole
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to assign scaffold');
+      showNotification('Scaffold assigned successfully!');
+    } catch (error) {
+      console.error(error);
+      showNotification('Error assigning scaffold.');
+    }
+
+    document.body.removeChild(overlay);
+  });
+
+  cancelButton.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+  });
+
+  modal.appendChild(title);
+  modal.appendChild(textarea);
+  modal.appendChild(confirmButton);
+  modal.appendChild(cancelButton);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+});
+
+
+
+
+actionRow.appendChild(copyButton);
+actionRow.appendChild(applyButton);
+
+// Assemble detail section
+detail.appendChild(contentTitle);
+detail.appendChild(contentBox);
+detail.appendChild(reasoningTitle);
+detail.appendChild(reasoning);
+detail.appendChild(actionRow);
+
+// Assemble full card
+card.appendChild(header);
+card.appendChild(detail);
+scaffoldGrid.appendChild(card);
+
+// Add click event to header
+header.addEventListener('click', () => {
+// Toggle selection class
+document.querySelectorAll('.scaffold-card').forEach(c => {
+c.classList.remove('selected');
+});
+card.classList.add('selected');
+
+// Hide all details
+document.querySelectorAll('.scaffold-detail').forEach(d => {
+d.style.display = 'none';
+});
+
+// Show this detail
+detail.style.display = 'block';
+
+// Re-initialize feather icons for any new elements
+feather.replace();
+});
+});
+
+// Re-initialize feather icons
+feather.replace();
+}
+
+// Initialize quick nav functionality
+function initializeQuickNav() {
+const scrollToTopBtn = document.getElementById('scrollToTop');
+
+scrollToTopBtn.addEventListener('click', () => {
+window.scrollTo({
+top: 0,
+behavior: 'smooth'
+});
+});
+
+// Show/hide button based on scroll position
+window.addEventListener('scroll', () => {
+if (window.pageYOffset > 300) {
+scrollToTopBtn.style.display = 'flex';
+} else {
+scrollToTopBtn.style.display = 'none';
+}
+});
+
+// Initial check
+if (window.pageYOffset <= 300) {
+scrollToTopBtn.style.display = 'none';
+}
+}
+
+function initializeCollapsibles() {
+document.querySelectorAll('.collapsible').forEach(collapsible => {
+collapsible.addEventListener('click', function() {
+this.classList.toggle('collapsed');
+
+// Find the content element
+const content = this.querySelector('.collapsible-content');
+if (content) {
+content.classList.toggle('collapsed');
+}
+});
+});
+}
+
+// Initialize everything
+document.addEventListener('DOMContentLoaded', () => {
+populateDashboard();
+initializeTimer();
+initializeQuickNav();
+initializeCollapsibles();
+
+// Pre-select the first scaffold
+setTimeout(() => {
+const firstScaffold = document.querySelector('.scaffold-header');
+if (firstScaffold) {
+firstScaffold.click();
+}
+}, 500);
+});
+</script>
+    <script>
+// Student data (from paste.txt)
+const studentData = {{.Text}};
+</script>
+</body>
+</html>
+`
+
+var VIS_TEMPLATE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Coding Performance Dashboard</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/concept_map.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<style>
+/* Concept Map Container */
+.concept-map-container {
+    height: 1000px;
+    width: 100%;
+    position: relative;
+    margin-top: 1rem;
+    border: 1px solid #e3e6f0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(248, 249, 252, 0.5);
+  }
+  
+  /* Simple Concept Map */
+  .simple-concept-map {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  
+  /* Hub in center */
+  .concept-hub {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background-color: #4e73df;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 400px;
+    top: 250px;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid #3a5ccc;
+  }
+  
+  .concept-hub span {
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    font-size: 14px;
+    padding: 10px;
+  }
+  
+  /* Nodes */
+  .concept-node {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .concept-node:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Misconception nodes */
+  .misconception-node {
+    width: 170px;
+    height: 170px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Error nodes */
+  .error-node {
+    width: 100px;
+    height: 100px;
+    background-color: rgb(100, 130, 220);
+    /* background-color: hsl(15, 85%, 55%); */
+    border: 2px solid #3a5ccc;
+  }
+  
+  /* Node content */
+  .node-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    text-align: center;
+  }
+  
+  .node-title {
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.2;
+    max-height: 70%;
+    overflow: hidden;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+  
+  .error-node .node-title {
+    color: white;
+  }
+  
+  .node-percentage {
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+  
+  /* Connections */
+  .connection {
+    position: absolute;
+    height: 2px;
+    background-color: rgba(128, 128, 128, 0.3);
+    transform-origin: left center;
+    z-index: 1;
+  }
+  
+  .hub-connection {
+    background-color: rgba(78, 115, 223, 0.4);
+  }
+  
+  .node-connection {
+    background-color: rgba(128, 128, 128, 0.3);
+  }
+  
+  .connection-highlight {
+    height: 3px;
+    background-color: rgba(28, 200, 138, 0.8);
+    z-index: 2;
+  }
+  
+  /* Legend */
+  .concept-map-legend {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .legend-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  .legend-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .misconception-icon {
+    background-color: hsl(185, 100%, 60%); /* Medium brightness cyan */
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+  
+  .error-icon {
+    background-color: rgba(78, 115, 223, 0.7);
+    border: 1px solid #3a5ccc;
+  }
+  
+  .legend-label {
+    font-size: 12px;
+  }
+  
+  /* Tooltip */
+  .concept-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    max-width: 250px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+  }
+  
+  /* Dark mode support */
+  .dark-mode .concept-map-container {
+    background: rgba(26, 32, 44, 0.3);
+    border-color: #2d3748;
+  }
+  
+  .dark-mode .concept-hub {
+    border-color: #2c4687;
+  }
+  
+  .dark-mode .error-node {
+    border-color: #2c4687;
+  }
+  
+  .dark-mode .concept-map-legend {
+    background-color: rgba(26, 32, 44, 0.8);
+    color: #e2e8f0;
+  }
+  
+  .dark-mode .legend-label {
+    color: #e2e8f0;
+  }
+  
+  .dark-mode .node-title {
+    color: #333;
+  }
+  
+  .dark-mode .error-node .node-title {
+    color: #fff;
+  }
+  
+  .dark-mode .concept-tooltip {
+    background-color: rgba(26, 32, 44, 0.9);
+  }
+
+  /* Concept Map Controls */
+.concept-map-controls {
+  background-color: rgba(248, 249, 252, 0.9);
+  border: 1px solid #e3e6f0;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.control-section h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #5a5c69;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.control-item label {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.control-item input[type="range"] {
+  width: 100%;
+}
+
+.reset-button {
+  background-color: #4e73df;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.reset-button:hover {
+  background-color: #2e59d9;
+}
+
+/* Dark mode support */
+.dark-mode .concept-map-controls {
+  background-color: rgba(26, 32, 44, 0.8);
+  border-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark-mode .control-section h4 {
+  color: #e2e8f0;
+}
+
+.dark-mode .reset-button {
+  background-color: #3151b7;
+}
+
+.dark-mode .reset-button:hover {
+  background-color: #263d8f;
+}
+
+:root {
+    --primary-color: #4e73df;
+    --secondary-color: #1cc88a;
+    --warning-color: #f6c23e;
+    --danger-color: #e74a3b;
+    --info-color: #36b9cc;
+    --dark-color: #5a5c69;
+    --light-color: #f8f9fc;
+    --gray-100: #f8f9fc;
+    --gray-200: #eaecf4;
+    --gray-300: #dddfeb;
+    --gray-400: #d1d3e2;
+    --gray-500: #b7b9cc;
+    --gray-600: #858796;
+    --gray-700: #6e707e;
+    --gray-800: #5a5c69;
+    --gray-900: #3a3b45;
+    --card-border-radius: 0.5rem;
+    --transition-speed: 0.3s;
+    --sidebar-width: 16rem;
+    --sidebar-collapsed-width: 4.5rem;
+    --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-primary);
+}
+
+body {
+    background-color: var(--gray-100);
+    color: var(--gray-800);
+    transition: background-color var(--transition-speed);
+    line-height: 1.5;
+}
+
+/* Dark Mode Styles */
+.dark-mode {
+    background-color: #1a1a2e;
+    color: #e1e1e1;
+}
+
+.dark-mode .section {
+    background-color: #16213e;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .section-header {
+    border-bottom: 1px solid #2a2d45;
+}
+
+.dark-mode .section-header h2 {
+    color: #e1e1e1;
+}
+
+.dark-mode .collapse-btn {
+    color: #e1e1e1;
+}
+
+.dark-mode .metric-card {
+    background-color: #16213e;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .metric-card h3 {
+    color: #e1e1e1;
+}
+
+.dark-mode .metric-card .value {
+    color: #e1e1e1;
+}
+
+.dark-mode .metric-card .percentage {
+    color: #b1b1b3;
+}
+
+.dark-mode .info-card {
+    background-color: #16213e;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .info-card h3 {
+    color: #e1e1e1;
+    border-bottom: 1px solid #2a2d45;
+}
+
+.dark-mode .tabs {
+    border-bottom: 1px solid #2a2d45;
+}
+
+.dark-mode .tab.active {
+    border-bottom: 2px solid #36b9cc;
+    color: #36b9cc;
+}
+
+.dark-mode .tab:hover:not(.active) {
+    background-color: #2a2d45;
+    border-bottom: 2px solid #16213e;
+}
+
+.dark-mode .code-preview {
+    background-color: #2a2d45;
+}
+
+.dark-mode .tag {
+    background-color: #2a2d45;
+    color: #e1e1e1;
+}
+
+.dark-mode .correlation-matrix th, .dark-mode .correlation-matrix td {
+    border: 1px solid #2a2d45;
+}
+
+.dark-mode .correlation-matrix th {
+    background-color: #2a2d45;
+}
+
+.dark-mode .sidebar {
+    background-image: linear-gradient(180deg, #1a1a2e 10%, #0f3460 100%);
+}
+
+.dark-mode .highlight-item {
+    background-image: linear-gradient(180deg, #1a1a2e 10%, #0f3460 100%);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .strategyList li:before {
+    color: #36b9cc;
+}
+
+/* Layout Styles */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--primary-color);
+    background-image: linear-gradient(180deg, var(--primary-color) 10%, #224abe 100%);
+    color: white;
+    transition: all var(--transition-speed);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    z-index: 10;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 1rem 0;
+}
+
+.sidebar h1 {
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.nav-item {
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.nav-item.active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item i {
+    margin-right: 0.75rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 1.5rem;
+    transition: margin-left var(--transition-speed);
+}
+
+/* Toggle Switch Styles */
+.toggle-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-label {
+    margin-right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 1rem;
+    width: 1rem;
+    left: 0.25rem;
+    bottom: 0.25rem;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #2196F3;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(1.5rem);
+}
+
+/* Section Styles */
+.section {
+    background-color: white;
+    border-radius: var(--card-border-radius);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    margin-bottom: 1.5rem;
+    transition: all var(--transition-speed);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--gray-300);
+}
+
+.section-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-800);
+    cursor: pointer;
+}
+
+.section-body {
+    padding: 1.25rem;
+    overflow: hidden;
+    transition: max-height 0.3s;
+}
+
+.collapsed {
+    max-height: 0;
+    padding: 0 1.25rem;
+}
+
+/* Metric Cards Styles */
+.metrics-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.metric-card {
+    background-color: white;
+    border-radius: var(--card-border-radius);
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border-left: 0.25rem solid var(--primary-color);
+    transition: transform 0.3s;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+}
+
+.metric-card h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.metric-card .value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.metric-card .percentage {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.metric-card.success {
+    border-left-color: var(--secondary-color);
+}
+
+.metric-card.success .value {
+    color: var(--secondary-color);
+}
+
+.metric-card.warning {
+    border-left-color: var(--warning-color);
+}
+
+.metric-card.warning .value {
+    color: var(--warning-color);
+}
+
+.metric-card.danger {
+    border-left-color: var(--danger-color);
+}
+
+.metric-card.danger .value {
+    color: var(--danger-color);
+}
+
+.metric-card.info {
+    border-left-color: var(--info-color);
+}
+
+.metric-card.info .value {
+    color: var(--info-color);
+}
+
+/* Chart Container Styles */
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-wrapper {
+    flex: 1;
+    min-width: 300px;
+    height: 300px;
+    position: relative;
+}
+
+/* Info Card Styles */
+.card-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-card {
+    background-color: white;
+    border-radius: var(--card-border-radius);
+    padding: 1.25rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transition: all var(--transition-speed);
+}
+
+.info-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--gray-800);
+    border-bottom: 1px solid var(--gray-300);
+    padding-bottom: 0.5rem;
+}
+
+.info-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.info-card .description {
+    margin-bottom: 1rem;
+    font-size: 0.925rem;
+    line-height: 1.5;
+}
+
+.code-preview {
+    background-color: var(--gray-100);
+    border-radius: 0.35rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    font-family: monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Tag Styles */
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.tag {
+    background-color: var(--gray-300);
+    color: var(--gray-800);
+    border-radius: 1rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.tag.primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.tag.success {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.tag.warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.tag.danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.tag.info {
+    background-color: var(--info-color);
+    color: white;
+}
+
+/* Correlation Matrix Styles */
+.heatmap-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.correlation-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.correlation-matrix th, .correlation-matrix td {
+    padding: 0.75rem;
+    text-align: center;
+    border: 1px solid var(--gray-300);
+}
+
+.correlation-matrix th {
+    background-color: var(--gray-100);
+    font-weight: 600;
+}
+
+.correlation-value {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.25rem;
+    color: white;
+    font-weight: 600;
+    padding: 0.5rem;
+}
+
+/* Tab Styles */
+.tabs {
+    display: flex;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-300);
+}
+
+.tab {
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tab:hover:not(.active) {
+    background-color: var(--gray-100);
+    border-bottom: 2px solid var(--gray-300);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Priority Indicator Styles */
+.priority-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.priority-high {
+    background-color: var(--danger-color);
+}
+
+.priority-medium {
+    background-color: var(--warning-color);
+}
+
+.priority-low {
+    background-color: var(--secondary-color);
+}
+
+/* Strategy List Styles */
+.strategyList {
+    list-style-type: none;
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.strategyList li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.strategyList li:before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Highlights Container Styles */
+.highlights-container {
+    padding: 0.75rem 0;
+}
+
+.highlight-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.secondary-highlights {
+    margin-top: 1rem;
+}
+
+.highlight-item {
+    background-color: var(--primary-color);
+    background-image: linear-gradient(180deg, var(--primary-color) 10%, #224abe 100%);
+    color: white;
+    border-radius: var(--card-border-radius);
+    padding: 1.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transition: transform 0.3s;
+}
+
+.highlight-item:hover {
+    transform: translateY(-5px);
+}
+
+.highlight-item h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 0.5rem;
+}
+
+.highlight-item p {
+    font-size: 0.925rem;
+    line-height: 1.5;
+}
+
+.progress-container {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    height: 0.5rem;
+    overflow: hidden;
+    margin: 0.5rem 0 1rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--secondary-color);
+    border-radius: 0.5rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Code Comparison Styles */
+.code-comparison-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .code-comparison-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.code-comparison {
+    border: 1px solid var(--gray-300);
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+}
+
+.code-comparison-header {
+    padding: 0.75rem;
+    background-color: var(--gray-200);
+    border-bottom: 1px solid var(--gray-300);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+}
+
+.code-comparison-body {
+    padding: 1rem;
+}
+
+/* Timeline Styles */
+.timeline-container {
+    margin-top: 1.5rem;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.timeline-phase {
+    background-color: var(--gray-200);
+    padding: 0.75rem;
+    border-radius: var(--card-border-radius);
+    text-align: center;
+    font-weight: 600;
+}
+
+.timeline-content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.timeline-item {
+    background-color: white;
+    border-radius: var(--card-border-radius);
+    padding: 1rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    border-left: 3px solid var(--primary-color);
+}
+
+.timeline-item.priority-high {
+    border-left-color: var(--danger-color);
+}
+
+.timeline-item.priority-medium {
+    border-left-color: var(--warning-color);
+}
+
+.timeline-item.priority-low {
+    border-left-color: var(--secondary-color);
+}
+
+
+/* Comparative Analysis Styles */
+.comparative-analysis {
+    margin-top: 1.5rem;
+}
+
+.factor-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.factor-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+}
+
+.factor-list li:last-child {
+    border-bottom: none;
+}
+
+.factor-icon {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.factor-icon.success {
+    background-color: rgba(28, 200, 138, 0.1);
+    color: var(--secondary-color);
+}
+
+.factor-icon.danger {
+    background-color: rgba(231, 74, 59, 0.1);
+    color: var(--danger-color);
+}
+
+/* Action Plan Overview Styles */
+.action-plan-overview {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.action-summary {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* Add to the CSS file */
+.effort-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    background-color: #f8f9fc;
+    border: 1px solid #d1d3e2;
+}
+
+.implementation-tag {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.implementation-tag.correct {
+    background-color: #1cc88a;
+    color: white;
+}
+
+/* Modal Styles - Add to style.css */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  
+  .modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .modal-content {
+    background-color: var(--bg-color, #fff);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 80%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+  }
+  
+  .modal-overlay.active .modal-content {
+    transform: scale(1);
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color, #e3e6f0);
+    padding-bottom: 10px;
+  }
+  
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: var(--text-color, #5a5c69);
+  }
+  
+  .modal-body {
+    margin-bottom: 15px;
+  }
+  
+  .code-preview {
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .code-preview:after {
+    content: "🔍 Click to expand";
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 0.75rem;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .code-preview:hover:after {
+    opacity: 1;
+  }
+  
+  .dark-mode .modal-content {
+    background-color: #2c3136;
+    color: #e3e6f0;
+  }
+  
+  .dark-mode .modal-close {
+    color: #e3e6f0;
+  }
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .action-plan-overview {
+        flex-direction: column;
+    }
+    
+    .chart-wrapper {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: var(--sidebar-collapsed-width);
+    }
+
+    .sidebar h1, .nav-item span {
+        display: none;
+    }
+
+    .nav-item i {
+        margin-right: 0;
+        font-size: 1.25rem;
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+    
+    .metrics-cards {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .metrics-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+        min-width: 100%;
+    }
+
+    .card-wrapper {
+        grid-template-columns: 1fr;
+    }
+    
+    .timeline-header, .timeline-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .main-content {
+        padding: 1rem;
+    }
+}
+
+</style>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <h1>Student Performance</h1>
+            <div class="nav-item active" data-section="summary">
+                <i>📊</i> <span>Summary Dashboard</span>
+            </div>
+            <div class="nav-item" data-section="performance">
+                <i>📈</i> <span>Stage 1: Performance</span>
+            </div>
+            <div class="nav-item" data-section="errors">
+                <i>❌</i> <span>Stage 2: Errors</span>
+            </div>
+            <div class="nav-item" data-section="correlations">
+                <i>🔄</i> <span>Stage 3: Correlations</span>
+            </div>
+            <div class="nav-item" data-section="misconceptions">
+                <i>💡</i> <span>Stage 4: Misconceptions</span>
+            </div>
+            <div class="nav-item" data-section="action-plan">
+                <i>📝</i> <span>Stage 5: Action Plan</span>
+            </div>
+            <div class="nav-item" data-section="additional">
+                <i>➕</i> <span>Stage 6: Insights</span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="toggle-wrapper">
+                <span class="toggle-label">Dark Mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- Summary Dashboard Section -->
+            <section id="summary" class="section">
+                <div class="section-header">
+                    <h2>Key Findings Overview </h2>
+                    <button class="collapse-btn" data-target="summary-body">−</button>
+                </div>
+                <div id="summary-body" class="section-body">
+                    <div class="highlights-container">
+                        <div class="highlight-items">
+                            <div class="highlight-item">
+                                <h3>Performance Summary</h3>
+                                <p id="highlight-performance">Loading...</p>
+                                <div class="progress-container">
+                                    <div class="progress-bar" id="passing-progress" style="width: 0%"></div>
+                                </div>
+                                <div class="progress-label">
+                                    <span>Satisfactory Performance</span>
+                                    <span id="passing-percentage">0%</span>
+                                </div>
+                            </div>
+                            <div class="highlight-item">
+                                <h3>Top Error</h3>
+                                <p id="highlight-top-error">Loading...</p>
+                            </div>
+                            <div class="highlight-item">
+                                <h3>Primary Misconception</h3>
+                                <p id="highlight-misconception">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="highlight-items secondary-highlights">
+                            <div class="highlight-item">
+                                <h3>Priority Intervention</h3>
+                                <p id="highlight-intervention">Loading...</p>
+                            </div>
+                            <div class="highlight-item">
+                                <h3>Student Success Gap</h3>
+                                <p id="highlight-gap">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Analysis Section -->
+            <section id="performance" class="section">
+                <div class="section-header">
+                    <h2>Stage 1: Performance Analysis</h2>
+                    <button class="collapse-btn" data-target="performance-body">−</button>
+                </div>
+                <div id="performance-body" class="section-body">
+                    <div class="metrics-cards">
+                        <div class="metric-card">
+                            <h3>Total Submissions</h3>
+                            <div class="value" id="totalSubmissions">-</div>
+                        </div>
+                        <div class="metric-card success">
+                            <h3>Strong</h3>
+                            <div class="value" id="strongSubmissions">-</div>
+                            <div class="percentage" id="strongPercentageText">-</div>
+                        </div>
+                        <div class="metric-card info">
+                            <h3>Good Progress</h3>
+                            <div class="value" id="goodProgressSubmissions">-</div>
+                            <div class="percentage" id="goodProgressPercentageText">-</div>
+                        </div>
+                        <div class="metric-card warning">
+                            <h3>Struggling</h3>
+                            <div class="value" id="strugglingSubmissions">-</div>
+                            <div class="percentage" id="strugglingPercentageText">-</div>
+                        </div>
+                        <div class="metric-card danger">
+                            <h3>Poor</h3>
+                            <div class="value" id="poorSubmissions">-</div>
+                            <div class="percentage" id="poorPercentageText">-</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="performanceDistributionChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="performanceGaugeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <h3>Performance Overview</h3>
+                        <p id="performanceSummary" class="description">Loading...</p>
+                    </div>
+                    <div class="comparative-analysis">
+                        <h3>Comparative Analysis</h3>
+                        <div class="tabs">
+                            <div class="tab active" data-tab="success-factors">Success Factors</div>
+                            <div class="tab" data-tab="challenge-areas">Challenge Areas</div>
+                        </div>
+                        <div id="success-factors" class="tab-content active">
+                            <div class="info-card">
+                                <h3>What Successful Students Do Differently</h3>
+                                <div id="successFactorsList"></div>
+                            </div>
+                        </div>
+                        <div id="challenge-areas" class="tab-content">
+                            <div class="info-card">
+                                <h3>Common Challenges for Struggling Students</h3>
+                                <div id="challengeAreasList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Analysis Section -->
+            <section id="errors" class="section">
+                <div class="section-header">
+                    <h2>Stage 2: Error Analysis</h2>
+                    <button class="collapse-btn" data-target="errors-body">−</button>
+                </div>
+                <div id="errors-body" class="section-body">
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="topErrorsChart"></canvas>
+                        </div>
+                    </div>
+                    <div id="errorCards" class="card-wrapper">
+                        <!-- Error cards will be dynamically inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Correlations Section -->
+            <section id="correlations" class="section">
+                <div class="section-header">
+                    <h2>Stage 3: Error Correlations</h2>
+                    <button class="collapse-btn" data-target="correlations-body">−</button>
+                </div>
+                <div id="correlations-body" class="section-body">
+                    <p>The matrix below shows which errors tend to occur together in the same submissions:</p>
+                    <div class="heatmap-container">
+                        <div class="correlation-matrix-container">
+                            <table class="correlation-matrix" id="correlationMatrix">
+                                <!-- Correlation matrix will be dynamically inserted here -->
+                            </table>
+                        </div>
+                    </div>
+                    <div id="correlationCards" class="card-wrapper">
+                        <!-- Correlation cards will be dynamically inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Misconceptions Section -->
+            <section id="misconceptions" class="section">
+                <div class="section-header">
+                    <h2>Stage 4: Potential Misconceptions</h2>
+                    <button class="collapse-btn" data-target="misconceptions-body">−</button>
+                </div>
+                <div id="misconceptions-body" class="section-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="all-misconceptions">All Misconceptions</div>
+                        <div class="tab" data-tab="by-category">By Error Category</div>
+                        <div class="tab" data-tab="concept-map">Misconception-Error Diagram</div>
+                    </div>
+                    <div id="all-misconceptions" class="tab-content active">
+                        <div id="misconceptionCards" class="card-wrapper">
+                            <!-- Misconception cards will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    <div id="by-category" class="tab-content">
+                        <p>Select an error category to see related misconceptions:</p>
+                        <div id="categoryMisconceptions" class="card-wrapper">
+                            <!-- Category-based misconception cards will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    <div id="concept-map" class="tab-content">
+                      <div id="concept-map-container" class="concept-map-container">
+                          <!-- The map will be dynamically inserted here -->
+                      </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Plan Section -->
+            <section id="action-plan" class="section">
+                <div class="section-header">
+                    <h2>Stage 5: Instructional Action Plan</h2>
+                    <button class="collapse-btn" data-target="action-plan-body">−</button>
+                </div>
+                <div id="action-plan-body" class="section-body">
+                    <div class="action-plan-overview">
+                        <div class="chart-wrapper">
+                            <canvas id="priorityChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                          <canvas id="effortDistributionChart"></canvas>
+                        </div>
+                        <div class="action-summary">
+                            <h3>Priority Overview</h3>
+                            <p>Interventions are categorized by priority level based on the number of affected students and the severity of the misconception.</p>
+                        </div>
+                    </div>
+                    <div class="tabs">
+                        <div class="tab active" data-tab="priority-view">By Priority</div>
+                        <div class="tab" data-tab="misconception-view">By Misconception</div>
+                        <div class="tab" data-tab="timeline-view">Implementation Timeline</div>
+                    </div>
+                    <div id="priority-view" class="tab-content active">
+                        <div id="actionPlanItems" class="card-wrapper">
+                            <!-- Action plan cards will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    <div id="misconception-view" class="tab-content">
+                        <div id="actionByMisconception" class="card-wrapper">
+                            <!-- Misconception-based action plan will be dynamically inserted here -->
+                        </div>
+                    </div>
+                    <div id="timeline-view" class="tab-content">
+                        <div class="timeline-container">
+                            <div class="timeline-header">
+                                <div class="timeline-phase">Immediate (Week 1)</div>
+                                <div class="timeline-phase">Short-term (Weeks 2-3)</div>
+                                <div class="timeline-phase">Long-term (Weeks 4+)</div>
+                            </div>
+                            <div id="timelineContent" class="timeline-content">
+                                <!-- Timeline content will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Additional Insights Section -->
+            <section id="additional" class="section">
+                <div class="section-header">
+                    <h2>Stage 6: Additional Insights</h2>
+                    <button class="collapse-btn" data-target="additional-body">−</button>
+                </div>
+                <div id="additional-body" class="section-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="good-practices">Good Practices</div>
+                        <div class="tab" data-tab="submission-patterns">Submission Patterns</div>
+                        <div class="tab" data-tab="error-categories">Error Categories</div>
+                    </div>
+                    <div id="good-practices" class="tab-content active">
+                        <div id="goodPracticeCards" class="card-wrapper">
+                            <!-- Good practice cards will be dynamically inserted here -->
+                        </div>
+                        <div class="info-card">
+                            <h3>Correct vs. Incorrect Implementations</h3>
+                            <div class="code-comparison-container" id="codeComparisonContainer">
+                                <!-- Code comparison will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="submission-patterns" class="tab-content">
+                        <div id="submissionPatternsContent" class="info-card">
+                            <!-- Submission patterns will be dynamically inserted here -->
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="submissionTimelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div id="error-categories" class="tab-content">
+                        <div class="info-card">
+                            <h3>Error Categories Distribution</h3>
+                            <div class="error-categories-content" id="errorCategoriesContent">
+                                <!-- Error categories content will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Embed data directly in the main HTML file -->
+    <script>
+       const analysisData = {{.Text}};
+  </script>
+
+    <script>
+// Main JavaScript for the dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    // Toggle dark mode
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    darkModeToggle.addEventListener('change', () => {
+        document.body.classList.toggle('dark-mode');
+        // Redraw charts when toggling dark mode
+        initializeCharts();
+    });
+    const conceptMapTab = document.querySelector('[data-tab="concept-map"]');
+    if (conceptMapTab) {
+        conceptMapTab.addEventListener('click', () => {
+            // Allow time for the tab to become active
+            setTimeout(createConceptMap, 10);
+        });
+    }
+    
+    // Navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // Remove active class from all nav items
+            navItems.forEach(navItem => navItem.classList.remove('active'));
+            
+            // Add active class to clicked nav item
+            item.classList.add('active');
+            
+            // Hide all sections
+            sections.forEach(section => section.style.display = 'none');
+            
+            // Show the corresponding section
+            const sectionId = item.getAttribute('data-section');
+            document.getElementById(sectionId).style.display = 'block';
+            
+            // If the misconceptions section is displayed, ensure concept map is drawn
+            if (sectionId === 'misconceptions') {
+                // Use setTimeout to ensure the section is visible before drawing
+                setTimeout(() => {
+                    const conceptMapTab = document.querySelector('[data-tab="concept-map"]');
+                    if (conceptMapTab && conceptMapTab.classList.contains('active')) {
+                        createConceptMap();
+                    }
+                }, 10);
+            }
+        });
+    });
+
+    // Initially show only the summary section
+    sections.forEach(section => {
+        if (section.id !== 'summary') {
+            section.style.display = 'none';
+        }
+    });
+
+    // Collapse section functionality
+    const collapseBtns = document.querySelectorAll('.collapse-btn');
+    collapseBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement.classList.contains('collapsed')) {
+                targetElement.classList.remove('collapsed');
+                btn.textContent = '−';
+            } else {
+                targetElement.classList.add('collapsed');
+                btn.textContent = '+';
+            }
+        });
+    });
+
+    // Tab functionality with concept map handling
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Get parent tabs container
+            const tabsContainer = tab.parentElement;
+            
+            // Remove active class from all tabs in this container
+            tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            tab.classList.add('active');
+            
+            // Get the associated tab content id
+            const tabContentId = tab.getAttribute('data-tab');
+            
+            // Hide all tab contents in the same section
+            const section = tabsContainer.closest('.section-body');
+            section.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Show the corresponding tab content
+            const tabContent = section.querySelector('#' + tabContentId);
+            tabContent.classList.add('active');
+
+            // If switching to concept map tab, redraw the concept map
+            if (tabContentId === 'concept-map') {
+                // Use setTimeout to ensure the tab is visible before drawing
+                setTimeout(createConceptMap, 10);
+            }
+        });
+    });
+
+    // Add resize event listener to redraw concept map on window resize
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        // Use a debounce pattern to avoid excessive redraws during resizing
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Only redraw if the concept map tab is active
+            const conceptMapTab = document.querySelector('[data-tab="concept-map"]');
+            const misconceptionsSection = document.getElementById('misconceptions');
+
+            if (misconceptionsSection &&
+                misconceptionsSection.style.display !== 'none' &&
+                conceptMapTab &&
+                conceptMapTab.classList.contains('active')) {
+                createConceptMap();
+            }
+        }, 250); // Wait 250ms after resize ends before redrawing
+    });
+
+    // Load data into the dashboard
+    loadDashboardData();
+});
+
+// Function to get a value with fallback
+function getValueWithFallback(obj, property, fallback) {
+    return obj && obj[property] !== undefined ? obj[property] : fallback;
+}
+
+// Function to load data into the dashboard
+function loadDashboardData() {
+    // Summary Dashboard
+    document.getElementById('highlight-performance').textContent = analysisData.stage_1_performance_analysis.overall_summary;
+
+    // Calculate passing percentage (Good Progress + Strong)
+    const goodProgressCount = analysisData.stage_1_performance_analysis.performance_distribution.Good_Progress.count;
+    const strongCount = analysisData.stage_1_performance_analysis.performance_distribution.Strong.count;
+    const totalCount = analysisData.stage_1_performance_analysis.total_submissions;
+    const passingPercentage = ((goodProgressCount + strongCount) / totalCount * 100).toFixed(2);
+
+    document.getElementById('passing-progress').style.width = passingPercentage + '%';
+    document.getElementById('passing-percentage').textContent = passingPercentage + '%';
+
+
+    // Top Error
+    const topError = analysisData.stage_2_error_analysis.top_errors[0];
+    document.getElementById('highlight-top-error').textContent =
+  topError.category + ' (' + topError.occurrence_percentage + '): ' + topError.description;
+
+
+    // Primary Misconception
+    const primaryMisconception = analysisData.stage_4_misconception_analysis.potential_misconceptions[0];
+    document.getElementById('highlight-misconception').textContent =
+  primaryMisconception.misconception + ' (' + primaryMisconception.occurrence_percentage + '): ' + primaryMisconception.explanation;
+
+    // Priority Intervention
+    const topIntervention = analysisData.stage_5_instructional_plan.interventions.find(i => i.priority_level === "High");
+    document.getElementById('highlight-intervention').textContent = topIntervention.target_misconception + ': ' + topIntervention.instructional_strategies[0];
+
+    // Student Success Gap
+    const strongPercentage = parseFloat(analysisData.stage_1_performance_analysis.performance_distribution.Strong.percentage);
+    const poorPercentage = parseFloat(analysisData.stage_1_performance_analysis.performance_distribution.Poor.percentage);
+    const gap = poorPercentage - strongPercentage;
+    document.getElementById('highlight-gap').textContent = gap.toFixed(2) + "% more students are in the 'Poor' category than in the 'Strong' category. Focus on moving students from 'Struggling' to 'Good Progress' for biggest impact.";
+
+    // Performance Analysis
+    document.getElementById('totalSubmissions').textContent = analysisData.stage_1_performance_analysis.total_submissions;
+    document.getElementById('strongSubmissions').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Strong.count;
+    document.getElementById('strongPercentageText').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Strong.percentage;
+    document.getElementById('goodProgressSubmissions').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Good_Progress.count;
+    document.getElementById('goodProgressPercentageText').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Good_Progress.percentage;
+    document.getElementById('strugglingSubmissions').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Struggling.count;
+    document.getElementById('strugglingPercentageText').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Struggling.percentage;
+    document.getElementById('poorSubmissions').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Poor.count;
+    document.getElementById('poorPercentageText').textContent = analysisData.stage_1_performance_analysis.performance_distribution.Poor.percentage;
+
+    document.getElementById('performanceSummary').textContent = analysisData.stage_1_performance_analysis.overall_summary;
+
+    // Success Factors and Challenge Areas
+    const successFactorsContainer = document.getElementById('successFactorsList');
+    const challengeAreasContainer = document.getElementById('challengeAreasList');
+
+    if (analysisData.stage_6_additional_insights.comparative_analysis) {
+        // Success Factors
+        const successFactors = analysisData.stage_6_additional_insights.comparative_analysis.success_factors;
+        let successHtml = '<ul class="factor-list">';
+
+        successFactors.forEach(factor => {
+            successHtml +=
+  '<li>' +
+    '<div class="factor-icon success">✓</div>' +
+    '<div>' + factor + '</div>' +
+  '</li>';
+
+        });
+
+        successHtml += '</ul>';
+        successFactorsContainer.innerHTML = successHtml;
+
+        // Challenge Areas
+        const challengeFactors = analysisData.stage_6_additional_insights.comparative_analysis.challenge_factors;
+        let challengeHtml = '<ul class="factor-list">';
+
+        challengeFactors.forEach(factor => {
+            challengeHtml +=
+  '<li>' +
+    '<div class="factor-icon danger">✗</div>' +
+    '<div>' + factor + '</div>' +
+  '</li>';
+
+        });
+
+        challengeHtml += '</ul>';
+        challengeAreasContainer.innerHTML = challengeHtml;
+    }
+
+    // Error Analysis
+    // Generate Error Cards
+    const errorCardsContainer = document.getElementById('errorCards');
+    errorCardsContainer.innerHTML = '';
+
+    analysisData.stage_2_error_analysis.top_errors.forEach(error => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        card.innerHTML =
+  '<h3>' + error.category + '</h3>' +
+  '<div class="tags">' +
+    '<div class="tag danger">' + error.occurrence_percentage + '</div>' +
+    '<div class="tag primary">' + error.occurrence_count + ' Students</div>' +
+  '</div>' +
+  '<p class="description">' + error.description + '</p>' +
+  '<div class="code-preview">' +
+    '<pre><code class="language-python">' + error.example_code.join('\n') + '</code></pre>' +
+  '</div>';
+
+
+        errorCardsContainer.appendChild(card);
+    });
+
+    // Correlation Analysis
+    // Create Correlation Matrix
+    const correlationMatrix = document.getElementById('correlationMatrix');
+    correlationMatrix.innerHTML = '';
+
+    // Get unique error categories from correlations
+    const correlatedErrorPairs = analysisData.stage_3_correlation_analysis.error_correlations.map(corr => corr.correlated_errors);
+    const uniqueCorrelatedErrors = [...new Set(correlatedErrorPairs.flat())];
+
+    // Create header row
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = '<th></th>';
+    uniqueCorrelatedErrors.forEach(error => {
+        headerRow.innerHTML += '<th>' + error + '</th>';
+
+    });
+    correlationMatrix.appendChild(headerRow);
+
+    // Create matrix rows
+    uniqueCorrelatedErrors.forEach(rowError => {
+        const row = document.createElement('tr');
+        row.innerHTML = '<th>' + rowError + '</th>';
+
+
+        uniqueCorrelatedErrors.forEach(colError => {
+            let cell = document.createElement('td');
+
+            if (rowError === colError) {
+                // Diagonal cells
+                cell.innerHTML = '<span class="correlation-value" style="background-color: #4e73df;">-</span>';
+            } else {
+                // Find if there's a correlation between these errors
+                const correlation = analysisData.stage_3_correlation_analysis.error_correlations.find(corr =>
+                    corr.correlated_errors.includes(rowError) && corr.correlated_errors.includes(colError)
+                );
+
+                if (correlation) {
+                    cell.innerHTML = '<span class="correlation-value" style="background-color: #e74a3b;">' + correlation.correlation_percentage + '</span>';
+                } else {
+                    cell.innerHTML = '<span class="correlation-value" style="background-color: #cccccc;">0%</span>';
+                }
+            }
+
+            row.appendChild(cell);
+        });
+
+        correlationMatrix.appendChild(row);
+    });
+
+    // Generate Correlation Cards
+    const correlationCardsContainer = document.getElementById('correlationCards');
+    correlationCardsContainer.innerHTML = '';
+
+    analysisData.stage_3_correlation_analysis.error_correlations.forEach(correlation => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        card.innerHTML =
+  '<h3>' + correlation.correlated_errors.join(' + ') + '</h3>' +
+  '<div class="tags">' +
+    '<div class="tag warning">' + correlation.correlation_percentage + '</div>' +
+    '<div class="tag primary">' + correlation.correlation_count + ' Students</div>' +
+  '</div>' +
+  '<p class="description">' + correlation.hypothesis + '</p>' +
+  '<div class="code-preview">' +
+    '<pre><code class="language-python">' + correlation.example_code.join('\n') + '</code></pre>' +
+  '</div>';
+
+
+        correlationCardsContainer.appendChild(card);
+    });
+
+    // Misconceptions Analysis
+    // Generate Misconception Cards
+    const misconceptionCardsContainer = document.getElementById('misconceptionCards');
+    misconceptionCardsContainer.innerHTML = '';
+
+    analysisData.stage_4_misconception_analysis.potential_misconceptions.forEach(misconception => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        card.innerHTML =
+  '<h3>' + misconception.misconception + '</h3>' +
+  '<div class="tags">' +
+    '<div class="tag danger">' + misconception.occurrence_percentage + '</div>' +
+    '<div class="tag primary">' + misconception.occurrence_count + ' Students</div>' +
+  '</div>' +
+  '<div class="tags">' +
+    misconception.related_error_categories.map(function(category) {
+      return '<div class="tag info">' + category + '</div>';
+    }).join('') +
+  '</div>' +
+  '<p class="description">' + misconception.explanation + '</p>' +
+  '<div class="code-preview">' +
+    '<pre><code class="language-python">' + misconception.example_code.join('\n') + '</code></pre>' +
+  '</div>';
+
+
+        misconceptionCardsContainer.appendChild(card);
+    });
+
+    // Generate category-based misconception view
+    const categoryMisconceptionsContainer = document.getElementById('categoryMisconceptions');
+    categoryMisconceptionsContainer.innerHTML = '';
+
+    // Get all unique error categories from misconceptions
+    const allErrorCategories = [...new Set(analysisData.stage_4_misconception_analysis.potential_misconceptions.flatMap(m => m.related_error_categories))];
+
+    allErrorCategories.forEach(category => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        // Find misconceptions related to this category
+        const relatedMisconceptions = analysisData.stage_4_misconception_analysis.potential_misconceptions.filter(m =>
+            m.related_error_categories.includes(category)
+        );
+
+        let misconceptionsList = '';
+        relatedMisconceptions.forEach(m => {
+            misconceptionsList +=
+  '<div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e3e6f0;">' +
+    '<h4 style="margin-bottom: 0.5rem;">' + m.misconception + ' (' + m.occurrence_percentage + ')</h4>' +
+    '<p>' + m.explanation + '</p>' +
+  '</div>';
+
+        });
+
+        card.innerHTML =
+  '<h3>' + category + '</h3>' +
+  '<p class="description">Related misconceptions:</p>' +
+  misconceptionsList;
+
+
+        categoryMisconceptionsContainer.appendChild(card);
+    });
+
+    // Action Plan
+    // Generate Action Plan Cards
+    const actionPlanContainer = document.getElementById('actionPlanItems');
+    actionPlanContainer.innerHTML = '';
+
+    // Sort interventions by priority
+    const sortedInterventions = [...analysisData.stage_5_instructional_plan.interventions].sort((a, b) => {
+        const priorityOrder = { "High": 0, "Medium": 1, "Low": 2 };
+        return priorityOrder[a.priority_level] - priorityOrder[b.priority_level];
+    });
+
+    sortedInterventions.forEach(intervention => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        let priorityClass = '';
+        if (intervention.priority_level === 'High') {
+            priorityClass = 'priority-high';
+        } else if (intervention.priority_level === 'Medium') {
+            priorityClass = 'priority-medium';
+        } else {
+            priorityClass = 'priority-low';
+        }
+
+        // Get estimated effort with fallback to 'Medium'
+        const effort = getValueWithFallback(intervention, 'estimated_effort', 'Medium');
+        let effortClass = '';
+        if (effort === 'High') {
+            effortClass = 'effort-high';
+        } else if (effort === 'Medium') {
+            effortClass = 'effort-medium';
+        } else {
+            effortClass = 'effort-low';
+        }
+
+        let strategiesList = '<ul class="strategyList">';
+        intervention.instructional_strategies.forEach(strategy => {
+            strategiesList += '<li>' + strategy + '</li>';
+
+        });
+        strategiesList += '</ul>';
+
+        card.innerHTML =
+  '<h3>' + intervention.target_misconception + '</h3>' +
+  '<div class="indicators-row">' +
+    '<div class="priority-indicator ' + priorityClass + '">' + intervention.priority_level + ' Priority</div>' +
+    '<div class="effort-indicator ' + effortClass + '">' + effort + ' Effort</div>' +
+  '</div>' +
+  '<div class="tags">' +
+    intervention.related_errors.map(function(error) {
+      return '<div class="tag info">' + error + '</div>';
+    }).join('') +
+  '</div>' +
+  '<p class="description">Instructional strategies:</p>' +
+  strategiesList;
+
+
+        actionPlanContainer.appendChild(card);
+    });
+
+    // Action Plan by Misconception
+    const actionByMisconceptionContainer = document.getElementById('actionByMisconception');
+    if (actionByMisconceptionContainer) {
+        actionByMisconceptionContainer.innerHTML = '';
+
+        // Group interventions by target misconception
+        const misconceptionMap = new Map();
+        analysisData.stage_4_misconception_analysis.potential_misconceptions.forEach(misconception => {
+            const relatedInterventions = analysisData.stage_5_instructional_plan.interventions.filter(i =>
+                i.target_misconception === misconception.misconception
+            );
+
+            misconceptionMap.set(misconception, relatedInterventions);
+        });
+
+        // Create cards for each misconception with its interventions
+        misconceptionMap.forEach((interventions, misconception) => {
+            if (interventions.length > 0) {
+                const card = document.createElement('div');
+                card.className = 'info-card';
+
+                let interventionsHtml = '';
+                interventions.forEach(intervention => {
+                    let priorityClass = intervention.priority_level === 'High' ? 'priority-high' :
+                                       intervention.priority_level === 'Medium' ? 'priority-medium' : 'priority-low';
+
+                    // Get estimated effort with fallback
+                    const effort = getValueWithFallback(intervention, 'estimated_effort', 'Medium');
+
+                    interventionsHtml +=
+  '<div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e3e6f0;">' +
+    '<div class="indicators-row">' +
+      '<div class="priority-indicator ' + priorityClass + '">' + intervention.priority_level + ' Priority</div>' +
+      '<div class="effort-indicator">' + effort + ' Effort</div>' +
+    '</div>' +
+    '<ul class="strategyList">' +
+      intervention.instructional_strategies.map(function(strategy) {
+        return '<li>' + strategy + '</li>';
+      }).join('') +
+    '</ul>' +
+  '</div>';
+
+                });
+
+                card.innerHTML =
+  '<h3>' + misconception.misconception + '</h3>' +
+  '<div class="tags">' +
+    '<div class="tag danger">' + misconception.occurrence_percentage + '</div>' +
+  '</div>' +
+  '<p class="description">' + misconception.explanation + '</p>' +
+  '<h4>Intervention Strategies:</h4>' +
+  interventionsHtml;
+
+
+                actionByMisconceptionContainer.appendChild(card);
+            }
+        });
+    }
+
+    // Implementation Timeline
+    const timelineContentContainer = document.getElementById('timelineContent');
+    if (timelineContentContainer) {
+        timelineContentContainer.innerHTML = '';
+
+        // Group interventions by implementation phase
+        const phases = {
+            "Immediate": [],
+            "Short-term": [],
+            "Long-term": []
+        };
+
+        analysisData.stage_5_instructional_plan.interventions.forEach(intervention => {
+            if (intervention.implementation_phase) {
+                phases[intervention.implementation_phase].push(intervention);
+            } else if (intervention.priority_level === "High") {
+                phases["Immediate"].push(intervention);
+            } else if (intervention.priority_level === "Medium") {
+                phases["Short-term"].push(intervention);
+            } else {
+                phases["Long-term"].push(intervention);
+            }
+        });
+
+        // Create timeline columns
+        const immediateColumn = document.createElement('div');
+        const shortTermColumn = document.createElement('div');
+        const longTermColumn = document.createElement('div');
+
+        // Fill immediate column
+        phases["Immediate"].forEach(intervention => {
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item priority-' + intervention.priority_level.toLowerCase();
+
+            // Get estimated effort with fallback
+            const effort = getValueWithFallback(intervention, 'estimated_effort', 'Medium');
+
+            timelineItem.innerHTML =
+  '<h4>' + intervention.target_misconception + '</h4>' +
+  '<div class="timeline-effort">' + effort + ' Effort</div>' +
+  '<p>' + intervention.instructional_strategies[0] + '</p>';
+
+
+            immediateColumn.appendChild(timelineItem);
+        });
+
+        // Fill short-term column
+        phases["Short-term"].forEach(intervention => {
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item priority-' + intervention.priority_level.toLowerCase();
+
+            // Get estimated effort with fallback
+            const effort = getValueWithFallback(intervention, 'estimated_effort', 'Medium');
+
+            timelineItem.innerHTML =
+  '<h4>' + intervention.target_misconception + '</h4>' +
+  '<div class="timeline-effort">' + effort + ' Effort</div>' +
+  '<p>' + intervention.instructional_strategies[0] + '</p>';
+
+
+            shortTermColumn.appendChild(timelineItem);
+        });
+
+        // Fill long-term column
+        phases["Long-term"].forEach(intervention => {
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item priority-' + intervention.priority_level.toLowerCase();
+
+            // Get estimated effort with fallback
+            const effort = getValueWithFallback(intervention, 'estimated_effort', 'Medium');
+
+            timelineItem.innerHTML =
+  '<h4>' + intervention.target_misconception + '</h4>' +
+  '<div class="timeline-effort">' + effort + ' Effort</div>' +
+  '<p>' + intervention.instructional_strategies[0] + '</p>';
+
+            longTermColumn.appendChild(timelineItem);
+        });
+
+        timelineContentContainer.appendChild(immediateColumn);
+        timelineContentContainer.appendChild(shortTermColumn);
+        timelineContentContainer.appendChild(longTermColumn);
+    }
+
+    // Additional Insights
+    // Generate Good Practice Cards
+    const goodPracticeContainer = document.getElementById('goodPracticeCards');
+    goodPracticeContainer.innerHTML = '';
+
+    analysisData.stage_6_additional_insights.common_good_practices.forEach(practice => {
+        const card = document.createElement('div');
+        card.className = 'info-card';
+
+        // Use correct_implementation flag if available
+        const isCorrectImplementation = getValueWithFallback(practice, 'correct_implementation', false);
+        const implementationTag = isCorrectImplementation ?
+            '<div class="implementation-tag correct">✓ Correct Implementation</div>' :
+            '<div class="implementation-tag">Implementation Example</div>';
+
+        card.innerHTML =
+  '<h3>Good Practice</h3>' +
+  implementationTag +
+  '<p class="description">' + practice.description + '</p>' +
+  '<div class="code-preview">' +
+    '<pre><code class="language-python">' + practice.example_code.join('\n') + '</code></pre>' +
+  '</div>';
+
+
+        goodPracticeContainer.appendChild(card);
+    });
+
+    // Submission Patterns
+    const submissionPatternsContainer = document.getElementById('submissionPatternsContent');
+
+    submissionPatternsContainer.innerHTML = 
+  '<h3>Submission Patterns</h3>' +
+  '<p class="description"><strong>Observation:</strong> ' + analysisData.stage_6_additional_insights.submission_patterns.observation + '</p>' +
+  '<p class="description"><strong>Potential Impact:</strong> ' + analysisData.stage_6_additional_insights.submission_patterns.potential_impact + '</p>';
+
+
+    // Code Comparison
+    const codeComparisonContainer = document.getElementById('codeComparisonContainer');
+    if (codeComparisonContainer) {
+        // Find an error example and a good practice to compare
+        const errorExample = analysisData.stage_2_error_analysis.top_errors[0];
+
+        // Find a good practice that's marked as correct implementation if possible
+        let goodPractice = analysisData.stage_6_additional_insights.common_good_practices.find(p =>
+            p.correct_implementation === true
+        );
+
+        // Fallback to first good practice if none are marked as correct
+        if (!goodPractice) {
+            goodPractice = analysisData.stage_6_additional_insights.common_good_practices[0];
+        }
+
+        codeComparisonContainer.innerHTML =
+  '<div class="code-comparison-container">' +
+    '<div class="code-comparison">' +
+      '<div class="code-comparison-header">' +
+        '<span>❌ Incorrect Implementation</span>' +
+        '<span class="tag danger">' + errorExample.category + '</span>' +
+      '</div>' +
+      '<div class="code-comparison-body">' +
+        '<pre><code class="language-python">' + errorExample.example_code.join('\n') + '</code></pre>' +
+      '</div>' +
+    '</div>' +
+    '<div class="code-comparison">' +
+      '<div class="code-comparison-header">' +
+        '<span>✓ Correct Implementation</span>' +
+        '<span class="tag success">Good Practice</span>' +
+      '</div>' +
+      '<div class="code-comparison-body">' +
+        '<pre><code class="language-python">' + goodPractice.example_code.join('\n') + '</code></pre>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+    }
+
+    // Error Categories
+    const errorCategoriesContainer = document.getElementById('errorCategoriesContent');
+    if (errorCategoriesContainer) {
+        errorCategoriesContainer.innerHTML = 
+  '<div>' +
+    '<h4>Error Categories Used in Analysis</h4>' +
+    '<div class="tags" style="margin-top: 0.5rem; margin-bottom: 1.5rem;">' +
+      analysisData.stage_6_additional_insights.error_category_distribution.all_categories_used.map(function(category) {
+        return '<div class="tag primary">' + category + '</div>';
+      }).join('') +
+    '</div>' +
+  '</div>' +
+  '<div>' +
+    '<h4>Additional Categories Identified</h4>' +
+    '<div class="tags" style="margin-top: 0.5rem;">' +
+      analysisData.stage_6_additional_insights.error_category_distribution.additional_categories_identified.map(function(category) {
+        return '<div class="tag info">' + category + '</div>';
+      }).join('') +
+    '</div>' +
+  '</div>';
+
+    }
+
+    // Apply syntax highlighting to code elements
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
+
+    // Initialize charts
+    initializeCharts();
+
+    if (typeof setupCodePreviewListeners === 'function') {
+        setupCodePreviewListeners();
+    }
+}
+</script>
+    <script>
+// Chart initialization for the dashboard
+function initializeCharts() {
+    // Performance Distribution Chart
+    createPerformanceDistributionChart();
+
+    // Performance Gauge Chart
+    createPerformanceGaugeChart();
+
+    // Top Errors Chart
+    createTopErrorsChart();
+
+    // Priority Chart
+    createPriorityChart();
+
+    // Effort Distribution Chart (NEW)
+    createEffortDistributionChart();
+
+    // Concept Map
+    const conceptMapTab = document.getElementById('concept-map');
+    if (conceptMapTab && conceptMapTab.classList.contains('active')) {
+        createConceptMap();
+    }
+
+    // Submission Timeline Chart
+    createSubmissionTimelineChart();
+}
+
+function createPerformanceDistributionChart() {
+    const ctx = document.getElementById('performanceDistributionChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Strong', 'Good Progress', 'Struggling', 'Poor'],
+            datasets: [{
+                data: [
+                    analysisData.stage_1_performance_analysis.performance_distribution.Strong.count,
+                    analysisData.stage_1_performance_analysis.performance_distribution.Good_Progress.count,
+                    analysisData.stage_1_performance_analysis.performance_distribution.Struggling.count,
+                    analysisData.stage_1_performance_analysis.performance_distribution.Poor.count
+                ],
+                backgroundColor: [
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Performance Distribution'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createPerformanceGaugeChart() {
+    const ctx = document.getElementById('performanceGaugeChart');
+    if (!ctx) return;
+
+    // Calculate passing percentage (Good Progress + Strong)
+    const goodProgressCount = analysisData.stage_1_performance_analysis.performance_distribution.Good_Progress.count;
+    const strongCount = analysisData.stage_1_performance_analysis.performance_distribution.Strong.count;
+    const totalCount = analysisData.stage_1_performance_analysis.total_submissions;
+    const passingPercentage = ((goodProgressCount + strongCount) / totalCount * 100).toFixed(2);
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Satisfactory', 'Needs Improvement'],
+            datasets: [{
+                data: [
+                    goodProgressCount + strongCount,
+                    totalCount - (goodProgressCount + strongCount)
+                ],
+                backgroundColor: [
+                    '#1cc88a',
+                    '#e74a3b'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            circumference: 180,
+            rotation: -90,
+            cutout: '75%',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: passingPercentage + '% Satisfactory',
+                    position: 'bottom',
+                    padding: {
+                        top: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createEffortDistributionChart() {
+    const ctx = document.getElementById('effortDistributionChart');
+    if (!ctx) return;
+
+    // Count interventions by effort level with fallback handling
+    const efforts = {'Low': 0, 'Medium': 0, 'High': 0};
+
+    analysisData.stage_5_instructional_plan.interventions.forEach(intervention => {
+        const effort = intervention.estimated_effort || 'Medium'; // Default to Medium if missing
+        efforts[effort]++;
+    });
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Low Effort', 'Medium Effort', 'High Effort'],
+            datasets: [{
+                data: [efforts.Low, efforts.Medium, efforts.High],
+                backgroundColor: [
+                    '#1cc88a', // Green for Low
+                    '#f6c23e', // Yellow for Medium
+                    '#e74a3b'  // Red for High
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Interventions by Required Effort'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createTopErrorsChart() {
+    const ctx = document.getElementById('topErrorsChart');
+    if (!ctx) return;
+    const errorCategories = analysisData.stage_2_error_analysis.top_errors.map(error => error.category);
+    const errorCounts = analysisData.stage_2_error_analysis.top_errors.map(error => error.occurrence_count);
+    const errorPercentages = analysisData.stage_2_error_analysis.top_errors.map(error =>
+      parseFloat(error.occurrence_percentage.replace('%', ''))
+    );
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: errorCategories,
+        datasets: [
+          {
+            label: 'Occurrence Count',
+            data: errorCounts,
+            backgroundColor: '#4e73df',
+            borderColor: '#4e73df',
+            borderWidth: 1,
+            yAxisID: 'y',
+            order: 2  // Higher order means render first (underneath)
+          },
+          {
+            label: 'Percentage',
+            data: errorPercentages,
+            backgroundColor: 'transparent',  // Make background transparent
+            borderColor: '#1cc88a',
+            borderWidth: 3,  // Slightly thicker line for visibility
+            type: 'line',
+            yAxisID: 'y1',
+            order: 1,  // Lower order means render last (on top)
+            pointBackgroundColor: '#1cc88a',
+            pointRadius: 4,
+            tension: 0.1  // Slight curve to the line
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top'
+          },
+          title: {
+            display: true,
+            text: 'Top Error Categories'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Occurrence Count'
+            },
+            position: 'left'
+          },
+          y1: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Percentage (%)'
+            },
+            position: 'right',
+            grid: {
+              drawOnChartArea: false
+            },
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            },
+            max: 100
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Error Category'
+            }
+          }
+        }
+      }
+    });
+  }
+
+function createPriorityChart() {
+    const ctx = document.getElementById('priorityChart');
+    if (!ctx) return;
+
+    // Count interventions by priority level
+    const priorities = {'High': 0, 'Medium': 0, 'Low': 0};
+
+    analysisData.stage_5_instructional_plan.interventions.forEach(intervention => {
+        priorities[intervention.priority_level]++;
+    });
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['High Priority', 'Medium Priority', 'Low Priority'],
+            datasets: [{
+                data: [priorities.High, priorities.Medium, priorities.Low],
+                backgroundColor: [
+                    '#e74a3b',
+                    '#f6c23e',
+                    '#1cc88a'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Interventions by Priority'
+                }
+            }
+        }
+    });
+}
+
+function createSubmissionTimelineChart() {
+    const ctx = document.getElementById('submissionTimelineChart');
+    // Add a null check for both the chart element and the timeline data
+    if (!ctx) return;
+    if (!analysisData.stage_6_additional_insights.submission_patterns ||
+        !analysisData.stage_6_additional_insights.submission_patterns.submission_timeline) {
+        return;
+    }
+
+    const timeline = analysisData.stage_6_additional_insights.submission_patterns.submission_timeline;
+    const dates = Object.keys(timeline);
+    const submissionCounts = dates.map(date => timeline[date].count);
+    // Handle both string percentages with % and numeric values
+    const passingRates = dates.map(date => {
+        const rate = timeline[date].passing_rate;
+        return typeof rate === 'string' ? parseFloat(rate.replace('%', '')) : rate;
+    });
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Submission Count',
+                    data: submissionCounts,
+                    backgroundColor: '#4e73df',
+                    borderColor: '#4e73df',
+                    borderWidth: 1,
+                    order: 2,  // Lower order means render last (on top)
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Passing Rate (%)',
+                    data: passingRates,
+                    backgroundColor: '#1cc88a',
+                    borderColor: '#1cc88a',
+                    borderWidth: 3,
+                    order: 1,  // Lower order means render last (on top)
+                    type: 'line',
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Submission Timeline and Passing Rate'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Submission Count'
+                    },
+                    position: 'left'
+                },
+                y1: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Passing Rate (%)'
+                    },
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    max: 100
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Submission Date'
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+function createConceptMap() {
+    // Get the container
+    const container = document.getElementById('concept-map-container');
+    if (!container) return;
+
+    // Get values from controls or use defaults
+    const radius1Control = document.getElementById('radius1-control');
+    const radius2Control = document.getElementById('radius2-control');
+    const centerXControl = document.getElementById('centerX-control');
+    const centerYControl = document.getElementById('centerY-control');
+
+    const radius1 = radius1Control ? parseInt(radius1Control.value) : 120;
+    const radius2 = radius2Control ? parseInt(radius2Control.value) : 300;
+    const centerX = centerXControl ? parseInt(centerXControl.value) : 600;
+    const centerY = centerYControl ? parseInt(centerYControl.value) : 350;
+
+    // Update value displays
+    if (document.getElementById('radius1-value')) {
+        document.getElementById('radius1-value').textContent = radius1;
+    }
+    if (document.getElementById('radius2-value')) {
+        document.getElementById('radius2-value').textContent = radius2;
+    }
+    if (document.getElementById('centerX-value')) {
+        document.getElementById('centerX-value').textContent = centerX;
+    }
+    if (document.getElementById('centerY-value')) {
+        document.getElementById('centerY-value').textContent = centerY;
+    }
+
+    // Clear previous content
+    container.innerHTML = '';
+
+    // Create control panel if it doesn't exist
+    if (!document.getElementById('concept-map-controls')) {
+        createControlPanel(container, radius1, radius2, centerX, centerY);
+    }
+
+    // Create the concept map wrapper
+    const conceptMap = document.createElement('div');
+    conceptMap.className = 'simple-concept-map';
+
+    // Process data - get misconceptions and error categories
+    const misconceptions = analysisData.stage_4_misconception_analysis.potential_misconceptions;
+
+    // Extract all unique error categories
+    const errorCategories = new Set();
+    misconceptions.forEach(m => {
+        m.related_error_categories.forEach(e => errorCategories.add(e));
+    });
+    const errorCategoriesArray = Array.from(errorCategories);
+
+    // Calculate positions in a circle for misconceptions
+    const misconceptionNodes = [];
+
+    misconceptions.forEach((misconception, i) => {
+        // Calculate position in a circle
+        const angle = (i / misconceptions.length) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius1;
+        const y = centerY + Math.sin(angle) * radius1;
+
+        // Create misconception node
+        const node = document.createElement('div');
+        node.className = 'concept-node misconception-node';
+        node.style.left = x + 'px';
+		node.style.top = y + 'px';
+
+
+        // Parse percentage to use for color intensity (pink with varying intensity)
+        const percentage = parseFloat(misconception.occurrence_percentage);
+        const brightness = 100 - (percentage * 0.5);
+        node.style.backgroundColor = 'hsl(185, 100%, ' + brightness + '%)';
+
+
+        // Add content
+        node.innerHTML =
+  '<div class="node-content">' +
+    '<div class="node-title">' + misconception.misconception + '</div>' +
+    '<div class="node-percentage">' + misconception.occurrence_percentage + '</div>' +
+  '</div>';
+
+
+        // Add tooltip
+        node.setAttribute('data-tooltip', 
+  '<strong>' + misconception.misconception + '</strong><br>' +
+  'Affects ' + misconception.occurrence_percentage + ' of students<br>' +
+  'Related to: ' + misconception.related_error_categories.join(', ')
+);
+
+
+        // Store node info for connections
+        misconceptionNodes.push({
+            element: node,
+            x: x,
+            y: y,
+            misconception: misconception
+        });
+
+        // Add to concept map
+        conceptMap.appendChild(node);
+
+        // Add connection to center
+        addConnection(conceptMap, centerX, centerY, x, y, 'hub-connection');
+    });
+
+    // Calculate positions in a larger circle for error categories
+    const errorNodes = [];
+
+    errorCategoriesArray.forEach((category, i) => {
+        // Calculate position in a circle
+        const angle = (i / errorCategoriesArray.length) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius2;
+        const y = centerY + Math.sin(angle) * radius2;
+
+        // Create error category node
+        const node = document.createElement('div');
+        node.className = 'concept-node error-node';
+        node.style.left = x + 'px';
+		node.style.top = y + 'px';
+
+        // Add content
+        node.innerHTML = 
+  '<div class="node-content">' +
+    '<div class="node-title">' + category + '</div>' +
+  '</div>';
+
+
+        // Find related misconceptions for tooltip
+        const relatedMisconceptions = misconceptions.filter(m =>
+            m.related_error_categories.includes(category)
+        );
+
+        // Add tooltip
+        node.setAttribute('data-tooltip', 
+  '<strong>' + category + '</strong><br>' +
+  'Related misconceptions:<br>' +
+  relatedMisconceptions.map(function(m) {
+    return m.misconception + ' (' + m.occurrence_percentage + ')';
+  }).join('<br>')
+);
+
+
+        // Store node info for connections
+        errorNodes.push({
+            element: node,
+            x: x,
+            y: y,
+            category: category
+        });
+
+        // Add to concept map
+        conceptMap.appendChild(node);
+    });
+
+    // Add connections between misconceptions and related error categories
+    misconceptionNodes.forEach(misconceptionNode => {
+        const misconception = misconceptionNode.misconception;
+
+        // For each related error category, find the node and connect
+        misconception.related_error_categories.forEach(category => {
+            const errorNode = errorNodes.find(n => n.category === category);
+            if (errorNode) {
+                addConnection(
+                    conceptMap,
+                    misconceptionNode.x,
+                    misconceptionNode.y,
+                    errorNode.x,
+                    errorNode.y,
+                    'node-connection'
+                );
+            }
+        });
+    });
+
+    // Add legend
+    const legend = document.createElement('div');
+    legend.className = 'concept-map-legend';
+    legend.innerHTML = 
+  '<div class="legend-title"></div>' +
+  '<div class="legend-item">' +
+    '<div class="legend-icon misconception-icon"></div>' +
+    '<div class="legend-label">Misconception (% of students)</div>' +
+  '</div>' +
+  '<div class="legend-item">' +
+    '<div class="legend-icon error-icon"></div>' +
+    '<div class="legend-label">Error Category</div>' +
+  '</div>';
+
+    conceptMap.appendChild(legend);
+
+    // Add the concept map to the container
+    container.appendChild(conceptMap);
+
+    // Setup tooltips
+    setupTooltips();
+}
+
+// Function to create the control panel
+function createControlPanel(container, currentRadius1, currentRadius2, currentCenterX, currentCenterY) {
+    const controlPanel = document.createElement('div');
+    controlPanel.id = 'concept-map-controls';
+    controlPanel.className = 'concept-map-controls';
+
+    controlPanel.innerHTML = 
+  '<div class="control-section">' +
+    '<h4>Adjust Concept Map Layout</h4>' +
+    '<div class="control-grid">' +
+      '<div class="control-item">' +
+        '<label for="radius1-control">Inner Circle: <span id="radius1-value">' + currentRadius1 + '</span>px</label>' +
+        '<input type="range" id="radius1-control" min="80" max="200" value="' + currentRadius1 + '">' +
+      '</div>' +
+      '<div class="control-item">' +
+        '<label for="radius2-control">Outer Circle: <span id="radius2-value">' + currentRadius2 + '</span>px</label>' +
+        '<input type="range" id="radius2-control" min="150" max="400" value="' + currentRadius2 + '">' +
+      '</div>' +
+      '<div class="control-item">' +
+        '<label for="centerX-control">Center X: <span id="centerX-value">' + currentCenterX + '</span>px</label>' +
+        '<input type="range" id="centerX-control" min="300" max="900" value="' + currentCenterX + '">' +
+      '</div>' +
+      '<div class="control-item">' +
+        '<label for="centerY-control">Center Y: <span id="centerY-value">' + currentCenterY + '</span>px</label>' +
+        '<input type="range" id="centerY-control" min="200" max="500" value="' + currentCenterY + '">' +
+      '</div>' +
+    '</div>' +
+    '<button id="reset-map-controls" class="reset-button">Reset to Default</button>' +
+  '</div>';
+
+
+    // Insert at the top of the container
+    if (container.firstChild) {
+        container.insertBefore(controlPanel, container.firstChild);
+    } else {
+        container.appendChild(controlPanel);
+    }
+
+    // Add event listeners for controls
+    setupControlListeners();
+}
+
+// Function to set up control listeners
+function setupControlListeners() {
+    const radius1Control = document.getElementById('radius1-control');
+    const radius2Control = document.getElementById('radius2-control');
+    const centerXControl = document.getElementById('centerX-control');
+    const centerYControl = document.getElementById('centerY-control');
+    const resetButton = document.getElementById('reset-map-controls');
+
+    // Update value displays during slider movement
+    if (radius1Control) {
+        radius1Control.addEventListener('input', function() {
+            document.getElementById('radius1-value').textContent = this.value;
+        });
+
+        radius1Control.addEventListener('change', createConceptMap);
+    }
+
+    if (radius2Control) {
+        radius2Control.addEventListener('input', function() {
+            document.getElementById('radius2-value').textContent = this.value;
+        });
+
+        radius2Control.addEventListener('change', createConceptMap);
+    }
+
+    if (centerXControl) {
+        centerXControl.addEventListener('input', function() {
+            document.getElementById('centerX-value').textContent = this.value;
+        });
+
+        centerXControl.addEventListener('change', createConceptMap);
+    }
+
+    if (centerYControl) {
+        centerYControl.addEventListener('input', function() {
+            document.getElementById('centerY-value').textContent = this.value;
+        });
+
+        centerYControl.addEventListener('change', createConceptMap);
+    }
+
+    // Reset button
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            // Set controls to default values
+            if (radius1Control) radius1Control.value = 120;
+            if (radius2Control) radius2Control.value = 300;
+            if (centerXControl) centerXControl.value = 600;
+            if (centerYControl) centerYControl.value = 350;
+
+            // Update displayed values
+            if (document.getElementById('radius1-value')) {
+                document.getElementById('radius1-value').textContent = 120;
+            }
+            if (document.getElementById('radius2-value')) {
+                document.getElementById('radius2-value').textContent = 300;
+            }
+            if (document.getElementById('centerX-value')) {
+                document.getElementById('centerX-value').textContent = 600;
+            }
+            if (document.getElementById('centerY-value')) {
+                document.getElementById('centerY-value').textContent = 350;
+            }
+
+            // Recreate the map
+            createConceptMap();
+        });
+    }
+}
+
+// Helper function to add a connection line between two points
+function addConnection(parent, x1, y1, x2, y2, className) {
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+    const connection = document.createElement('div');
+connection.className = 'connection ' + className;
+connection.style.width = length + 'px';
+connection.style.left = x1 + 'px';
+connection.style.top = y1 + 'px';
+connection.style.transform = 'rotate(' + angle + 'deg)';
+
+
+    parent.appendChild(connection);
+}
+
+// Setup tooltips for nodes
+function setupTooltips() {
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'concept-tooltip';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+
+    // Add mouseover and mouseout event listeners to nodes
+    const nodes = document.querySelectorAll('.concept-node');
+    nodes.forEach(node => {
+        node.addEventListener('mouseover', function(e) {
+            const tooltipContent = this.getAttribute('data-tooltip');
+            tooltip.innerHTML = tooltipContent;
+            tooltip.style.display = 'block';
+
+            // Position tooltip near mouse but not too close to avoid flickering
+            tooltip.style.left = (e.pageX + 15) + 'px';
+tooltip.style.top = (e.pageY - 15) + 'px';
+
+
+            // Highlight connections related to this node
+            if (this.classList.contains('misconception-node')) {
+                // Highlight center connection
+                document.querySelectorAll('.hub-connection').forEach(conn => {
+                    if (parseFloat(conn.style.left) === parseFloat(this.style.left) &&
+                        parseFloat(conn.style.top) === parseFloat(this.style.top)) {
+                        conn.classList.add('connection-highlight');
+                    }
+                });
+
+                // Highlight connections to error nodes
+                document.querySelectorAll('.node-connection').forEach(conn => {
+                    if (parseFloat(conn.style.left) === parseFloat(this.style.left) &&
+                        parseFloat(conn.style.top) === parseFloat(this.style.top)) {
+                        conn.classList.add('connection-highlight');
+                    }
+                });
+            } else if (this.classList.contains('error-node')) {
+                // Highlight connections from misconception nodes
+                document.querySelectorAll('.node-connection').forEach(conn => {
+                    const connAngle = parseFloat(conn.style.transform.replace('rotate(', '').replace('deg)', ''));
+                    const connLength = parseFloat(conn.style.width);
+
+                    // Calculate end point of connection
+                    const startX = parseFloat(conn.style.left);
+                    const startY = parseFloat(conn.style.top);
+                    const angleRad = connAngle * Math.PI / 180;
+                    const endX = startX + connLength * Math.cos(angleRad);
+                    const endY = startY + connLength * Math.sin(angleRad);
+
+                    // Check if this connection ends at this error node
+                    if (Math.abs(endX - parseFloat(this.style.left)) < 10 &&
+                        Math.abs(endY - parseFloat(this.style.top)) < 10) {
+                        conn.classList.add('connection-highlight');
+                    }
+                });
+            }
+        });
+
+        node.addEventListener('mousemove', function(e) {
+            // Update tooltip position when mouse moves
+            tooltip.style.left = (e.pageX + 15) + 'px';
+tooltip.style.top = (e.pageY - 15) + 'px';
+
+        });
+
+        node.addEventListener('mouseout', function() {
+            // Hide tooltip
+            tooltip.style.display = 'none';
+
+            // Remove highlight from all connections
+            document.querySelectorAll('.connection-highlight').forEach(conn => {
+                conn.classList.remove('connection-highlight');
+            });
+        });
+    });
+}
+
+// Add resizable functionality
+function makeConceptMapResizable() {
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        // Use debounce to avoid excessive redraws
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Check if concept map tab is active
+            const conceptMapTab = document.querySelector('[data-tab="concept-map"]');
+            if (conceptMapTab && conceptMapTab.classList.contains('active')) {
+                createConceptMap();
+            }
+        }, 250);
+    });
+}
+
+// Call function when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Keep existing event handlers, add resizable functionality
+    makeConceptMapResizable();
+});
+</script>
+    <script>
+// modal.js - Create this new file for the modal functionality
+
+// Initialize modal functionality when the document is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Create modal overlay
+    setupModal();
+
+    // Listen for DOM changes to catch dynamically added code previews
+    setupMutationObserver();
+});
+
+// Create the modal elements and add them to the DOM
+function setupModal() {
+    // Create modal overlay element
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    modalOverlay.innerHTML = 
+  '<div class="modal-content">' +
+    '<div class="modal-header">' +
+      '<h3 class="modal-title">Code Preview</h3>' +
+      '<button class="modal-close">&times;</button>' +
+    '</div>' +
+    '<div class="modal-body"></div>' +
+  '</div>';
+
+    document.body.appendChild(modalOverlay);
+
+    // Close modal when clicking the close button or outside the modal
+    const modalClose = modalOverlay.querySelector('.modal-close');
+    modalClose.addEventListener('click', () => {
+        modalOverlay.classList.remove('active');
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            modalOverlay.classList.remove('active');
+        }
+    });
+
+    // Add an escape key listener to close the modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+            modalOverlay.classList.remove('active');
+        }
+    });
+
+    return modalOverlay;
+}
+
+// Set up click event listeners for all code preview elements
+function setupCodePreviewListeners() {
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const modalBody = modalOverlay.querySelector('.modal-body');
+    const modalTitle = modalOverlay.querySelector('.modal-title');
+
+    const codePreviewElements = document.querySelectorAll('.code-preview');
+
+    codePreviewElements.forEach(preview => {
+        // Skip if already has a click listener
+        if (preview.dataset.hasListener === 'true') {
+            return;
+        }
+
+        preview.dataset.hasListener = 'true';
+
+        preview.addEventListener('click', () => {
+            // Find the nearest heading to get the context
+            let heading = preview.closest('.info-card')?.querySelector('h3')?.textContent || 'Code Preview';
+
+            // Clone the code element to show in modal
+            const codeElement = preview.querySelector('pre').cloneNode(true);
+
+            // Update modal title and content
+            modalTitle.textContent = 'Code Preview: ' + heading;
+            modalBody.innerHTML = '';
+            modalBody.appendChild(codeElement);
+
+            // Apply syntax highlighting if needed
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightElement(codeElement.querySelector('code'));
+            }
+
+            // Show the modal
+            modalOverlay.classList.add('active');
+        });
+    });
+}
+
+// Set up a mutation observer to watch for dynamically added code previews
+function setupMutationObserver() {
+    // Options for the observer (which mutations to observe)
+    const config = { childList: true, subtree: true };
+
+    // Callback function to execute when mutations are observed
+    const callback = function(mutationsList, observer) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Check if we need to set up code preview listeners
+                setupCodePreviewListeners();
+            }
+        }
+    };
+
+    // Create an observer instance linked to the callback function
+    const observer = new MutationObserver(callback);
+
+    // Start observing the target node for configured mutations
+    observer.observe(document.body, config);
+
+    // Initial setup for already existing code previews
+    setupCodePreviewListeners();
+}
+</script>
+  </body>
+</html>`
 
 var PROBLEM_DASHBOARD_TEMPLATE = `
 <!DOCTYPE html>
@@ -1268,6 +5701,15 @@ td {
 }
 
 
+.modal {
+    display: none; 
+    align-items: center;  /* Vertically center */
+    justify-content: center; /* Horizontally center */
+  }
+
+.modal.is-active {
+    display: flex !important;
+}
 
 </style>
 </head>
@@ -1329,14 +5771,15 @@ td {
 			<textarea id="editor">{{ .Code }}</textarea>
 		</div>
 	</div>
- <!-- Feedback Box -->
-{{if eq .UserRole "teacher"}} 
-<div id="custom-prompt-box" class="box" style="background: cornflowerblue; margin-top: 10px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); display: none;">
-    <h3 id="feedback-heading" style="margin-bottom: 10px; color: white; font-size: 1.1rem;">Common Errors and Misconceptions</h3>
-    <p id="loading-text" style="display: none; color: white; font-weight: bold;">Fetching AI response...</p>
-    <textarea id="custom-prompt-response" style="width: 100%; height: 200px; display: none; border-radius: 5px; padding: 10px; border: 1px solid #ccc; background: #ffffff;" readonly></textarea>
+<div id="summaryModal" class="modal">
+  <div class="modal-background"></div>
+  <div class="modal-content box" style="max-width: 400px; width: 90%;">
+    <p class="mb-4">What would you like to do?</p>
+    <button id="generate-new" class="button is-success is-fullwidth mb-2">Generate New Summary</button>
+    <button id="view-existing" class="button is-link is-fullwidth">View Existing Summary</button>
+  </div>
 </div>
-{{end}}
+ <!-- Feedback Box -->
 	<table class="table">
 			<thead>
 				<tr>
@@ -1424,51 +5867,49 @@ td {
 			return "text";
 		  }
 
-document.getElementById('api-call-button').addEventListener('click', function() {
-    // Show the feedback box and loading text initially
-    $('#custom-prompt-box').show();
-    $('#loading-text').show();
-    $('#feedback-heading').hide(); 
-    $('#custom-prompt-response').hide();
-
-    // Extract problem_id from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const problemId = urlParams.get('problem_id');
-    
-    // Prepare the request data
-    const requestData = {
-        problem_id: problemId,
-    };
-
-    // Send the API request using fetch
-    fetch('/summarize_class_performance', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('API Response:', data);
-        // Handle the API response (display it on the page)
-
-        $('#loading-text').hide(); // Hide loading text once response arrives
-
-        if (data.response) {
-            $('#feedback-heading').show(); // Show heading
-            $('#custom-prompt-response').val(data.response).show(); // Show textarea with response
-        } else {
-            $('#custom-prompt-box').hide(); // Hide entire box if no response
-            alert("No feedback found!");
-        }
-    })
-    .catch(error => {
-        $('#loading-text').hide(); // Hide loading text on error
-        $('#custom-prompt-box').hide(); // Hide feedback box on error
-        alert("Error: " + JSON.stringify(error));
-    });
+$('#api-call-button').on('click', function () {
+  $('#summaryModal').show(); // show modal on button click
 });
+
+$('#generate-new').on('click', function () {
+  handleSummarySubmission(true);
+});
+
+$('#view-existing').on('click', function () {
+  handleSummarySubmission(false);
+});
+
+function handleSummarySubmission(isNew) {
+  $('#summaryModal').hide(); // Hide modal after selection
+
+  const $button = $('#api-call-button');
+  $button.text('Generating...');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const problemId = urlParams.get('problem_id');
+
+  const tempForm = $('<form>', {
+    method: 'POST',
+    action: '/vi_view'
+  });
+
+  tempForm.append($('<input>', {
+    type: 'hidden',
+    name: 'problem_id',
+    value: problemId
+  }));
+
+  tempForm.append($('<input>', {
+    type: 'hidden',
+    name: 'new',
+    value: isNew
+  }));
+
+  $('body').append(tempForm);
+  tempForm.submit();
+}
+
+
 
 		  $(document).ready(function(){
 			$('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
@@ -1492,39 +5933,6 @@ document.getElementById('api-call-button').addEventListener('click', function() 
 		  });
 		  $(".accordions").accordion({ header: "h3", active: false, collapsible: true });
 		  $(".accordions").show();
-document.addEventListener("DOMContentLoaded", function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const problemId = urlParams.get('problem_id');
-    
-    // Check if a class feedback exists
-    fetch('/get_class_feedback', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ problem_id: problemId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const classFeedback = data.feedback;
-        const feedbackBox = document.getElementById('custom-prompt-box');
-        const feedbackTextArea = document.getElementById('custom-prompt-response');
-        const button = document.getElementById('api-call-button');
-        
-        if (classFeedback) {
-            // If class feedback exists, show textarea and set feedback
-            feedbackTextArea.value = classFeedback;
-            feedbackBox.style.display = 'block';
-			feedbackTextArea.style.display = 'block';
-        } else {
-            // If no feedback, hide textarea and change button text
-            feedbackBox.style.display = 'none';
-        }
-    })
-    .catch(error => {
-        alert("Error fetching class feedback: " + JSON.stringify(error));
-    });
-});
 document.addEventListener("DOMContentLoaded", function() {
     const urlParams = new URLSearchParams(window.location.search);
     const problemId = urlParams.get('problem_id');
@@ -4028,6 +8436,11 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
 {{end}}
 {{if eq .UserRole "teacher"}} 
 <button class="button is-info" id="snapshot-send-feedback" onclick="sendSnapshotFeedback({{ .Feedback.LastSnapshot.Code }}, {{ .Feedback.UserID }})" style="margin-top:3px; margin-bottom: 3px; color: #ffff;" >Send Inline Feedback</button>
+<button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
+            onclick="sendCustomPromptFeedback()" 
+            style="color: #ffffff;">
+            Get Feedback from AI
+        </button>
 	{{end}}
 				</div>	
 				<div id="feedback-block-99999"></div>
@@ -4052,11 +8465,6 @@ var CODE_SNAPSHOT_TAB_TEMPLATE = `
             <option value="">Loading scaffolding...</option>
         </select>
 
-        <button class="button is-info chatgpt-feedback" id="submit-custom-prompt" 
-            onclick="sendCustomPromptFeedback()" 
-            style="color: #ffffff;">
-            Get Feedback from AI
-        </button>
 
         <!-- New button to send scaffolding feedback -->
         <button class="button is-info" id="send-scaffolding-feedback" 
@@ -4444,65 +8852,57 @@ function getScaffoldingStrategyFromCategory(category) {
     return strategyMapping[category] || "";
 }
 
-function sendCustomPromptFeedback(code, userID, customPrompt) {
-    $('#custom-prompt-box').show();
-    
-    let button = $('#submit-custom-prompt');
-    button.text('Fetching AI Response...').prop('disabled', true);
-    $('#custom-prompt-response').hide();
+const snapshotId = {{ .Feedback.LastSnapshot.ID }};
+const userId = {{ .Feedback.UserID }};
+const userRole = "{{ .Feedback.UserRole }}";
 
-    return $.ajax({
-        url: "/process_code_with_prompt",
-        type: "POST",
-        data: JSON.stringify({
-            code: code,
-            custom_prompt: customPrompt,
-            user_id: userID
-        }),
-        headers: {
-            "Content-Type": "application/json",
+function sendCustomPromptFeedback() {
+    const button = document.getElementById("submit-custom-prompt");
+    button.textContent = "Generating...";
+    button.disabled = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const studentID = params.get("student_id");
+    const problemID = params.get("problem_id");
+
+    if (studentID && problemID && typeof snapshotId !== 'undefined' && typeof userId !== 'undefined' && typeof userRole !== 'undefined') {
+        // Construct full URL with all required query params
+        const actionUrl = '/sc_view?student_id=' + encodeURIComponent(studentID) +
+                          '&problem_id=' + encodeURIComponent(problemID) +
+                          '&snapshot_id=' + encodeURIComponent(snapshotId) +
+                          '&uid=' + encodeURIComponent(userId) +
+                          '&role=' + encodeURIComponent(userRole);
+
+        const tempForm = document.createElement('form');
+        tempForm.method = 'POST';
+        tempForm.action = actionUrl;
+
+        // Optional: Add them as hidden inputs too
+        const hiddenFields = {
+            student_id: studentID,
+            problem_id: problemID,
+            snapshot_id: snapshotId,
+            uid: userId,
+            role: userRole
+        };
+
+        for (const key in hiddenFields) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = hiddenFields[key];
+            tempForm.appendChild(input);
         }
-    }).done(function(data) {
-        button.text('Get Feedback from AI').prop('disabled', false);
 
-        if (data.response) {
-            $('#feedback-heading').show();
-
-            // Destroy the previous CodeMirror instance before updating the textarea
-            if (window.editor) {
-                window.editor.toTextArea(); // Convert back to textarea
-                window.editor = null; // Reset the instance
-            }
-
-            // Update the textarea with the new response
-            $("#custom-prompt-response").val(data.response).show();
-
-            // Reinitialize CodeMirror on the response textarea
-            window.editor = CodeMirror.fromTextArea(document.getElementById("custom-prompt-response"), {
-                lineNumbers: true,
-                mode: "python",
-                theme: "monokai",
-                matchBrackets: true,
-                indentUnit: 4,
-                indentWithTabs: true,
-                readOnly: false
-            });
-            window.editor.setSize(null, "650px");
-            $(window.editor.getWrapperElement()).css("margin-top", "10px");
-
-            // ✅ Ensure the new response is correctly displayed in CodeMirror
-            window.editor.setValue(data.response);
-
-        } else {
-            $('#custom-prompt-box').hide();
-            alert("No feedback found!");
-        }
-    }).fail(function(err) {
-        button.text('Get Feedback from AI').prop('disabled', false);
-        $('#custom-prompt-box').hide();
-        alert("Error: " + JSON.stringify(err));
-    });
+        document.body.appendChild(tempForm);
+        tempForm.submit();
+    } else {
+        alert("Missing required parameters.");
+        button.textContent = "Get Feedback from AI";
+        button.disabled = false;
+    }
 }
+
 
 
 

@@ -132,7 +132,7 @@ func ExerciseListHandler(w http.ResponseWriter, r *http.Request, who string, uid
 	if err != nil {
 		log.Printf("Error parsing template: %v", err)
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	if err = t.Execute(w, problemListData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("Error executing template: %v", err)
@@ -206,7 +206,7 @@ func StudentFeedbackProvisionHandler(w http.ResponseWriter, r *http.Request, who
 		Status:       *studentStats,
 		Username:     GetName(uid, role),
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

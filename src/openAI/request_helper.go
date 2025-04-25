@@ -123,17 +123,17 @@ func makeRequestClaude(c *gin.Context, messages []map[string]string) {
 	// todo : save it to db
 }
 
-func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId int) {
+func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId int) string {
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"model":      ClaudeModel,
 		"messages":   messages,
-		"max_tokens": 2048, // Increased token limit for detailed feedback
+		"max_tokens": 4096,
 	})
 
 	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-		return
+		return ""
 	}
 
 	req.Header.Set("x-api-key", ClaudeAPIKey)
@@ -144,7 +144,7 @@ func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId 
 	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "API request failed"})
-		return
+		return ""
 	}
 	defer resp.Body.Close()
 
@@ -162,14 +162,59 @@ func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId 
 				if err != nil {
 					fmt.Println(err)
 				}
-				c.JSON(http.StatusOK, gin.H{"response": text})
-				return
+				return text
 			}
 		}
 	}
 
-	// Handle unexpected response structure
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from Claude API"})
+	return ""
+}
+
+func makeRequestClaudeSC(c *gin.Context, messages []map[string]string, problemId int) string {
+	requestBody, _ := json.Marshal(map[string]interface{}{
+		"model":      ClaudeModel,
+		"messages":   messages,
+		"max_tokens": 4096,
+	})
+
+	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return ""
+	}
+
+	req.Header.Set("x-api-key", ClaudeAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Anthropic-Version", "2023-06-01")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "API request failed"})
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	// Parse JSON response
+	var responseJSON map[string]interface{}
+	json.Unmarshal(body, &responseJSON)
+
+	// Extract text response
+	if contentArray, found := responseJSON["content"].([]interface{}); found && len(contentArray) > 0 {
+		if firstContent, ok := contentArray[0].(map[string]interface{}); ok {
+			if text, exists := firstContent["text"].(string); exists {
+				err = repository.SaveClassFeedback(problemId, text) // todo - save elsewhere
+				if err != nil {
+					fmt.Println(err)
+				}
+				return text
+			}
+		}
+	}
+
+	return ""
 }
 
 func makeRequestClaude3(c *gin.Context, messages []map[string]string, problemId int) {

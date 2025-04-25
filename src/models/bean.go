@@ -231,6 +231,15 @@ type Scaffolding struct {
 	Time                time.Time `gorm:"autoCreateTime"`
 }
 
+type AssignedScaffolding struct {
+	ID          int       `gorm:"primaryKey;autoIncrement"`
+	StudentID   int       `gorm:"not null"`
+	ProblemID   int       `gorm:"not null"`
+	Duration    int       `gorm:"not null"`
+	Scaffolding string    `gorm:"type:text;not null"`
+	AssignedAt  time.Time `gorm:"autoCreateTime"`
+}
+
 const (
 	ScaffoldingLevelStruggling       = 1 // Struggling
 	ScaffoldingLevelDeveloping       = 2 // Developing

@@ -138,7 +138,7 @@ func TeacherWebBroadcastHandler(w http.ResponseWriter, r *http.Request, who stri
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

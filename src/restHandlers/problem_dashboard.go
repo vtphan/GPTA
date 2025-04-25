@@ -55,7 +55,7 @@ func ScaffoldingDashboardHandler(w http.ResponseWriter, r *http.Request, who str
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, scaffoldMap)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -178,7 +178,7 @@ func ProblemDashboardHandler(w http.ResponseWriter, r *http.Request, who string,
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, dashBoardData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

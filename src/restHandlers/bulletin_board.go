@@ -154,7 +154,7 @@ func ViewBulletinBoardHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err2)
 	}
 	data := GetBulletinBoardData(i, passcode)
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t.Execute(w, data)
 }
 
@@ -170,7 +170,7 @@ func ViewBulletinBoardHandler(w http.ResponseWriter, r *http.Request) {
 // 		t, err := t.Parse(STUDENT_MESSAGING_TEMPLATE)
 // 		if err == nil {
 // 			data := struct{ Message string }{Students[stid].Status}
-// 			w.Header().Set("Content-Type", "text/html")
+// 			w.Header().Set("Content-Type", "Text/html")
 // 			t.Execute(w, data)
 // 		} else {
 // 			fmt.Println(err)

@@ -78,7 +78,7 @@ func StatisticsHandler(w http.ResponseWriter, r *http.Request) {
 		data.Date = theDate
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t, err := template.New("").Parse(STATS_TEMPLATE)
 	if err != nil {
 		fmt.Println(err)
@@ -110,8 +110,8 @@ var STATS_TEMPLATE = `
     }
     #pre{ width:100%; display:block;}
     .spacer{ width:100%; height:40px; margin: 0 auto;}
-    .pager{ font-size:120%; text-align: center; }
-    .pager a{padding:25px; text-decoration: none;}
+    .pager{ font-size:120%; Text-align: center; }
+    .pager a{padding:25px; Text-decoration: none;}
     .pager a:visited{color:blue}
     </style>
   </head>
@@ -172,8 +172,8 @@ var STATS_TEMPLATE_OLD = `
 <html>
   <head>
     <!--Load the AJAX API-->
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
+    <script type="Text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="Text/javascript">
       google.charts.load('current', {'packages':['corechart']});
       google.charts.setOnLoadCallback(performancePieChart);
       google.charts.setOnLoadCallback(durationHistogram);
@@ -226,8 +226,8 @@ var STATS_TEMPLATE_OLD = `
     }
     #pre{ width:100%; display:block;}
     .spacer{ width:100%; height:40px; margin: 0 auto;}
-    .pager{ font-size:120%; text-align: center; }
-    .pager a{padding:25px; text-decoration: none;}
+    .pager{ font-size:120%; Text-align: center; }
+    .pager a{padding:25px; Text-decoration: none;}
     .pager a:visited{color:blue}
     </style>
   </head>

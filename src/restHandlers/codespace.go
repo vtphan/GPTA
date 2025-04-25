@@ -69,12 +69,12 @@ func getEditorMode(filename string) string {
 		return "python"
 	}
 	if strings.HasSuffix(filename, ".java") {
-		return "text/x-java"
+		return "Text/x-java"
 	}
 	if strings.HasSuffix(filename, ".cpp") || strings.HasSuffix(filename, ".c++") || strings.HasSuffix(filename, ".c") {
-		return "text/x-c++src"
+		return "Text/x-c++src"
 	}
-	return "text"
+	return "Text"
 }
 
 func formatTimeDuration(d time.Duration) string {
@@ -145,7 +145,7 @@ func codespaceHandler(w http.ResponseWriter, r *http.Request, who string, uid in
 		UserRole:  role,
 		Password:  r.FormValue("password"),
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -201,7 +201,7 @@ func helpRequestListHandler(w http.ResponseWriter, r *http.Request, who string, 
 		UserRole:      role,
 		Password:      r.FormValue("password"),
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -237,7 +237,7 @@ func viewHelpRequestHandler(w http.ResponseWriter, r *http.Request, who string, 
 			problemID = s.Pid
 		}
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

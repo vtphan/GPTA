@@ -107,7 +107,7 @@ func StudentDashboardFeedbackProvisionHandler(w http.ResponseWriter, r *http.Req
 		Status:       *studentStats,
 		Username:     GetName(uid, role),
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -176,7 +176,7 @@ func StudentDashboardSubmissionHandler(w http.ResponseWriter, r *http.Request, w
 		UserRole:    role,
 		Password:    r.FormValue("password"),
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -303,7 +303,7 @@ func StudentDashboardCodeSpaceHandler(w http.ResponseWriter, r *http.Request, wh
 		CourseName: models.Config.CourseName,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -53,7 +53,7 @@ func ViewActivitiesHandler(w http.ResponseWriter, r *http.Request) {
 		data[d].PidCount = len(data[d].Pids)
 		data[d].SidCount = len(data[d].Sids)
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t, err := template.New("").Parse(frontEnd.ACTIVITY_VIEW_TEMPLATE)
 	if err != nil {
 		fmt.Println(err)

@@ -32,7 +32,7 @@ func ViewAnswersHandler(w http.ResponseWriter, r *http.Request) {
 				total++
 			}
 			content := prob.Info.Description
-			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Content-Type", "Text/html")
 			data := &AnswersBoardMessage{Counts: counts, Content: content, Total: total}
 			err = t.Execute(w, data)
 			if err != nil {

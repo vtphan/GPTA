@@ -45,7 +45,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render the view
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t, _ := template.New("").Parse(frontEnd.TAGS_VIEW_TEMPLATE)
 	err = t.Execute(w, record)
 	if err != nil {
@@ -100,7 +100,7 @@ func ReportTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render the template with the tag description and performance data
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t, _ := template.New("").Parse(frontEnd.TAG_REPORT_TEMPLATE)
 	err = t.Execute(w, &models.TagData{Description: tagDescription, Performance: record})
 	if err != nil {

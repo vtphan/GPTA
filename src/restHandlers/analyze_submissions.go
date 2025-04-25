@@ -82,7 +82,7 @@ func AnalyzeSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "Text/html")
 	t, _ := template.New("").Parse(frontEnd.ANALYZE_SUBMISSIONS_TEMPLATE)
 	err = t.Execute(w, records)
 	if err != nil {
