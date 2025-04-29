@@ -500,6 +500,12 @@ func ProcessIndividualSubmissions(w http.ResponseWriter, r *http.Request) string
 		http.Error(w, "Invalid problem_id", http.StatusBadRequest)
 		return ""
 	}
+
+	summary, _ := repository.GetLatestScaffold(studentID, problemID)
+	if summary != "" {
+		return summary
+	}
+
 	// Get the latest code snapshots from the database using the problem_id
 	latestCodeSnapshot, err := repository.GetLatestCodeSnapshotForStudent(problemID, studentID)
 	if err != nil {
@@ -664,7 +670,7 @@ previousScaffold: %s`,
 	c.Request = r
 
 	// Call Claude API request function
-	text := makeRequestClaudeSC(c, messages, problemID)
+	text := makeRequestClaudeSC(c, messages, studentID, problemID)
 	return text
 }
 

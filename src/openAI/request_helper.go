@@ -170,7 +170,7 @@ func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId 
 	return ""
 }
 
-func makeRequestClaudeSC(c *gin.Context, messages []map[string]string, problemId int) string {
+func makeRequestClaudeSC(c *gin.Context, messages []map[string]string, studentId, problemId int) string {
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"model":      ClaudeModel,
 		"messages":   messages,
@@ -205,7 +205,7 @@ func makeRequestClaudeSC(c *gin.Context, messages []map[string]string, problemId
 	if contentArray, found := responseJSON["content"].([]interface{}); found && len(contentArray) > 0 {
 		if firstContent, ok := contentArray[0].(map[string]interface{}); ok {
 			if text, exists := firstContent["text"].(string); exists {
-				err = repository.SaveClassFeedback(problemId, text) // todo - save elsewhere
+				err = repository.SaveScaffoldingFeedback(studentId, problemId, text)
 				if err != nil {
 					fmt.Println(err)
 				}

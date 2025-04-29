@@ -575,6 +575,21 @@ func GetLatestClassFeedbackByProblemID(problemID int) (*models.ClassFeedback, er
 	return &feedback, nil
 }
 
+func GetLatestScaffold(studentID int, problemID int) (string, error) {
+	var feedback models.ScaffoldingFeedback
+
+	err := models.DB.
+		Where("student_id = ? AND problem_id = ?", studentID, problemID).
+		Order("feedback_time DESC").
+		First(&feedback).Error
+
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch latest scaffolding feedback: %w", err)
+	}
+
+	return feedback.Scaffold, nil
+}
+
 func GetClassFeedbackByFeedbackID(feedbackID int) ([]models.ClassFeedback, error) {
 	var feedbacks []models.ClassFeedback
 
@@ -622,6 +637,24 @@ func SaveClassFeedback(problemID int, feedback string) error {
 	// Save the feedback to the database
 	if err := models.DB.Create(&classFeedback).Error; err != nil {
 		return fmt.Errorf("failed to save class feedback: %w", err)
+	}
+
+	return nil
+}
+
+func SaveScaffoldingFeedback(studentID int, problemID int, scaffold string) error {
+
+	// Create a new ScaffoldingFeedback record
+	feedback := models.ScaffoldingFeedback{
+		StudentID:    studentID,
+		ProblemID:    problemID,
+		Scaffold:     scaffold,
+		FeedbackTime: time.Now(),
+	}
+
+	// Save to the database
+	if err := models.DB.Create(&feedback).Error; err != nil {
+		return fmt.Errorf("failed to save scaffolding feedback: %w", err)
 	}
 
 	return nil

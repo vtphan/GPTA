@@ -2137,7 +2137,7 @@ showNotification('Failed to copy to clipboard. Please try again.');
 
 const applyButton = document.createElement('button');
 applyButton.className = 'apply-button';
-applyButton.innerHTML = '<i data-feather="arrow-right-circle"></i> Apply This Scaffold';
+applyButton.innerHTML = '<i data-feather="arrow-right-circle"></i> Use This Scaffold';
 applyButton.addEventListener('click', (e) => {
   e.stopPropagation();
   showNotification('Preparing scaffold for editing...');

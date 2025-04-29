@@ -240,6 +240,14 @@ type AssignedScaffolding struct {
 	AssignedAt  time.Time `gorm:"autoCreateTime"`
 }
 
+type ScaffoldingFeedback struct {
+	ID           int       `gorm:"primaryKey;autoIncrement"`
+	StudentID    int       `gorm:"column:student_id"`
+	ProblemID    int       `gorm:"column:problem_id"`
+	Scaffold     string    `gorm:"type:longtext"`
+	FeedbackTime time.Time `gorm:"column:feedback_time;autoCreateTime"`
+}
+
 const (
 	ScaffoldingLevelStruggling       = 1 // Struggling
 	ScaffoldingLevelDeveloping       = 2 // Developing
