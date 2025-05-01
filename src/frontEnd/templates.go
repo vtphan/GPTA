@@ -1839,6 +1839,9 @@ footer {
             <h1 class="header-title">RapidResponse</h1>
             <div class="header-info">
             </div>
+			<button id="regenerate-btn" style="margin: 0 20px; margin-right: 280px; padding: 8px 14px; font-size: 14px;">
+      🔄 Regenerate Response
+    </button>
             <div class="timer-container">
                 <div class="timer-display" id="timerDisplay">00:00</div>
             </div>
@@ -1901,6 +1904,54 @@ footer {
     </footer>
 
     <script>
+document.getElementById('regenerate-btn').addEventListener('click', function () {
+	const userConfirmed = window.confirm('Are you sure you want to regenerate the Response?');
+    if (!userConfirmed) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const studentID = params.get('student_id');
+    const problemID = params.get('problem_id');
+    const snapshotId = params.get('snapshot_id');
+    const userId = params.get('uid');
+    const userRole = params.get('role');
+
+	const button = this;
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = '⏳ Regenerating...';
+
+
+    const actionUrl = '/sc_view?student_id=' + encodeURIComponent(studentID) +
+                      '&problem_id=' + encodeURIComponent(problemID) +
+                      '&snapshot_id=' + encodeURIComponent(snapshotId) +
+                      '&uid=' + encodeURIComponent(userId) +
+                      '&role=' + encodeURIComponent(userRole)
+
+    const tempForm = document.createElement('form');
+    tempForm.method = 'POST';
+    tempForm.action = actionUrl;
+
+    const hiddenFields = {
+      student_id: studentID,
+      problem_id: problemID,
+      snapshot_id: snapshotId,
+      uid: userId,
+      role: userRole,
+      isNew: 'true'
+    };
+
+    for (const key in hiddenFields) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = hiddenFields[key];
+      tempForm.appendChild(input);
+    }
+
+    document.body.appendChild(tempForm);
+    tempForm.submit();
+  });
+
 // Initialize Feather Icons
 document.addEventListener('DOMContentLoaded', () => {
     feather.replace();
@@ -3610,6 +3661,12 @@ input:checked + .toggle-slider:before {
     }
 }
 
+.nav-item.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+
 </style>
 <body>
     <div class="dashboard-container">
@@ -3636,6 +3693,9 @@ input:checked + .toggle-slider:before {
             <div class="nav-item" data-section="additional">
                 <i>➕</i> <span>Stage 6: Insights</span>
             </div>
+					<div class="nav-item" data-section="regenerate-btn" id="regenerate-sidebar">
+  <i>🔄</i> <span>Regenerate Response</span>
+</div>
         </aside>
 
         <main class="main-content">
@@ -3926,6 +3986,59 @@ input:checked + .toggle-slider:before {
   </script>
 
     <script>
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebarItem = document.querySelector('[data-section="regenerate-btn"]');
+
+  if (sidebarItem) {
+    sidebarItem.addEventListener('click', function (e) {
+      // 🛑 Stop navigation AND bubbling
+      e.preventDefault();
+      e.stopImmediatePropagation(); // this is stronger than stopPropagation
+
+      const userConfirmed = window.confirm('Are you sure you want to regenerate the summary?');
+      if (!userConfirmed) return;
+
+      const span = this.querySelector('span');
+      span.textContent = '⏳ Regenerating...';
+      this.classList.add('disabled');
+
+      setTimeout(() => {
+        handleSummarySubmission(true);
+      }, 50);
+    });
+  }
+});
+
+function handleSummarySubmission(isNew, onComplete) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const problemId = urlParams.get('problem_id');
+
+  const tempForm = document.createElement('form');
+  tempForm.method = 'POST';
+  tempForm.action = '/vi_view?problem_id=' + encodeURIComponent(problemId);
+
+  const inputs = {
+    problem_id: problemId,
+    new: isNew
+  };
+
+  for (const [name, value] of Object.entries(inputs)) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    tempForm.appendChild(input);
+  }
+
+  document.body.appendChild(tempForm);
+  tempForm.submit();
+
+  if (typeof onComplete === 'function') {
+    onComplete();
+  }
+}
+
 // Main JavaScript for the dashboard
 document.addEventListener('DOMContentLoaded', () => {
     // Toggle dark mode
@@ -5771,14 +5884,6 @@ td {
 			<textarea id="editor">{{ .Code }}</textarea>
 		</div>
 	</div>
-<div id="summaryModal" class="modal">
-  <div class="modal-background"></div>
-  <div class="modal-content box" style="max-width: 400px; width: 90%;">
-    <p class="mb-4">What would you like to do?</p>
-    <button id="generate-new" class="button is-success is-fullwidth mb-2">Generate New Summary</button>
-    <button id="view-existing" class="button is-link is-fullwidth">View Existing Summary</button>
-  </div>
-</div>
  <!-- Feedback Box -->
 	<table class="table">
 			<thead>
@@ -5868,19 +5973,11 @@ td {
 		  }
 
 $('#api-call-button').on('click', function () {
-  $('#summaryModal').show(); // show modal on button click
-});
-
-$('#generate-new').on('click', function () {
-  handleSummarySubmission(true);
-});
-
-$('#view-existing').on('click', function () {
   handleSummarySubmission(false);
 });
 
+
 function handleSummarySubmission(isNew) {
-  $('#summaryModal').hide(); // Hide modal after selection
 
   const $button = $('#api-call-button');
   $button.text('Generating...');
@@ -5890,7 +5987,7 @@ function handleSummarySubmission(isNew) {
 
   const tempForm = $('<form>', {
     method: 'POST',
-    action: '/vi_view'
+    action: '/vi_view?problem_id=' + encodeURIComponent(problemId)
   });
 
   tempForm.append($('<input>', {
@@ -8883,7 +8980,8 @@ function sendCustomPromptFeedback() {
             problem_id: problemID,
             snapshot_id: snapshotId,
             uid: userId,
-            role: userRole
+            role: userRole,
+			isNew: 'false'
         };
 
         for (const key in hiddenFields) {

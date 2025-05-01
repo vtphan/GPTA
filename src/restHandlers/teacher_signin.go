@@ -154,13 +154,13 @@ func ViViewHandler(w http.ResponseWriter, r *http.Request) {
 	temp := template.New("")
 	t, err := temp.Parse(frontEnd.VIS_TEMPLATE)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf(err.Error())
 	}
 	w.Header().Set("Content-Type", "Text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Fatal(err)
+		log.Printf(err.Error())
 	}
 }
 

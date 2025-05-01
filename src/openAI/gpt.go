@@ -501,9 +501,17 @@ func ProcessIndividualSubmissions(w http.ResponseWriter, r *http.Request) string
 		return ""
 	}
 
-	summary, _ := repository.GetLatestScaffold(studentID, problemID)
-	if summary != "" {
-		return summary
+	newStr := r.FormValue("isNew")
+	isNew := false
+	if newStr == "true" {
+		isNew = true
+	}
+
+	if !isNew {
+		summary, _ := repository.GetLatestScaffold(studentID, problemID)
+		if summary != "" {
+			return summary
+		}
 	}
 
 	// Get the latest code snapshots from the database using the problem_id
