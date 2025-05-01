@@ -105,6 +105,8 @@ func init_handlers() {
 	http.HandleFunc("/admin_dashboard", restHandlers.AdminDashboardHandler)
 	http.HandleFunc("/teacher_signin", restHandlers.TeacherSigninHandler)
 	http.HandleFunc("/settings_view", restHandlers.SettingsViewHandler)
+	http.HandleFunc("/ai_settings_view", restHandlers.AISettingsViewHandler)
+	http.HandleFunc("/prompt_view", restHandlers.PromptViewHandler)
 	http.HandleFunc("/vi_view", restHandlers.ViViewHandler)
 	http.HandleFunc("/sc_view", restHandlers.ScViewHandler)
 	http.HandleFunc("/assign_scaffold", restHandlers.AssignScaffoldHandler)
@@ -127,6 +129,7 @@ func init_handlers() {
 	http.HandleFunc("/add_teacher", restHandlers.AddTeacherHandler)
 	http.HandleFunc("/add_students", restHandlers.AddStudentsHandler)
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
+	http.HandleFunc("/add_api_key", openAI.AddAPIKey)
 	http.HandleFunc("/logout", LogoutHandler)
 }
 

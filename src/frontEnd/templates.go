@@ -7290,6 +7290,509 @@ var SUBMISSION_VIEW_TEMPLATE = `
 	</html>
 `
 
+var AI_SETTINGS = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Settings</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background: cornflowerblue;
+      font-family: "Arial", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+
+    .dashboard-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+    .dashboard-box .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .input, select {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .button {
+      padding: 12px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+    }
+
+    .button-primary {
+      background: cornflowerblue;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: linear-gradient(45deg, #2575fc, #6a11cb);
+    }
+
+    .button-danger {
+      background: linear-gradient(45deg, #f56a79, #ff4757);
+      color: white;
+    }
+
+    .button-danger:hover {
+      background: linear-gradient(45deg, #ff4757, #f56a79);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .api-section {
+      display: none;
+      margin-top: 10px;
+    }
+
+    label {
+      font-weight: bold;
+      color: #444;
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-box">
+    <h1 class="title">AI Settings</h1>
+
+    <label for="ai-select">Select AI Provider</label>
+    <select id="ai-select">
+      <option value="">-- Choose --</option>
+      <option value="claude">Claude AI</option>
+      <option value="openai">OpenAI</option>
+      <option value="deepseek">DeepSeek</option>
+    </select>
+
+    <div id="claude" class="api-section">
+      <label for="claude-key">Claude API Key</label>
+      <input type="password" id="claude-key" class="input" placeholder="Enter Claude API Key">
+    </div>
+
+    <div id="openai" class="api-section">
+      <label for="openai-key">OpenAI API Key</label>
+      <input type="password" id="openai-key" class="input" placeholder="Enter OpenAI API Key">
+    </div>
+
+    <div id="deepseek" class="api-section">
+      <label for="deepseek-key">DeepSeek API Key</label>
+      <input type="password" id="deepseek-key" class="input" placeholder="Enter DeepSeek API Key">
+    </div>
+
+    <button class="button button-danger" id="submit-settings-btn">Submit Settings</button>
+    <button class="button button-primary" id="display-prompts-btn">Display Prompts</button>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+    $('#ai-select').on('change', function () {
+      $('.api-section').hide();
+      const selected = $(this).val();
+      if (selected) {
+        $('#' + selected).fadeIn();
+      }
+    });
+
+    $('#submit-settings-btn').on('click', function () {
+      const selectedAI = $('#ai-select').val();
+      const apiKey = $('#' + selectedAI + '-key').val();
+
+      if (!selectedAI || !apiKey) {
+        alert("Please select an AI provider and enter its API key.");
+        return;
+      }
+
+      const aiProviderIDs = {
+        'claude': 1,
+        'openai': 2,
+        'deepseek': 3
+      };
+
+      const requestData = {
+        id: aiProviderIDs[selectedAI],
+        api_key: apiKey
+      };
+
+      $.ajax({
+        url: '/add_api_key',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(requestData),
+        success: function (response) {
+          alert("API key updated successfully!");
+          $('#' + selectedAI + '-key').val(''); // Clear the input
+        },
+        error: function (xhr) {
+          alert("Error: " + xhr.responseText);
+        }
+      });
+    });
+
+    $('#display-prompts-btn').on('click', function () {
+  window.location.href = '/prompt_view';
+});
+
+  });
+  </script>
+</body>
+</html>
+`
+
+var PROMPT_DISPLAY = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Prompt Dashboard</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: cornflowerblue;
+      margin: 0;
+      padding: 0;
+    }
+
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 20px;
+    }
+
+    .prompt-container {
+      width: 90%;
+      max-width: 1100px;
+      background: #ffffff;
+      margin-bottom: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+
+    .prompt-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2c3e50;
+      padding: 18px 24px;
+      cursor: pointer;
+      background: #f0f0f0;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .prompt-title:hover {
+      background: #e1eaff;
+    }
+
+    .prompt-content {
+      display: none;
+      padding: 20px 24px 30px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #34495e;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .prompt-title {
+        font-size: 18px;
+      }
+
+      pre {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard">
+
+    <div class="prompt-container">
+      <div class="prompt-title">Prompt 1: Individual AI Feedback</div>
+      <div class="prompt-content">
+        <textarea class="code-block">
+
+You are assisting instructors in real-time classroom coding exercises, each lasting only 10-15 minutes. Your role is to analyze a student's current code submission, identify relevant error patterns, select appropriate scaffolding strategies, and generate multiple scaffolds clearly varying in effort and actionability. Your scaffolds must explicitly support student autonomy by prompting students to actively engage in problem-solving, reflect upon their coding decisions, and maintain responsibility for their learning outcomes. Scaffolds should facilitate productive struggle, fostering independence and deeper conceptual understanding rather than providing overly explicit or prescriptive solutions. The scaffolds you produce will be reviewed by instructors, who will select the most suitable scaffolds based on student needs and classroom context.
+
+<exercise_description>
+{Detailed description of the exercise would be placed here}
+</exercise_description>
+
+<student_code>
+{The student's current code would be placed here}
+</student_code>
+
+<previous_scaffold>
+{Previous scaffold content placed here, or "None" if this is the first scaffold}
+</previous_scaffold>
+
+# Programming Language
+The student is coding in Python. Tailor all scaffolding approaches to Python-specific concepts, common Python errors, and Pythonic solutions.
+
+# Time Constraint Guidance
+Each scaffold MUST be implementable within the 10-15 minute exercise window. Consider:
+- For Low-Effort scaffolds: Student should need <3 minutes to understand and apply
+- For Moderate-Effort scaffolds: Student should need 3-7 minutes to process and implement
+- For High-Effort scaffolds: Student should need 7-12 minutes to understand and integrate the concept
+Avoid scaffolds requiring extensive code rewriting or introducing entirely new approaches that cannot be reasonably implemented in the remaining time.
+
+# Scaffolding Strategies
+1. **Gap-Fill Prompts:** Templates with blanks requiring student input.
+2. **Incremental Hints:** Short, progressively explicit guidance.
+3. **Minimal Correction Prompts:** Highlight specific errors with minimal suggested fixes.
+4. **Guided Questions:** Reflective questions prompting conceptual thinking.
+5. **Targeted Code Comments:** Specific, embedded comments guiding improvements without explicit solutions.
+6. **Partial Worked Examples:** Concise examples aligned with the student's current approach.
+7. **Reference Examples:** Adaptable examples illustrating relevant coding patterns.
+8. **Error Message Translation:** Clear, student-friendly interpretations of errors.
+
+# Effort Levels (Positive Struggle)
+- **Low (Explicit):** Direct instructions; minimal cognitive challenge.
+- **Moderate (Reflective):** Prompts thoughtful reflection and moderate reasoning.
+- **High (Conceptual):** Requires deeper conceptual understanding and integrative thinking.
+
+# Actionability Levels
+- **High:** Clearly specifies immediate steps for student action.
+- **Moderate:** Provides directional guidance, requiring some interpretation.
+- **Low:** Offers conceptual insights without explicit instructions, significant interpretation required.
+
+# Instructions
+Analyze the student's submitted code and clearly describe identified error patterns. Generate multiple scaffold suggestions spanning a range of effort (low to high) and actionability (high to low). Explicitly support student autonomy, productive struggle, and continuity.
+
+Scaffolds must incorporate the student's current code structure and approach whenever possible. Scaffolds should build upon what the student has already created rather than suggesting entirely new implementations. This ensures continuity in the student's thought process, honors their existing work, and makes scaffolds immediately actionable. Only suggest significant restructuring when the current approach contains fundamental conceptual errors that cannot be remedied through incremental improvements.
+
+For each scaffold clearly state:
+- **Strategy used**
+- **Effort level (Low, Moderate, High)**
+- **Actionability level (High, Moderate, Low)**
+- **Content:** Scaffold content must be brief, clear, and immediately actionable—ideally presented in 1–3 concise sentences or a succinct code snippet, easily understandable within a short time frame.
+- **Learning support:** Explicitly describe how the scaffold addresses misconceptions and supports student learning.
+- **Implementation success metrics:** Observable indicators demonstrating the student’s successful application of scaffolds (e.g., "Student correctly implements loop structures instead of repetitive statements," "Student independently resolves index errors by accurately adjusting loop boundaries.")
+- **Recommendation reasoning:** Clearly justify why this scaffold occupies its specific position in your ordered list.
+
+**IMPORTANT:**  
+Order scaffolds clearly by recommendation level. The FIRST scaffold listed should be your HIGHEST recommendation, informed by:
+1. Clearly identified common errors in the student's code.
+2. Previous scaffolds provided (if applicable).
+3. Optimal progression in cognitive complexity and student support.
+4. Feasibility of implementation within the time constraint.
+
+        </textarea>
+      </div>
+    </div>
+
+    <div class="prompt-container">
+      <div class="prompt-title">Prompt 2: Class Summary</div>
+      <div class="prompt-content">
+        <textarea class="code-block">
+
+You are an expert in analyzing student code submissions for introductory computer science exercises (CS1/CS2 level). Given a collection of student code submissions for a specific programming problem and their corresponding assessment results, your task is to generate a structured summary that provides instructors with actionable insights into common student difficulties.
+
+Your analysis should follow a staged approach, where each stage builds upon insights gained in previous stages. This will ensure a systematic, consistent, and comprehensive analysis of student performance patterns.
+
+## Staged Analysis Process
+
+### Stage 1: Data Processing and Performance Classification
+First, process the raw submission data:
+1. Calculate the total number of submissions.
+2. Classify each submission into one of these performance levels using these specific criteria:
+   - **Poor (Failing with major issues)**:
+     * Submissions that fail most or all test cases
+     * Code contains 3+ fundamental errors from different error categories
+     * Code structure shows significant misunderstanding of core concepts
+     * Code may not compile/run at all
+   - **Struggling (Failing but showing potential)**:
+     * Submissions that pass some test cases but fail others
+     * Code contains 1-2 fundamental errors, but shows understanding of basic concepts
+     * Core algorithm demonstrates partial correctness
+     * Code runs but produces incorrect results for certain inputs
+   - **Good Progress (Passing with minor mistakes)**:
+     * Submissions that pass most test cases
+     * Code has working core functionality with minor issues
+     * Errors are limited to edge cases or efficiency concerns
+     * Code produces correct results for most inputs but may have minor issues
+   - **Strong (Fully passing)**:
+     * Submissions that pass all test cases
+     * Code is efficient, well-structured, and handles all edge cases
+     * Solution demonstrates thorough understanding of concepts
+     * Code is well-documented and follows best practices
+3. Calculate counts and percentages for each performance level.
+4. Write a concise summary of overall class performance based on these categories.
+
+### Stage 2: Error Identification and Categorization
+Using the performance classifications from Stage 1, particularly focusing on the "Poor" and "Struggling" submissions:
+1. Identify all errors in each submission. Start with these common error categories:
+   - **Logic Errors**: Fundamental mistakes in the algorithm or program logic.
+   - **Syntax Errors**: Issues with the syntax of the programming language.
+   - **Data Type Errors**: Incorrect use or manipulation of data types.
+   - **Control Flow Errors**: Problems with the sequence of execution (e.g., incorrect loop conditions, branching).
+   - **Function/Method Errors**: Incorrect use or implementation of functions/methods.
+   - **Data Structure Errors**: Incorrect use or implementation of data structures.
+   - **Edge Case Handling**: Failure to handle unusual or boundary input values.
+   - **Runtime Errors**: Errors that occur during the execution of the program.
+   - **Algorithm Selection Errors**: Choosing inappropriate algorithms or approaches for solving problems.
+   - **Variable Scope Issues**: Problems with variable accessibility (local vs. global).
+   - **Off-by-One Errors**: Errors related to boundary conditions in loops or indexing.
+
+   You may identify additional error categories if you observe patterns that don't fit well into the above categories. Include any additional categories in the all_categories_used array in Stage 6.
+
+2. Count the frequency of each error category.
+3. Select the top 5 most common error categories.
+4. For each common error category:
+   a. Calculate occurrence count and percentage among failing submissions.
+   b. Write a clear description of the error pattern.
+   c. Select a representative code example that clearly demonstrates the issue, using no more than 5-7 lines of code.
+   d. Include the student_ids array listing all students who exhibited this error.
+   e. Choose examples that are:
+      - Clear: Demonstrate the error with minimal extraneous code
+      - Typical: Represent the most common manifestation of the error
+      - Concise: Short but with enough context to understand the issue
+      - Educational: Show cases where the fix would be instructive
+
+### Stage 3: Correlation and Pattern Analysis
+Building on the error categorizations from Stage 2:
+1. Analyze which error categories frequently co-occur in the same submissions.
+2. Calculate correlation percentages for pairs of errors.
+3. Identify the 3-5 strongest error correlations.
+4. For each correlated pair:
+   a. Report the correlation strength (percentage of failing submissions containing both errors).
+   b. Report the correlation count (number of students showing both errors).
+   c. Formulate a hypothesis explaining why these errors might be related.
+   d. Select an example that clearly demonstrates both errors together, using no more than 8 lines of code.
+   e. Include the student_ids array of students who exhibited this correlation.
+   f. Choose examples where:
+      - Both errors are clearly visible in proximity
+      - The relationship between the errors is evident
+      - The example supports your hypothesis about why they correlate
+
+### Stage 4: Misconception Inference
+Based on the error patterns and correlations identified in Stages 2 and 3:
+1. Infer 3-5 potential misconceptions that might explain the observed error patterns.
+2. For each misconception:
+   a. Link it to specific error categories from earlier stages using the related_error_categories array.
+   b. Calculate how many submissions exhibit error patterns suggesting this misconception (occurrence_count).
+   c. Calculate the percentage of submissions showing this misconception (occurrence_percentage).
+   d. Write a clear explanation of the likely misunderstanding.
+   e. Select a representative code example that demonstrates this misconception, using no more than 5-7 lines of code.
+   f. Include the student_ids array of students who exhibited this misconception.
+   g. Choose examples that:
+      - Clearly illustrate the conceptual misunderstanding
+      - Represent common patterns across multiple students
+      - Show the root cause rather than just symptoms
+
+### Stage 5: Intervention Development
+For each misconception identified in Stage 4:
+1. Develop 2-3 specific instructional interventions that address the misconception.
+2. For strongly correlated error pairs from Stage 3, suggest interventions that address both issues simultaneously.
+3. Prioritize interventions based on the frequency and severity of associated errors.
+4. For each intervention, specify:
+   a. The target_misconception it addresses.
+   b. An array of related_errors categories it targets.
+   c. An array of instructional_strategies (2-3 specific approaches).
+   d. A priority_level of "High", "Medium", or "Low".
+   e. An estimated_effort of "Low", "Medium", or "High".
+   f. An implementation_phase of "Immediate", "Short-term", or "Long-term".
+5. Make recommendations concrete and actionable, such as:
+   - Specific in-class activities
+   - Targeted assignments
+   - Code examples to discuss
+   - Conceptual explanations to emphasize
+
+### Stage 6: Additional Insights
+After completing Stages 1-5, include:
+1. Common good practices observed in successful submissions:
+   a. For each good practice, provide:
+      - A description of the practice.
+      - Example code demonstrating this good practice.
+      - A correct_implementation flag set to true.
+2. Error category distribution:
+   a. List all error categories used in the analysis in all_categories_used array.
+   b. List any additional categories identified but not included in the main analysis in additional_categories_identified array.
+3. Submission patterns:
+   a. Provide an observation about when/how students submitted their work.
+   b. Include a potential_impact analysis of these submission patterns.
+   c. Include a submission_timeline object with dynamically determined time intervals as keys and objects containing:
+      - count: number of submissions on that date
+      - passing_rate: percentage of passing submissions on that date (e.g., "75%")
+4. Comparative analysis:
+   a. Include a success_factors array listing what successful students do differently.
+   b. Include a challenge_factors array listing common challenges for struggling students.
+
+        </textarea>
+      </div>
+    </div>
+
+    <div class="prompt-container">
+      <div class="prompt-title">Prompt 3: Progress Generation</div>
+      <div class="prompt-content">
+        <textarea class="code-block">
+
+You are given multiple code submissions from students. Your task is to:
+1. Analyze each student's submission and compare it with the correct solution.
+2. Provide a one-line explanation of the student's feedback.
+3. Calculate a percentage (0-100) indicating how close their submission is to the correct solution.
+       </textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    $(document).ready(function () {
+    $('.prompt-title').on('click', function () {
+      const content = $(this).next('.prompt-content');
+      $('.prompt-content').not(content).slideUp();
+      content.slideToggle();
+    });
+
+    // Render markdown
+    $('.prompt-content').each(function () {
+      const raw = $(this).text();
+      $(this).html(marked.parse(raw));
+    });
+  });
+  </script>
+</body>
+</html>
+`
+
 var SETTINGS_VIEW = `
 <!DOCTYPE html>
 <html lang="en">
@@ -7510,15 +8013,11 @@ var SETTINGS_VIEW = `
     </div>
 
     <!-- Peer Tutoring -->
-    <div class="grid-item">
-      <button class="button is-primary" id="toggle-peer-tutoring">
-        Peer Tutoring
-        <label class="switch" style="margin-left: 10px;">
-          <input id="peer_tutoring_button" type="checkbox">
-          <span class="slider round"></span>
-        </label>
-      </button>
-    </div>
+    
+
+	<div class="grid-item">
+  <button class="button is-primary" id="ai-settings-btn">View AI Settings</button>
+</div>
 
     <!-- Logout -->
     <div class="grid-item">
@@ -7707,6 +8206,9 @@ return;
         }
       });
     });
+$('#ai-settings-btn').on('click', function () {
+  window.location.href = '/ai_settings_view'; 
+});
   </script>
 </body>
 </html>

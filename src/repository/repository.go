@@ -660,6 +660,49 @@ func SaveScaffoldingFeedback(studentID int, problemID int, scaffold string) erro
 	return nil
 }
 
+func UpdateAPIKeyByID(id int, newAPIKey string) error {
+	var provider models.AiProvider
+
+	// Try to find the record first
+	err := models.DB.First(&provider, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// If not found, create with default name
+			var name string
+			switch id {
+			case 1:
+				name = "claude_ai"
+			case 2:
+				name = "open_ai"
+			case 3:
+				name = "deepseek"
+			default:
+				return fmt.Errorf("invalid ID: %d", id)
+			}
+
+			provider = models.AiProvider{
+				ID:     id,
+				Name:   name,
+				APIKey: newAPIKey,
+			}
+			if err := models.DB.Create(&provider).Error; err != nil {
+				return fmt.Errorf("failed to create new provider: %w", err)
+			}
+			return nil
+		}
+		// Unexpected error
+		return fmt.Errorf("failed to check for existing record: %w", err)
+	}
+
+	// Record exists — update the API key
+	provider.APIKey = newAPIKey
+	if err := models.DB.Save(&provider).Error; err != nil {
+		return fmt.Errorf("failed to update API key: %w", err)
+	}
+
+	return nil
+}
+
 func GetSubmissionsByProblemID(pid int) ([]models.SubmissionTable, error) {
 	var submissions []models.SubmissionTable
 	if err := models.DB.Model(&models.SubmissionTable{}).

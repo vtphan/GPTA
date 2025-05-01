@@ -144,6 +144,34 @@ func SettingsViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func AISettingsViewHandler(w http.ResponseWriter, r *http.Request) {
+	temp := template.New("")
+	t, err := temp.Parse(frontEnd.AI_SETTINGS)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.Header().Set("Content-Type", "Text/html")
+	err = t.Execute(w, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+}
+
+func PromptViewHandler(w http.ResponseWriter, r *http.Request) {
+	temp := template.New("")
+	t, err := temp.Parse(frontEnd.PROMPT_DISPLAY)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.Header().Set("Content-Type", "Text/html")
+	err = t.Execute(w, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+}
+
 type VisualData struct {
 	Text template.JS
 }

@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Student struct {
 	ID       int    `gorm:"primaryKey;autoIncrement"`
@@ -238,6 +240,12 @@ type AssignedScaffolding struct {
 	Duration    int       `gorm:"not null"`
 	Scaffolding string    `gorm:"type:text;not null"`
 	AssignedAt  time.Time `gorm:"autoCreateTime"`
+}
+
+type AiProvider struct {
+	ID     int    `gorm:"primaryKey;autoIncrement"`
+	Name   string `gorm:"type:varchar(100)"`
+	APIKey string `gorm:"type:varchar(255)"`
 }
 
 type ScaffoldingFeedback struct {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -1210,4 +1211,41 @@ Ensure that the JSON is **valid**:
 
 	// Call Claude API request function
 	makeRequestClaude4(c, messages, problemID, scaffoldingID)
+}
+
+type AddAPIKeyRequest struct {
+	ID     int    `json:"id"`
+	APIKey string `json:"api_key"`
+}
+
+func AddAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req AddAPIKeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Trim input
+	req.APIKey = strings.TrimSpace(req.APIKey)
+
+	if req.ID == 0 || req.APIKey == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Update the API key using the helper function
+	err := repository.UpdateAPIKeyByID(req.ID, req.APIKey)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update API key: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Success response
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "API key updated successfully"})
 }
