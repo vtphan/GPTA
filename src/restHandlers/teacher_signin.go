@@ -324,3 +324,17 @@ func concatText(n *html.Node, f func(*html.Node) string) string {
 	}
 	return result
 }
+
+func AnalyseViewHandler(w http.ResponseWriter, r *http.Request) {
+	temp := template.New("")
+	t, err := temp.Parse(frontEnd.ANALYSIS_TEMPLATE)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.Header().Set("Content-Type", "Text/html")
+	err = t.Execute(w, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+}

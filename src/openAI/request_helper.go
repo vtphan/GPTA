@@ -7,7 +7,9 @@ import (
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -75,11 +77,11 @@ const ClaudeAPIKey = ""
 const ClaudeEndpoint = "https://api.anthropic.com/v1/messages"
 const ClaudeModel = "claude-3-opus-20240229" // Adjust model as needed
 
-func makeRequestClaude(c *gin.Context, messages []map[string]string) {
+func MakeRequestClaude(c *gin.Context, messages []map[string]string) {
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"model":      ClaudeModel,
 		"messages":   messages,
-		"max_tokens": 1024,
+		"max_tokens": 4096,
 	})
 
 	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
@@ -400,4 +402,61 @@ func makeRequestClaude4(c *gin.Context, messages []map[string]string, problemId 
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Scaffolding inserted successfully"})
+}
+
+func MakeRequestClaudeAnalyze(c *gin.Context, messages []map[string]string) string {
+	requestBody, _ := json.Marshal(map[string]interface{}{
+		"model":      ClaudeModel,
+		"messages":   messages,
+		"max_tokens": 4096,
+	})
+
+	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return ""
+	}
+
+	// ✅ Use "x-api-key" instead of "Authorization"
+	req.Header.Set("x-api-key", ClaudeAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Anthropic-Version", "2023-06-01")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "API request failed"})
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	// Parse JSON response
+	var responseJSON map[string]interface{}
+	json.Unmarshal(body, &responseJSON)
+
+	// Extract text from the content array
+	if contentArray, found := responseJSON["content"].([]interface{}); found && len(contentArray) > 0 {
+		if firstContent, ok := contentArray[0].(map[string]interface{}); ok {
+			if text, exists := firstContent["text"].(string); exists {
+				// ✅ Extract only JSON portion using regex
+				re := regexp.MustCompile(`(?s)\{.*\}`)
+				jsonPart := re.FindString(text)
+				if jsonPart == "" {
+					log.Println("Failed to extract JSON from Claude response")
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not extract JSON from Claude response"})
+					return ""
+				}
+
+				// ✅ Return only the JSON string for unmarshalling later
+				return jsonPart
+			}
+		}
+	}
+
+	// Handle unexpected response structure
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from Claude API"})
+	return ""
+	// todo : save it to db
 }

@@ -127,7 +127,7 @@ func ProcessCodeWithPromptC(w http.ResponseWriter, r *http.Request) {
 	c.Request = r
 
 	// Call Claude API request function
-	makeRequestClaude(c, messages)
+	MakeRequestClaude(c, messages)
 }
 
 func ProcessStudentCodeSubmissions(w http.ResponseWriter, r *http.Request) string {

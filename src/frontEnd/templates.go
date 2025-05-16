@@ -6565,7 +6565,7 @@ a.is-disabled {
 					{{range .Problems}}
   <tr {{if eq .IsActive true}}class="is-selected"{{end}}>
     <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">
-      <a href="/problem_dashboard?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
+      <a href="/analyse_view?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
         {{.Filename}}
       </a>
     </td>
@@ -10088,5 +10088,23 @@ var TAG_REPORT_TEMPLATE = `
 	{{ end }}
 	</div>
   </body>
+</html>
+`
+
+var ANALYSIS_TEMPLATE = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeInsight</title>
+    <script type="module" crossorigin src="./assets/index-TFIfn1AY.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BC89AxIr.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+
 </html>
 `

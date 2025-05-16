@@ -256,6 +256,13 @@ type ScaffoldingFeedback struct {
 	FeedbackTime time.Time `gorm:"column:feedback_time;autoCreateTime"`
 }
 
+type Insight struct {
+	ID            int `gorm:"primaryKey;autoIncrement"`
+	ProblemID     int
+	Response      string    `gorm:"type:longtext"`
+	GeneratedTime time.Time `gorm:"type:time"`
+}
+
 const (
 	ScaffoldingLevelStruggling       = 1 // Struggling
 	ScaffoldingLevelDeveloping       = 2 // Developing

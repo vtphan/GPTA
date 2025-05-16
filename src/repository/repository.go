@@ -509,6 +509,23 @@ func GetProblemUploadTime(pid int) (time.Time, error) {
 	return problem.ProblemUploadedAt, nil
 }
 
+func GetProblemUploadTimeAndDescription(pid int) (time.Time, string, string, error) {
+	var problem struct {
+		ProblemUploadedAt  time.Time `gorm:"column:problem_uploaded_at"`
+		ProblemDescription string    `gorm:"column:problem_description"`
+		Filename           string    `gorm:"column:filename"`
+	}
+
+	if err := models.DB.Model(&models.Problem{}).
+		Where("id = ?", pid).
+		Select("problem_uploaded_at, problem_description, filename").
+		First(&problem).Error; err != nil {
+		return time.Time{}, "", "", fmt.Errorf("failed to retrieve data for problem %d: %w", pid, err)
+	}
+
+	return problem.ProblemUploadedAt, problem.ProblemDescription, problem.Filename, nil
+}
+
 func GetProblemDescription(problemID int) (string, error) {
 	var problemDescription string
 	// Query the database to get the problem description
@@ -960,6 +977,28 @@ func GetCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
 	}
 	return codeSnapshots, err
 }
+
+func GetCompleteCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
+	var codeSnapshots []models.CodeSnapshot
+
+	subquery := models.DB.Model(&models.CodeSnapshot{}).
+		Select("student_id, MAX(last_updated_at) as last_updated_at").
+		Where("problem_id = ?", problemID).
+		Group("student_id")
+
+	err := models.DB.
+		Where("problem_id = ?", problemID).
+		Joins("JOIN (?) AS latest ON code_snapshots.student_id = latest.student_id AND code_snapshots.last_updated_at = latest.last_updated_at", subquery).
+		Find(&codeSnapshots).Error
+
+	if err != nil {
+		log.Printf("Failed to fetch code snapshots: %v", err)
+		return nil, err
+	}
+
+	return codeSnapshots, nil
+}
+
 func GetLatestCodeSnapshots(problemID int) ([]models.CodeSnapshot, error) {
 	var codeSnapshots []models.CodeSnapshot
 
@@ -1601,4 +1640,33 @@ func FetchStudentStatuses(problemID, studentID int) (*models.DashBoardStudentInf
 	}
 
 	return studentStats, nil
+}
+
+func AddCodeInsight(problemID int, response string, generatedTime time.Time) (models.Insight, error) {
+	insight := models.Insight{
+		ProblemID:     problemID,
+		Response:      response,
+		GeneratedTime: generatedTime,
+	}
+	if err := models.DB.Create(&insight).Error; err != nil {
+		return insight, fmt.Errorf("failed to insert code insight: %w", err)
+	}
+	return insight, nil
+}
+
+func GetLatestCodeInsightByProblemID(problemID int) (*models.Insight, error) {
+	var insight models.Insight
+	err := models.DB.
+		Where("problem_id = ?", problemID).
+		Order("id DESC").
+		Limit(1).
+		First(&insight).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to fetch latest code insight for problem %d: %w", problemID, err)
+	}
+
+	return &insight, nil
 }

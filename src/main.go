@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/GPTA/src/ai"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -131,6 +132,9 @@ func init_handlers() {
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
 	http.HandleFunc("/add_api_key", openAI.AddAPIKey)
 	http.HandleFunc("/logout", LogoutHandler)
+	http.HandleFunc("/api/data", ai.HandleMergedData)
+	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./src/frontEnd/assets"))))
 }
 
 // -----------------------------------------------------------------
