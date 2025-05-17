@@ -2,14 +2,24 @@ package ai
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+)
+
+const (
+	GradeStrong       = "strong"
+	GradeGoodProgress = "good_progress"
+	GradeStruggling   = "struggling"
+	GradePoor         = "poor"
 )
 
 type ProblemDescription struct {
@@ -18,9 +28,11 @@ type ProblemDescription struct {
 }
 
 type CodeSnapshot struct {
-	StudentID int    `json:"student_id"`
-	Timestamp string `json:"timestamp"`
-	Content   string `json:"content"`
+	StudentID  int    `json:"student_id"`
+	Timestamp  string `json:"timestamp"`
+	Content    string `json:"content"`
+	Grade      string `json:"grade"`
+	SnapshotId int    `json:"snapshot_id"`
 }
 
 type CodeSnapshots struct {
@@ -55,6 +67,7 @@ type PerformanceDistribution struct {
 	Struggling   PerformanceCategory `json:"struggling"`
 	GoodProgress PerformanceCategory `json:"good_progress"`
 	Strong       PerformanceCategory `json:"strong"`
+	NotAssessed  PerformanceCategory `json:"not_assessed"`
 }
 
 type OverallAssessment struct {
@@ -157,13 +170,75 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var grades []Grade
+	if err := models.DB.Where("problem_id = ?", problemID).Find(&grades).Error; err != nil {
+		http.Error(w, "Error fetching grades", http.StatusInternalServerError)
+		return
+	}
+
+	// Step 3: Build a map for fast lookup: student_id -> grade
+	gradeMap := make(map[int]string)
+	for _, g := range grades {
+		gradeMap[g.StudentID] = g.Grade
+	}
+
+	// Step 4: Merge into snapshots
 	formattedSnapshots := []CodeSnapshot{}
 	for _, snap := range codeSnapshotss {
 		formattedSnapshots = append(formattedSnapshots, CodeSnapshot{
-			StudentID: snap.StudentID,
-			Timestamp: snap.LastUpdatedAt.Format("2006-01-02 15:04:05"),
-			Content:   snap.Code,
+			StudentID:  snap.StudentID,
+			Timestamp:  snap.LastUpdatedAt.Format("2006-01-02 15:04:05"),
+			Content:    snap.Code,
+			Grade:      gradeMap[snap.StudentID],
+			SnapshotId: snap.ID,
 		})
+	}
+	// Step 2: Initialize performance counters
+	performanceCounts := map[string]int{
+		"poor":          0,
+		"struggling":    0,
+		"good_progress": 0,
+		"strong":        0,
+		"not_assessed":  0,
+	}
+
+	individualAssessment := []IndividualAssessment{}
+	total := len(codeSnapshotss)
+
+	for _, snap := range codeSnapshotss {
+		grade := gradeMap[snap.StudentID]
+		performanceLevel := ""
+
+		switch grade {
+		case "poor":
+			performanceLevel = "Poor"
+			performanceCounts["poor"]++
+		case "struggling":
+			performanceLevel = "Struggling"
+			performanceCounts["struggling"]++
+		case "good_progress":
+			performanceLevel = "Good Progress"
+			performanceCounts["good_progress"]++
+		case "strong":
+			performanceLevel = "Strong"
+			performanceCounts["strong"]++
+		default:
+			performanceLevel = "NotAssessed"
+			performanceCounts["not_assessed"]++
+		}
+
+		individualAssessment = append(individualAssessment, IndividualAssessment{
+			StudentID:        snap.StudentID,
+			PerformanceLevel: performanceLevel,
+		})
+	}
+
+	// Helper to format percentage
+	formatPercent := func(count, total int) string {
+		if total == 0 {
+			return "0.00%"
+		}
+		return fmt.Sprintf("%.2f%%", float64(count)*100/float64(total))
 	}
 	codeSnapshots := CodeSnapshots{
 		Entries: formattedSnapshots,
@@ -209,7 +284,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	var analysisData AnalysisData
 
 	if generateNew {
-		analysisDataa := makeRequest(description, formattedSnapshots, len(codeSnapshotss), problemID, w, r)
+		analysisDataa := makeRequest(description, formattedSnapshots, len(codeSnapshotss), problemID, gradeMap, w, r)
 		analysisDataa.IsEnabled = true
 		analysisData = analysisDataa
 	} else {
@@ -226,12 +301,59 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 				},
 				IsEnabled: false,
 				OverallAssessment: OverallAssessment{
-					TotalEntries: len(codeSnapshotss),
+					TotalEntries: total,
+					PerformanceDistribution: PerformanceDistribution{
+						Poor: PerformanceCategory{
+							Count:      performanceCounts["poor"],
+							Percentage: formatPercent(performanceCounts["poor"], total),
+						},
+						Struggling: PerformanceCategory{
+							Count:      performanceCounts["struggling"],
+							Percentage: formatPercent(performanceCounts["struggling"], total),
+						},
+						GoodProgress: PerformanceCategory{
+							Count:      performanceCounts["good_progress"],
+							Percentage: formatPercent(performanceCounts["good_progress"], total),
+						},
+						Strong: PerformanceCategory{
+							Count:      performanceCounts["strong"],
+							Percentage: formatPercent(performanceCounts["strong"], total),
+						},
+						NotAssessed: PerformanceCategory{
+							Count:      performanceCounts["not_assessed"],
+							Percentage: formatPercent(performanceCounts["not_assessed"], total),
+						},
+					},
 				},
-				IndividualAssessment: []IndividualAssessment{},
+				IndividualAssessment: individualAssessment,
 			}
 		}
 	}
+
+	analysisData.OverallAssessment.PerformanceDistribution = PerformanceDistribution{
+		Poor: PerformanceCategory{
+			Count:      performanceCounts["poor"],
+			Percentage: formatPercent(performanceCounts["poor"], total),
+		},
+		Struggling: PerformanceCategory{
+			Count:      performanceCounts["struggling"],
+			Percentage: formatPercent(performanceCounts["struggling"], total),
+		},
+		GoodProgress: PerformanceCategory{
+			Count:      performanceCounts["good_progress"],
+			Percentage: formatPercent(performanceCounts["good_progress"], total),
+		},
+		Strong: PerformanceCategory{
+			Count:      performanceCounts["strong"],
+			Percentage: formatPercent(performanceCounts["strong"], total),
+		},
+		NotAssessed: PerformanceCategory{
+			Count:      performanceCounts["not_assessed"],
+			Percentage: formatPercent(performanceCounts["not_assessed"], total),
+		},
+	}
+
+	analysisData.IndividualAssessment = individualAssessment
 
 	merged := map[string]interface{}{
 		"analysisData":       analysisData,
@@ -245,7 +367,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(merged)
 }
 
-func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, w http.ResponseWriter, r *http.Request) AnalysisData {
+func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, gradeMap map[int]string, w http.ResponseWriter, r *http.Request) AnalysisData {
 
 	NewInstructions := `# LLM Prompt: Analyze, Assess, and Generate Remediation Ideas for CS1 Student Code Submissions
 
@@ -259,6 +381,7 @@ You will be provided with the following inputs:
 
 1.  **Problem Description:** The full text of the programming problem, including examples and specific requirements/constraints (e.g., functions not to use).
 2.  **Student Submissions:** A JSON list where each object represents a single student's submission, containing:
+3. **GradeMap:** A map of student Id and Assigned grade. If the map does not contain a students value, assign it to "NotAssessed"
 * 'student_id': A unique identifier for the student.
 * 'timestamp': The time of submission.
 * 'content': A string containing the student's source code.
@@ -280,11 +403,7 @@ For **each** student submission:
 * Does the code adhere to all specific requirements mentioned in the 'Problem Description' (e.g., not using forbidden functions like 'min()'/'max()', specific output formats)?
 * **Internally identify** potential logical errors, incorrect initializations, mishandled edge cases (e.g., empty lists, single items, negatives, zeros), inefficiencies, requirement violations, or other flaws based on the code structure. This internal analysis is crucial for later stages.
 * Estimate the likelihood of runtime errors ('IndexError', 'TypeError', etc.) based on the logic.
-2.  **Classify Performance Level (Inferred):** Based *only* on your analysis above, classify the submission's likely performance:
-* **Poor:** Code fundamentally misunderstands the problem, contains multiple severe logical errors or requirement violations, or is highly likely to fail most standard test cases or crash.
-* **Struggling:** Code attempts the problem but contains significant logical errors, violates key requirements, or clearly fails important edge cases. Shows partial understanding but likely fails many tests.
-* **Good Progress:** Code implements the core logic correctly for typical cases but has identifiable flaws likely causing failure on specific edge cases, minor requirement oversights, or small logical errors. Likely passes many standard tests.
-* **Strong:** Code appears logically correct, adheres to all requirements, seems to handle common edge cases robustly, and uses a reasonable algorithm. Likely passes all or nearly all tests.
+2.  **Classify Performance Level (Inferred): Use Grade map to do this
 3.  **Output (Simplified):** Contribute an object containing only the 'student_id' and your inferred 'performance_level' to the 'individual_assessment' array in the final JSON for *each* student.
 
 ### Stage 2: Error Identification and Categorization (Aggregate)
@@ -360,7 +479,8 @@ Based on the top *inferred* errors, correlations, and code patterns:
   "individual_assessment": [ // Simplified Output
     { "student_id": 1, "performance_level": "Struggling" },
     { "student_id": 2, "performance_level": "Poor" },
-    { "student_id": 3, "performance_level": "Strong" }
+    { "student_id": 3, "performance_level": "Strong" },
+ { "student_id": 4, "performance_level": "NotAssessed" }
     // ... other students
   ],
   "aggregate_analysis": {
@@ -443,6 +563,7 @@ Poor         PerformanceCategory 'json:"poor"'
 Struggling   PerformanceCategory 'json:"struggling"'
 GoodProgress PerformanceCategory 'json:"good_progress"'
 Strong       PerformanceCategory 'json:"strong"'
+NotAssessed  PerformanceCategory 'json:"not_assessed"'
 }
 type PerformanceCategory struct {
 Count      int    'json:"count"'
@@ -511,4 +632,64 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 		fmt.Println(err)
 	}
 	return analysisData
+}
+
+type Grade struct {
+	ID        int       `gorm:"primaryKey;autoIncrement"`
+	StudentID int       `gorm:"not null"`
+	ProblemID int       `gorm:"not null"`
+	Grade     string    `gorm:"type:varchar(50)"`
+	GradedAt  time.Time `gorm:"autoCreateTime"`
+}
+
+type GradeRequest struct {
+	StudentID int    `json:"student_id"`
+	Grade     string `json:"grade"`
+	ProblemID int    `json:"problem_id"`
+}
+
+func HandleGradeSubmission(w http.ResponseWriter, r *http.Request) {
+	// Allow only POST
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Decode the request
+	var req GradeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("🎯 Grade received - Student ID: %d | Grade: %s | Problem ID: %d\n",
+		req.StudentID, req.Grade, req.ProblemID)
+
+	// Check if grade already exists
+	var existing Grade
+	err := models.DB.Where("student_id = ? AND problem_id = ?", req.StudentID, req.ProblemID).First(&existing).Error
+	if err == nil {
+		// Grade already exists
+		http.Error(w, "Grade already exists for this student and problem", http.StatusConflict)
+		return
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// Other error
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Create and save new grade
+	newGrade := Grade{
+		StudentID: req.StudentID,
+		ProblemID: req.ProblemID,
+		Grade:     req.Grade,
+	}
+
+	if err := models.DB.Create(&newGrade).Error; err != nil {
+		http.Error(w, "Failed to save grade", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("✅ Grade saved successfully"))
 }

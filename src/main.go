@@ -82,7 +82,7 @@ func init_handlers() {
 
 	// http.HandleFunc("/get_codespace", Authorize(codespaceHandler))
 	// http.HandleFunc("/get_snapshot", Authorize(getCodeSnapshotHandler))
-	http.HandleFunc("/save_snapshot_feedback", Authorize(restHandlers.CodeSnapshotFeedbackHandler, ""))
+	http.HandleFunc("/save_snapshot_feedback", Authorize(restHandlers.CodeSnapshotFeedbackHandler, "")) //todo : analyse
 	http.HandleFunc("/get_snapshot_feedback", Authorize(restHandlers.GetSnapshotFeedbackHandler, ""))
 	http.HandleFunc("/save_snapshot_back_feedback", Authorize(restHandlers.StudentSendBackFeedbackHandler, ""))
 	// http.HandleFunc("/student_views_feedback", Authorize(studentViewsFeedbackHandler))
@@ -135,6 +135,8 @@ func init_handlers() {
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./src/frontEnd/assets"))))
+	http.HandleFunc("/grade", ai.HandleGradeSubmission)
+
 }
 
 // -----------------------------------------------------------------
