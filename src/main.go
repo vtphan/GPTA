@@ -6,10 +6,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/GPTA/src/ai"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/GPTA/src/ai"
 
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
@@ -134,7 +135,7 @@ func init_handlers() {
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./src/frontEnd/assets"))))
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontEnd/assets"))))
 	http.HandleFunc("/grade", ai.HandleGradeSubmission)
 
 }
@@ -197,8 +198,11 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file, teacher_file, student_file, course_file := "/Users/ajay/MS/GPTA/Examples/gem_config.json", "/Users/ajay/MS/GPTA/Examples/teachers.txt", "/Users/ajay/MS/GPTA/Examples/students.txt", "/Users/ajay/MS/GPTA/Examples/courses.txt"
-	ai_prompts_file := "/Users/ajay/MS/GPTA/src/prompts"
+	config_file := "../Examples/gem_config.json"
+	teacher_file := "../Examples/teachers.txt"
+	student_file := "../Examples/students.txt"
+	course_file := "../Examples/courses.txt"
+	ai_prompts_file := "./prompts"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
 	flag.StringVar(&student_file, "add_students", student_file, "student file.")
@@ -240,6 +244,7 @@ func main() {
 	fmt.Println("**************************************************\n")
 	err = http.ListenAndServe(models.Config.Address, nil)
 	if err != nil {
+		log.Println("Error starting server: ", err)
 		log.Fatal("Unable to serve gem server at " + models.Config.Address)
 	}
 }

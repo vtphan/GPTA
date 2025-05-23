@@ -6220,553 +6220,210 @@ function sendScaffoldingStrategy() {
 </body>
 </html>
 `
+
 var PROBLEM_LIST_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Exercises</title>
-<meta http-equiv="refresh" content="10000000" >
-<style>
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
+  <title>Exercises</title>
+  <meta http-equiv="refresh" content="10000000">
+  <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
 
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+  <style>
+    .problem-page {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
 
-.button.is-primary {
-  background: cornflowerblue !important;
-  color: white; /* Ensures text is white */
-  border: none;
-}
+    .problem-page .app-header {
+      background-color: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      position: fixed;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 48px;
+    }
 
-.button.is-primary:hover {
-  background: linear-gradient(45deg, #2575fc, #6a11cb) !important;
-  color: white; /* Ensures text remains white when hovered */
-}
+    .problem-page .settings-button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 6px;
+      border-radius: 50%;
+      font-size: 14px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-.button.is-info {
-  background: cornflowerblue !important;
-  color: white; /* Ensures text is white */
-  border: none;
-}
+    .problem-page .button {
+      background-color: #2563eb;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+    }
 
-.button.is-info:hover {
-  background: linear-gradient(45deg, #00bcd4, #1e90ff);
-  color: white; /* Ensures text remains white when hovered */
-}
+    .problem-page .button:hover {
+      background-color: #1e40af;
+    }
 
-.button.is-success {
-  background: cornflowerblue !important;
-  color: white; /* Ensures text is white */
-  border: none;
-}
+    .problem-page .content {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 70px auto 0 auto;
+      width: 100%;
+    }
 
-.button.is-success:hover {
-  background: linear-gradient(45deg, #2575fc, #6a11cb) !important;
-  color: white; /* Ensures text remains white when hovered */
-}
+    .problem-page table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      font-size: 16px;
+    }
+    
+    .problem-page body,
+    .problem-page {
+      font-size: 16px;
+      color: #1e293b;
+    }
 
-.button.is-info {
-  background: cornflowerblue !important;
-  color: white; /* Ensures text is white */
-  border: none;
-}
+    .problem-page th, .problem-page td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
 
-.button.is-info:hover {
-  background: linear-gradient(45deg, #00bcd4, #1e90ff) !important;
-  color: white; /* Ensures text remains white when hovered */
-}
-
-td {
-  border: none; /* Removes border if you don't want one */
-  text-align: center !important; /* Centers text horizontally */
-  vertical-align: middle; /* Centers text vertically */
-  padding: 10px; /* Adds some spacing for better appearance */
-}
-
-tr {
-  text-align: center !important; /* Centers text horizontally */
-  vertical-align: middle; /* Centers text vertically */
-}
-
-td.active {
-  background: white; /* Gradient for active problem */
-  color: black !important;
-}
-
-td.inactive {
-  background: #f6f6f6; /* White background for inactive problem */
-}
-
-
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #2196F3;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
-}
-
-input:checked + .slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
-}
-
-/* Rounded sliders */
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-.menu {
-	padding: 10px;
-	padding-left: 100px;
-}
-
-.topcorner{
-	position:absolute;
-	top:0;
-	right:0;
-}
-
-.drawer {
-    display: none;
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 350px;
-    height: 100%;
-    background-color: #f4f4f4;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    z-index: 1000;
-    transition: transform 0.3s ease;
-    overflow-y: auto;
-}
-
-.drawer.open {
-    display: block;
-    transform: translateX(0);
-}
-
-h4 {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-button {
-    width: 100%;
-    margin-bottom: 15px;
-}
-
-.logout-container {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-}
-
-.drawer-content {
-  padding-top: 50px;
-}
-
-.settings-button {
-  position: fixed;
-  top: 10px; /* Adjust as needed */
-  left: 20px; /* Move to the left side */
-  background: cornflowerblue; /* Apply gradient */
-  color: white; /* Ensures text is white */
-  border: none;
-  padding: 12px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  z-index: 1100;
-  width: 45px; /* Ensuring button size is appropriate */
-  height: 45px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  transition: background 0.3s ease; /* Smooth transition for background */
-}
-
-.settings-button:hover {
-  background: linear-gradient(45deg, #2575fc, #6a11cb); /* Inverted gradient on hover */
-}
-
-.settings-button.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-a.is-disabled {
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-
-</style>
-<script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
-
+    .problem-page th {
+      background-color: #f8fafc;
+      font-weight: 600;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-	
-	
-	<nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
-		<ul>
-			<li class="is-active">
-			<a href="#">
-				<span class="icon is-small">
-				<i class="fas fa-home" aria-hidden="true"></i>
-				</span>
-				<span>Exercises</span>
-			</a>
-			</li>
-		</ul>
+<div class="problem-page">
 
-	</nav>
-	<div class="content">
-	<div class="topcorner" style="margin-top: 78px; margin-bottom: 10px;">{{.Username}}({{.UserRole}})</div>
-		<a id="new-problem" 
-   class="button is-success {{if eq .UserRole "student"}}is-disabled{{end}}" 
-   href="{{if ne .UserRole "student"}}/your-link{{end}}" 
-   style="margin-top: 80px; margin-bottom: 10px;">
-	<span class="icon is-small">
-		<i class="fa-solid fa-plus"></i>
-	</span>
-	<span>Add a New Exercise</span>
-</a>
-
-<a id="export-button" 
-   class="button is-primary {{if eq .UserRole "student"}}is-disabled{{end}}" 
-   href="{{if ne .UserRole "student"}}/your-export-link{{end}}" 
-   style="margin-top: 80px; margin-bottom: 10px;">
-	<span class="icon is-small">
-		<i class="fa-solid fa-plus"></i>
-	</span>
-	<span>Export Performance Data</span>
-</a>
-
-
-		<div class="drawer" id="settings-drawer" style="font-family: Arial, sans-serif; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
-
-    <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333;">Settings</h3>
-
-    <hr>
-
-	<div>
-        <h4>Add TA to Course</h4>
-        <input type="text" id="teacher-name" class="input" placeholder="Enter Teacher Name">
-		<input type="text" id="teacher-pass" class="input" placeholder="Enter Teacher Password">
-        <button class="button is-primary" id="add-teacher-btn">Add Teacher</button>
+  <!-- Header -->
+  <header class="app-header">
+    <!-- Left: Settings + Title -->
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <button
+        class="settings-button {{if eq .UserRole "student"}}is-disabled{{end}}"
+        id="settings-button"
+        {{if eq .UserRole "student"}}disabled{{end}}
+        title="Settings">
+        <i class="fas fa-cogs"></i>
+      </button>
+      <span style="font-weight: 600;">Main Dashboard</span>
     </div>
 
-	 <hr>
-
-<div>
-    <h4>Add Students to Course</h4>
-    <input id="student-names" class="input" placeholder="Enter Comma Seperated Names">
-    <button class="button is-info" id="add-students-btn">Add Students</button>
-</div>
-
-<hr style="margin: 15px 0;">
-	<button class="button is-primary" id="toggle-peer-tutoring" style="margin-top: 3px; display: flex; align-items: center;">
-    Peer Tutoring
-    <label class="switch" style="margin-left: 10px;">
-        <input id="peer_tutoring_button" type="checkbox">
-        <span class="slider round"></span>
-    </label>
-</button>
-
-
-
-    <hr>
-
-
-    <button class="button is-danger" id="logout-button" style="width: 100%; display: flex; align-items: center; justify-content: center;">
-        <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i> Logout
-    </button>
-
-</div>
-		<button 
-	class="settings-button {{if eq .UserRole "student"}}is-disabled{{end}}" 
-	id="settings-button"
-	{{if eq .UserRole "student"}}disabled{{end}}>
-	<i class="fas fa-cogs"></i>
-</button>
-
-
-		<table class="table sortable">
-				<thead>
-					<tr>
-						<th>Filename</th>
-						<th>Posted At</th>
-						<th>Attendance</th>
-						<th>Active Students</th>
-						<th>Help Requests</th>
-						<th>Correct</th>
-						<th>Incorrect</th>
-						<th>Not Graded</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Problems}}
-  <tr {{if eq .IsActive true}}class="is-selected"{{end}}>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">
-      <a href="/analyse_view?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
-        {{.Filename}}
+    <!-- Right: Buttons + Username -->
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a id="new-problem"
+         class="button {{if eq .UserRole "student"}}is-disabled{{end}}"
+         href="{{if ne .UserRole "student"}}/teacher_web_broadcast{{end}}{{if .UserRole}}?uid={{.UserID}}&role={{.UserRole}}{{if ne .Password ""}}&password={{.Password}}{{end}}{{end}}">
+        <i class="fas fa-plus"></i> Add Exercise
       </a>
-    </td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">
-      {{ .UploadedAt.Format "Jan 02, 2006 3:04:05 PM" }}
-    </td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.Attendance}}</td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumActive}}</td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumHelpRequest}}</td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumGradedCorrect}}</td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumGradedIncorrect}}</td>
-    <td class="{{if eq .IsActive false}}inactive{{else}}active{{end}}">{{.NumNotGraded}}</td>
-  </tr>
-  {{end}}
-				</tbody>
-		</table>
-	</div>
+
+      <a id="export-button"
+         class="button {{if eq .UserRole "student"}}is-disabled{{end}}"
+         href="#">
+        <i class="fas fa-download"></i> Export Data
+      </a>
+
+      <span style="font-weight: 600;">{{.Username}} ({{.UserRole}})</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="content">
+    <table class="table sortable">
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Posted At</th>
+          <th>Attendance</th>
+          <th>Active Students</th>
+          <th>Help Requests</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Problems}}
+        <tr>
+          <td>
+            <a href="/analyse_view?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
+              {{.Filename}}
+            </a>
+          </td>
+          <td>{{ .UploadedAt.Format "Jan 02, 2006 3:04:05 PM" }}</td>
+          <td>{{.Attendance}}</td>
+          <td>{{.NumActive}}</td>
+          <td>{{.NumHelpRequest}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </main>
 </div>
+
 <script>
-$(document).ready(function(){
-	// Toggling the drawer visibility
-	$('#settings-button').click(function(){
-			let urlParams = new URLSearchParams(window.location.search);
-			let courseID = urlParams.get("course_id");
-			let teacherID = urlParams.get("uid");
-		  window.location.href = "/settings_view?course_id=" + courseID + "&teacher_id=" + teacherID;
-	});
-	$('#logout-button').click(function(){
-        if (confirm("Are you sure you want to logout?")) {
-        window.location.href = "/logout"; 
-    }
+  $(document).ready(function () {
+    $('#settings-button').click(function () {
+      const params = new URLSearchParams(window.location.search);
+      const courseID = params.get("course_id");
+      const teacherID = params.get("uid");
+      window.location.href = "/settings_view?course_id=" + courseID + "&teacher_id=" + teacherID;
     });
-	$('#add-course-btn').click(function(){
-    let courseID = $('#course-id').val().trim();
 
-    if (courseID === "") {
-        alert("Please enter Course ID.");
-        return;
-    }
-
-    $.ajax({
-        url: "/add_course",
+    $('#export-button').click(function () {
+      $.ajax({
         type: "POST",
-        contentType: "application/json",
-        dataType: "json",
-        data: JSON.stringify({ course_id: courseID }),
-        success: function(response) {
-            if (response && response.message) {
-                alert(response.message); // Show success message
-                
-                // Clear input field
-                $('#course-id').val('');
-            } else {
-                alert("Unexpected response format.");
-            }
+        url: "/teacher_exports_point",
+        data: {
+          uid: {{.UserID}},
+          role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}}
         },
-        error: function(xhr) {
-            alert("Error: " + xhr.responseText);
+        success: function (response, status, xhr) {
+          let filename = "";
+          const disposition = xhr.getResponseHeader('Content-Disposition');
+          if (disposition && disposition.indexOf('attachment') !== -1) {
+            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+            if (matches && matches[1]) filename = matches[1].replace(/['"]/g, '');
+          }
+
+          const blob = new Blob([response], { type: xhr.getResponseHeader('Content-Type') });
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = downloadUrl;
+          a.download = filename || "export.csv";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
         }
+      });
     });
-});
-
-
-	// Add TA to Course
-    $('#add-teacher-btn').click(function(){
-    let teacherName = $('#teacher-name').val().trim();
-    let teacherPass = $('#teacher-pass').val().trim();
-    let urlParams = new URLSearchParams(window.location.search);
-	let courseId = urlParams.get("course_id");
-
-    if (teacherName === "" || teacherPass === "" || !courseId) {
-        alert("Please enter Teacher Name and Password");
-        return;
-    }
-
-    $.ajax({
-        url: "/add_teacher",
-        type: "POST",
-        contentType: "application/json",
-        dataType: "json",  // Ensure response is treated as JSON
-        data: JSON.stringify({ 
-            teacher_name: teacherName, 
-            teacher_pass: teacherPass, 
-            course_id: courseId
-        }),
-        success: function(response) {
-            if (response && response.message) {
-                alert(response.message); // Ensure proper handling of response
-            } else {
-                alert("Teacher added successfully, but response is missing data.");
-            }
-
-            // Clear input fields after successful addition
-            $('#teacher-name').val('');
-            $('#teacher-pass').val('');
-        },
-        error: function(xhr, status, error) {
-            alert("Failed to add teacher: " + xhr.responseText);
-        }
-    });
-});
-
-
-
-	// Add Student to Course
-   $('#add-students-btn').click(function() {
-        let studentNames = $('#student-names').val().trim();
-        let urlParams = new URLSearchParams(window.location.search);
-        let courseID = urlParams.get("course_id");
-
-        if (studentNames === "" || courseID === "") {
-            alert("Please enter student names and ensure Course ID is available.");
-            return;
-        }
-
-        let studentsArray = studentNames.split(',').map(name => name.trim()).filter(name => name !== "");
-
-        if (studentsArray.length === 0) {
-            alert("Please enter valid student names.");
-            return;
-        }
-
-        $.ajax({
-            url: "/add_students",
-            type: "POST",
-            contentType: "application/json",
-            dataType: "json",
-            data: JSON.stringify({ 
-                student_names: studentsArray, 
-                course_id: courseID 
-            }),
-            success: function(response) {
-                alert(response.message || "Students added successfully");
-                $('#student-names').val(''); // Clear input field
-            },
-            error: function(xhr, status, error) {
-                alert("Failed to add students: " + xhr.responseText);
-            }
-        });
-    });
-
-	// Peer tutoring functionality (unchanged)
-	{{if eq .PeerTutorAllowed true}}$('#peer_tutoring_button').prop('checked', true);{{end}}
-	$('#new-problem').attr("href", "/teacher_web_broadcast"+window.location.search);
-	$('#peer_tutoring_button').change(function(){
-		var val = document.getElementById('peer_tutoring_button').checked;
-		var valInt = val ? 1 : 0;
-		$.post("/set_peer_tutor", {turn_on: valInt, uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} }, function(data, status){
-		});
-	});
-	$('#export-button').click(function(){
-
-		$.ajax({
-			type: "POST",
-			url: "/teacher_exports_point",
-			data: {uid: {{.UserID}}, role: {{.UserRole}}{{if ne .Password ""}}, password: {{.Password}}{{end}} },
-			success: function(response, status, xhr) {
-				// check for a filename
-				var filename = "";
-				var disposition = xhr.getResponseHeader('Content-Disposition');
-				if (disposition && disposition.indexOf('attachment') !== -1) {
-					var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-					var matches = filenameRegex.exec(disposition);
-					if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
-				}
-
-				var type = xhr.getResponseHeader('Content-Type');
-				var blob = new Blob([response], { type: type });
-
-				if (typeof window.navigator.msSaveBlob !== 'undefined') {
-					window.navigator.msSaveBlob(blob, filename);
-				} else {
-					var URL = window.URL || window.webkitURL;
-					var downloadUrl = URL.createObjectURL(blob);
-
-					if (filename) {
-						var a = document.createElement("a");
-						if (typeof a.download === 'undefined') {
-							window.location = downloadUrl;
-						} else {
-							a.href = downloadUrl;
-							a.download = filename;
-							document.body.appendChild(a);
-							a.click();
-						}
-					} else {
-						window.location = downloadUrl;
-					}
-
-					setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100);
-				}
-			}
-		});
-	});
-	
-});
+  });
 </script>
 </body>
 </html>
 `
-
 var EXERCISE_LIST_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
@@ -10099,8 +9756,8 @@ var ANALYSIS_TEMPLATE = `
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeInsight</title>
-    <script type="module" crossorigin src="./assets/index-T3isxe.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BC89Ax.css">
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
   </head>
   <body>
     <div id="root"></div>

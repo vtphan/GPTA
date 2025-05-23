@@ -1,5 +1,5 @@
 COURSE: S2025_COMP7712_01
-Deepak Venugopal, 123456
+Kriangsiri Malasri, 123456
 Varsile Rus, 123456
 
 COURSE: S2025_COMP7712_02
