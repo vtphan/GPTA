@@ -135,7 +135,7 @@ func init_handlers() {
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontEnd/assets"))))
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("src/frontEnd/assets"))))
 	http.HandleFunc("/grade", ai.HandleGradeSubmission)
 
 }
