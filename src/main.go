@@ -198,15 +198,9 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file := "../Examples/gem_config.json"
-	teacher_file := "../Examples/teachers.txt"
-	student_file := "../Examples/students.txt"
-	course_file := "../Examples/courses.txt"
+	config_file := "Examples/gem_config.json"
 	ai_prompts_file := "./prompts"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
-	flag.StringVar(&teacher_file, "add_teachers", teacher_file, "teacher file.")
-	flag.StringVar(&student_file, "add_students", student_file, "student file.")
-	flag.StringVar(&course_file, "add_courses", course_file, "courses file.") // New flag for courses
 	flag.Parse()
 	if config_file == "" {
 		flag.Usage()
@@ -216,15 +210,6 @@ func main() {
 	repository.InitDatabase(models.Config.Database, models.Config.DBUserName, models.Config.DBPassWord, models.Config.DBServerIP)
 	setupGracefulShutdown()
 	ReloadGlobalMaps()
-	if course_file != "" {
-		restHandlers.AddMultipleCourses(course_file) // Call AddMultipleCourses to add courses
-	}
-	if teacher_file != "" {
-		restHandlers.AddMultiple(teacher_file, "teacher")
-	}
-	if student_file != "" {
-		restHandlers.AddMultiple(student_file, "student")
-	}
 	if ai_prompts_file != "" {
 		restHandlers.LoadAIPromptsFromFiles(ai_prompts_file)
 	}
