@@ -3,11 +3,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/GPTA/src/models"
-	"github.com/GPTA/src/repository"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/GPTA/src/models"
+	"github.com/GPTA/src/repository"
 )
 
 // -----------------------------------------------------------------
@@ -32,7 +33,21 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 		if userRole != "" && userRole != givenRole {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Println("Unauthorized access:", r.FormValue("name"), " user role: ", givenRole, " expected role:", userRole)
-			fmt.Fprint(w, "Unauthorized access. Please register again.")
+			fmt.Fprint(w, `
+				<html>
+				<head>
+					<title>Unauthorized</title>
+					<script>
+						setTimeout(function() {
+							window.location.href = '/teacher_signin';
+						}, 2000);
+					</script>
+				</head>
+				<body>
+					<p>Unauthorized access. Redirecting to login page...</p>
+				</body>
+				</html>
+			`)
 			return
 		}
 		uid, err := strconv.Atoi(r.FormValue("uid"))
@@ -78,7 +93,21 @@ func Authorize(fn func(http.ResponseWriter, *http.Request, string, int), userRol
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Println("Unauthorized access:", r.FormValue("name"), msg)
-		fmt.Fprint(w, "Unauthorized access. Please register again.")
+		fmt.Fprint(w, `
+			<html>
+			<head>
+				<title>Unauthorized</title>
+				<script>
+					setTimeout(function() {
+						window.location.href = '/teacher_signin';
+					}, 2000);
+				</script>
+			</head>
+			<body>
+				<p>Unauthorized access. Redirecting to login page...</p>
+			</body>
+			</html>
+		`)
 	}
 }
 
