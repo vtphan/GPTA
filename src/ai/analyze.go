@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"sort"
+	"strconv"
+	"time"
+
+	"github.com/GPTA/restHandlers"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 const (
@@ -51,6 +54,8 @@ type SubmissionTimes struct {
 type TAIntervention struct {
 	StudentID int    `json:"student_id"`
 	Timestamp string `json:"timestamp"`
+	HelpStat  string `json:"help_stat"`
+	Message   string `json:"message"`
 }
 
 type TAInterventions struct {
@@ -268,12 +273,35 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	interventions := []TAIntervention{}
+	students := repository.GetAllStudents() // Get students map for FetchMessages
+
 	for _, status := range studentStatuses {
 		if status.HelpStat != "" {
-			interventions = append(interventions, TAIntervention{
+			intervention := TAIntervention{
 				StudentID: status.StudentID,
 				Timestamp: status.LastUpdatedAt.Format("2006-01-02 15:04:05"),
-			})
+				HelpStat:  status.HelpStat,
+			}
+
+			// If student asked for help, fetch their messages
+			if status.HelpStat == "Asked for help" {
+				messages, err := restHandlers.FetchMessages(students, problemID, status.StudentID, "teacher")
+				if err == nil && len(messages) > 0 {
+					// sort messages by the GivenAt field
+					sort.Slice(messages, func(i, j int) bool {
+						return messages[i].GivenAt.After(messages[j].GivenAt)
+					})
+					// Get the most recent help request message
+					for _, msg := range messages {
+						if msg.Role == "student" {
+							intervention.Message = msg.Message
+							break
+						}
+					}
+				}
+			}
+
+			interventions = append(interventions, intervention)
 		}
 	}
 
