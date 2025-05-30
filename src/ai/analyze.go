@@ -68,11 +68,9 @@ type PerformanceCategory struct {
 }
 
 type PerformanceDistribution struct {
-	Poor         PerformanceCategory `json:"poor"`
-	Struggling   PerformanceCategory `json:"struggling"`
-	GoodProgress PerformanceCategory `json:"good_progress"`
-	Strong       PerformanceCategory `json:"strong"`
-	NotAssessed  PerformanceCategory `json:"not_assessed"`
+	Correct     PerformanceCategory `json:"correct"`
+	Incorrect   PerformanceCategory `json:"incorrect"`
+	NotAssessed PerformanceCategory `json:"not_assessed"`
 }
 
 type OverallAssessment struct {
@@ -181,13 +179,13 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 3: Build a map for fast lookup: student_id -> grade
+	// Step 1: Build a map for fast lookup: student_id -> grade
 	gradeMap := make(map[int]string)
 	for _, g := range grades {
 		gradeMap[g.StudentID] = g.Grade
 	}
 
-	// Step 4: Merge into snapshots
+	// Step 2: Merge into snapshots
 	formattedSnapshots := []CodeSnapshot{}
 	for _, snap := range codeSnapshotss {
 		formattedSnapshots = append(formattedSnapshots, CodeSnapshot{
@@ -198,13 +196,12 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 			SnapshotId: snap.ID,
 		})
 	}
-	// Step 2: Initialize performance counters
+
+	// Step 3: Initialize performance counters
 	performanceCounts := map[string]int{
-		"poor":          0,
-		"struggling":    0,
-		"good_progress": 0,
-		"strong":        0,
-		"not_assessed":  0,
+		"correct":      0,
+		"incorrect":    0,
+		"not_assessed": 0,
 	}
 
 	individualAssessment := []IndividualAssessment{}
@@ -215,18 +212,12 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		performanceLevel := ""
 
 		switch grade {
-		case "poor":
-			performanceLevel = "Poor"
-			performanceCounts["poor"]++
-		case "struggling":
-			performanceLevel = "Struggling"
-			performanceCounts["struggling"]++
-		case "good_progress":
-			performanceLevel = "Good Progress"
-			performanceCounts["good_progress"]++
-		case "strong":
-			performanceLevel = "Strong"
-			performanceCounts["strong"]++
+		case "correct":
+			performanceLevel = "Correct"
+			performanceCounts["correct"]++
+		case "incorrect":
+			performanceLevel = "Incorrect"
+			performanceCounts["incorrect"]++
 		default:
 			performanceLevel = "NotAssessed"
 			performanceCounts["not_assessed"]++
@@ -331,21 +322,13 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 				OverallAssessment: OverallAssessment{
 					TotalEntries: total,
 					PerformanceDistribution: PerformanceDistribution{
-						Poor: PerformanceCategory{
-							Count:      performanceCounts["poor"],
-							Percentage: formatPercent(performanceCounts["poor"], total),
+						Correct: PerformanceCategory{
+							Count:      performanceCounts["correct"],
+							Percentage: formatPercent(performanceCounts["correct"], total),
 						},
-						Struggling: PerformanceCategory{
-							Count:      performanceCounts["struggling"],
-							Percentage: formatPercent(performanceCounts["struggling"], total),
-						},
-						GoodProgress: PerformanceCategory{
-							Count:      performanceCounts["good_progress"],
-							Percentage: formatPercent(performanceCounts["good_progress"], total),
-						},
-						Strong: PerformanceCategory{
-							Count:      performanceCounts["strong"],
-							Percentage: formatPercent(performanceCounts["strong"], total),
+						Incorrect: PerformanceCategory{
+							Count:      performanceCounts["incorrect"],
+							Percentage: formatPercent(performanceCounts["incorrect"], total),
 						},
 						NotAssessed: PerformanceCategory{
 							Count:      performanceCounts["not_assessed"],
@@ -355,25 +338,18 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 				},
 				IndividualAssessment: individualAssessment,
 			}
+
 		}
 	}
-
+	analysisData.OverallAssessment.TotalEntries = total
 	analysisData.OverallAssessment.PerformanceDistribution = PerformanceDistribution{
-		Poor: PerformanceCategory{
-			Count:      performanceCounts["poor"],
-			Percentage: formatPercent(performanceCounts["poor"], total),
+		Correct: PerformanceCategory{
+			Count:      performanceCounts["correct"],
+			Percentage: formatPercent(performanceCounts["correct"], total),
 		},
-		Struggling: PerformanceCategory{
-			Count:      performanceCounts["struggling"],
-			Percentage: formatPercent(performanceCounts["struggling"], total),
-		},
-		GoodProgress: PerformanceCategory{
-			Count:      performanceCounts["good_progress"],
-			Percentage: formatPercent(performanceCounts["good_progress"], total),
-		},
-		Strong: PerformanceCategory{
-			Count:      performanceCounts["strong"],
-			Percentage: formatPercent(performanceCounts["strong"], total),
+		Incorrect: PerformanceCategory{
+			Count:      performanceCounts["incorrect"],
+			Percentage: formatPercent(performanceCounts["incorrect"], total),
 		},
 		NotAssessed: PerformanceCategory{
 			Count:      performanceCounts["not_assessed"],
