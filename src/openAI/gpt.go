@@ -1233,9 +1233,30 @@ func AddAPIKey(w http.ResponseWriter, r *http.Request) {
 	// Trim input
 	req.APIKey = strings.TrimSpace(req.APIKey)
 
-	if req.ID == 0 || req.APIKey == "" {
+	if req.ID == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
+	}
+
+	if req.APIKey == "" {
+		req.APIKey, _ = repository.GetAPIKeyByID(req.ID)
+		if req.APIKey == "" {
+			http.Error(w, "Api Key not found. Please add new api key", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if req.ID == 1 {
+		if err := ValidateClaudeAPIKey(req.APIKey); err != nil {
+			http.Error(w, "Claude API key validation failed: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	if req.ID == 2 {
+		if err := ValidateOpenAIKey(req.APIKey); err != nil {
+			http.Error(w, "OpenAI API key validation failed: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Update the API key using the helper function

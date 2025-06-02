@@ -242,10 +242,11 @@ type AssignedScaffolding struct {
 	AssignedAt  time.Time `gorm:"autoCreateTime"`
 }
 
-type AiProvider struct {
-	ID     int    `gorm:"primaryKey;autoIncrement"`
-	Name   string `gorm:"type:varchar(100)"`
-	APIKey string `gorm:"type:varchar(255)"`
+type AiiiProvider struct {
+	ID          int       `gorm:"primaryKey;autoIncrement"`
+	Name        string    `gorm:"type:varchar(100)"`
+	APIKey      string    `gorm:"type:varchar(255)"`
+	LastUpdated time.Time `gorm:"type:timestamp"`
 }
 
 type ScaffoldingFeedback struct {

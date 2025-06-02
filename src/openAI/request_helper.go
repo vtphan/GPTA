@@ -2,10 +2,12 @@ package openAI
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
+	"github.com/franciscoescher/goopenai"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -91,7 +93,12 @@ func MakeRequestClaude(c *gin.Context, messages []map[string]string) {
 	}
 
 	// ✅ Use "x-api-key" instead of "Authorization"
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -138,7 +145,12 @@ func makeRequestClaude2(c *gin.Context, messages []map[string]string, problemId 
 		return ""
 	}
 
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return ""
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -185,7 +197,12 @@ func makeRequestClaudeSC(c *gin.Context, messages []map[string]string, studentId
 		return ""
 	}
 
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return ""
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -232,7 +249,12 @@ func makeRequestClaude3(c *gin.Context, messages []map[string]string, problemId 
 		return
 	}
 
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -326,7 +348,12 @@ func makeRequestClaude4(c *gin.Context, messages []map[string]string, problemId 
 		return
 	}
 
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -404,6 +431,45 @@ func makeRequestClaude4(c *gin.Context, messages []map[string]string, problemId 
 	c.JSON(http.StatusOK, gin.H{"message": "Scaffolding inserted successfully"})
 }
 
+func MakeRequestOpenAIAnalyze(c *gin.Context, messages []goopenai.Message) string {
+	apiKey, err := repository.GetAPIKeyByID(2) // 2 is OpenAI's ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch OpenAI API key"})
+		return ""
+	}
+
+	client := goopenai.NewClient(apiKey, "") // Empty org string unless needed
+
+	request := goopenai.CreateChatCompletionsRequest{
+		Model:       ChatGPTModel, // Set this globally or hardcode "gpt-4"
+		Messages:    messages,
+		Temperature: 0,
+	}
+
+	for i := 0; i < NumRetry; i++ {
+		completions, err := client.CreateChatCompletions(context.Background(), request)
+		if err != nil {
+			log.Printf("OpenAI API call failed (attempt %d): %v", i+1, err)
+			continue
+		}
+
+		responseText := completions.Choices[0].Message.Content
+
+		// Extract only JSON portion using regex
+		re := regexp.MustCompile(`(?s)\{.*\}`)
+		jsonPart := re.FindString(responseText)
+		if jsonPart == "" {
+			log.Println("Failed to extract JSON from OpenAI response")
+			continue
+		}
+
+		return jsonPart
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Couldn't process the request after retries"})
+	return ""
+}
+
 func MakeRequestClaudeAnalyze(c *gin.Context, messages []map[string]string) string {
 	requestBody, _ := json.Marshal(map[string]interface{}{
 		"model":      ClaudeModel,
@@ -418,7 +484,12 @@ func MakeRequestClaudeAnalyze(c *gin.Context, messages []map[string]string) stri
 	}
 
 	// ✅ Use "x-api-key" instead of "Authorization"
-	req.Header.Set("x-api-key", ClaudeAPIKey)
+	apiKey, err := repository.GetAPIKeyByID(1) // 1 is Claude’s ID
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Claude API key"})
+		return ""
+	}
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
@@ -458,5 +529,67 @@ func MakeRequestClaudeAnalyze(c *gin.Context, messages []map[string]string) stri
 	// Handle unexpected response structure
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from Claude API"})
 	return ""
-	// todo : save it to db
+}
+
+func ValidateClaudeAPIKey(apiKey string) error {
+	requestBody, _ := json.Marshal(map[string]interface{}{
+		"model":      ClaudeModel,
+		"messages":   []map[string]string{{"role": "user", "content": "Hi"}}, // Simple dummy prompt
+		"max_tokens": 10,
+	})
+
+	req, err := http.NewRequest("POST", ClaudeEndpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Anthropic-Version", "2023-06-01")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("invalid Claude API key, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func ValidateOpenAIKey(apiKey string) error {
+	req, err := http.NewRequest("GET", "https://api.openai.com/v1/models", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("OpenAI API call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("invalid OpenAI key, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
+func GetMostRecentlyUpdatedProvider() (*models.AiiiProvider, error) {
+	var provider models.AiiiProvider
+	err := models.DB.
+		Order("last_updated DESC").
+		First(&provider).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch latest updated provider: %w", err)
+	}
+	return &provider, nil
 }

@@ -48,7 +48,7 @@ func create_tables() {
 	execSQL("CREATE TABLE IF NOT EXISTS assigned_scaffoldings (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, duration INT NOT NULL, scaffolding TEXT, assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id))")
 	execSQL("CREATE TABLE IF NOT EXISTS scaffolding_feedbacks (id INT AUTO_INCREMENT NOT NULL, student_id INT, problem_id INT, scaffold LONGTEXT, feedback_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id))")
 	execSQL("CREATE TABLE IF NOT EXISTS ai_prompts (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT, prompt_text TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);")
-	execSQL("CREATE TABLE IF NOT EXISTS ai_providers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100), api_key VARCHAR(255), PRIMARY KEY (id))")
+	execSQL("CREATE TABLE IF NOT EXISTS aiii_providers (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100), api_key VARCHAR(255), last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id))")
 	execSQL("CREATE TABLE IF NOT EXISTS insights (id INT AUTO_INCREMENT NOT NULL, problem_id INT, response LONGTEXT, generated_time timestamp, PRIMARY KEY (id))")
 	execSQL("CREATE TABLE IF NOT EXISTS grades (id INT AUTO_INCREMENT NOT NULL, student_id INT NOT NULL, problem_id INT NOT NULL, grade VARCHAR(50), graded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), UNIQUE KEY unique_grade (student_id, problem_id))")
 	// foreign key example: http://www.sqlitetutorial.net/sqlite-foreign-key/

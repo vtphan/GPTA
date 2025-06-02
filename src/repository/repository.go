@@ -678,7 +678,7 @@ func SaveScaffoldingFeedback(studentID int, problemID int, scaffold string) erro
 }
 
 func UpdateAPIKeyByID(id int, newAPIKey string) error {
-	var provider models.AiProvider
+	var provider models.AiiiProvider
 
 	// Try to find the record first
 	err := models.DB.First(&provider, id).Error
@@ -691,16 +691,15 @@ func UpdateAPIKeyByID(id int, newAPIKey string) error {
 				name = "claude_ai"
 			case 2:
 				name = "open_ai"
-			case 3:
-				name = "deepseek"
 			default:
 				return fmt.Errorf("invalid ID: %d", id)
 			}
 
-			provider = models.AiProvider{
-				ID:     id,
-				Name:   name,
-				APIKey: newAPIKey,
+			provider = models.AiiiProvider{
+				ID:          id,
+				Name:        name,
+				APIKey:      newAPIKey,
+				LastUpdated: time.Now(),
 			}
 			if err := models.DB.Create(&provider).Error; err != nil {
 				return fmt.Errorf("failed to create new provider: %w", err)
@@ -713,6 +712,7 @@ func UpdateAPIKeyByID(id int, newAPIKey string) error {
 
 	// Record exists — update the API key
 	provider.APIKey = newAPIKey
+	provider.LastUpdated = time.Now()
 	if err := models.DB.Save(&provider).Error; err != nil {
 		return fmt.Errorf("failed to update API key: %w", err)
 	}
@@ -1669,4 +1669,13 @@ func GetLatestCodeInsightByProblemID(problemID int) (*models.Insight, error) {
 	}
 
 	return &insight, nil
+}
+
+func GetAPIKeyByID(id int) (string, error) {
+	var provider models.AiiiProvider
+	err := models.DB.First(&provider, id).Error
+	if err != nil {
+		return "", fmt.Errorf("could not find API key for provider ID %d: %w", id, err)
+	}
+	return provider.APIKey, nil
 }

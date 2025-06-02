@@ -4,25 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/GPTA/src/restHandlers"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
 
-	"github.com/GPTA/restHandlers"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
+	"github.com/franciscoescher/goopenai"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-)
-
-const (
-	GradeStrong       = "strong"
-	GradeGoodProgress = "good_progress"
-	GradeStruggling   = "struggling"
-	GradePoor         = "poor"
 )
 
 type ProblemDescription struct {
@@ -303,7 +297,11 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	var analysisData AnalysisData
 
 	if generateNew {
-		analysisDataa := makeRequest(description, formattedSnapshots, len(codeSnapshotss), problemID, gradeMap, w, r)
+		analysisDataa, err := makeRequest(description, formattedSnapshots, len(codeSnapshotss), problemID, gradeMap, w, r)
+		if err != nil {
+			http.Error(w, "Error generating analysis data", http.StatusInternalServerError)
+			return
+		}
 		analysisDataa.IsEnabled = true
 		analysisData = analysisDataa
 	} else {
@@ -371,7 +369,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(merged)
 }
 
-func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, gradeMap map[int]string, w http.ResponseWriter, r *http.Request) AnalysisData {
+func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, gradeMap map[int]string, w http.ResponseWriter, r *http.Request) (AnalysisData, error) {
 
 	NewInstructions := `# LLM Prompt: Analyze, Assess, and Generate Remediation Ideas for CS1 Student Code Submissions
 
@@ -412,7 +410,7 @@ For **each** student submission:
 
 ### Stage 2: Error Identification and Categorization (Aggregate)
 
-Focusing primarily on errors *you identified internally* in submissions classified as "Poor" or "Struggling":
+Focusing primarily on errors *you identified internally* in submissions classified as "correct" or "incorrect":
 
 1.  **Consolidate & Categorize Inferred Errors:** Group the errors identified across failing submissions using these categories:
 * **Requirement Violation:** Code ignores explicit problem constraints.
@@ -429,22 +427,22 @@ Focusing primarily on errors *you identified internally* in submissions classifi
 * **Inefficiency/Suboptimal Algorithm:** Correct but slow/resource-intensive solution.
 * **Potential Runtime Error:** High likelihood of crash (IndexError, TypeError, etc.).
 * *(You may identify additional specific error patterns if frequent and distinct).*
-2.  **Frequency Analysis:** Count occurrences for each category among "Poor"/"Struggling".
+2.  **Frequency Analysis:** Count occurrences for each category among "correct"/"incorrect".
 3.  **Select Top Errors:** Identify the top 5 most frequent *inferred* error categories.
 4.  **Output:** For each top error, populate an object in the 'top_errors' array containing 'category', 'occurrence_count', 'occurrence_percentage' (of failing students, format "XX.XX%"), 'description', 'example_code' (concise snippet illustrating the error), and 'student_ids'.
 
 ### Stage 3: Correlation and Pattern Analysis (Aggregate)
 
-Analyze which *inferred* error categories (from Stage 2) frequently co-occur within the same "Poor" or "Struggling" submissions.
+Analyze which *inferred* error categories (from Stage 2) frequently co-occur within the same "correct" or "incorrect" submissions.
 
-1.  **Identify Strong Correlations:** Find the 3-5 strongest co-occurrence pairs among "Poor"/"Struggling".
+1.  **Identify Strong Correlations:** Find the 3-5 strongest co-occurrence pairs among "correct"/"incorrect".
 2.  **Output:** For each pair, populate an object in the 'error_correlations' array containing 'correlated_errors' (list of 2 categories), 'correlation_count', 'correlation_percentage' (of failing students, format "XX.XX%"), 'hypothesis' (why they might be linked), 'example_code' (concise snippet showing both errors), and 'student_ids'.
 
 ### Stage 4: Potential Misconception Inference and Remediation Content (Aggregate)
 
 Based on the top *inferred* errors, correlations, and code patterns:
 
-1.  **Infer Misconceptions:** Identify 1-3 high-level *potential* underlying conceptual misunderstandings likely explaining prevalent error patterns among "Poor"/"Struggling" students.
+1.  **Infer Misconceptions:** Identify 1-3 high-level *potential* underlying conceptual misunderstandings likely explaining prevalent error patterns among "correct"/"incorrect" students.
 2.  **Generate Remediation Content:** For each inferred misconception, *also* generate content suitable for instructor intervention (for the "Respond" dashboard).
 3.  **Output:** For each inferred misconception, populate an object in the 'potential_misconceptions' array containing:
 * 'misconception': Concise description of the potential misunderstanding.
@@ -474,16 +472,14 @@ Based on the top *inferred* errors, correlations, and code patterns:
   "overall_assessment": {
     "total_entries": 40, // Example
     "performance_distribution": {
-      "poor": { "count": 5, "percentage": "12.50%" },
-      "struggling": { "count": 15, "percentage": "37.50%" },
-      "good_progress": { "count": 10, "percentage": "25.00%" },
-      "strong": { "count": 10, "percentage": "25.00%" }
+      "correct": { "count": 15, "percentage": "37.50%" },
+      "incorrect": { "count": 10, "percentage": "25.00%" }
     }
   },
   "individual_assessment": [ // Simplified Output
-    { "student_id": 1, "performance_level": "Struggling" },
-    { "student_id": 2, "performance_level": "Poor" },
-    { "student_id": 3, "performance_level": "Strong" },
+    { "student_id": 1, "performance_level": "correct" },
+    { "student_id": 2, "performance_level": "incorrect" },
+    { "student_id": 3, "performance_level": "correct" },
  { "student_id": 4, "performance_level": "NotAssessed" }
     // ... other students
   ],
@@ -562,12 +558,12 @@ type OverallAssessment struct {
 TotalEntries            int                     'json:"total_entries"'
 PerformanceDistribution PerformanceDistribution 'json:"performance_distribution"'
 }
+
+
 type PerformanceDistribution struct {
-Poor         PerformanceCategory 'json:"poor"'
-Struggling   PerformanceCategory 'json:"struggling"'
-GoodProgress PerformanceCategory 'json:"good_progress"'
-Strong       PerformanceCategory 'json:"strong"'
-NotAssessed  PerformanceCategory 'json:"not_assessed"'
+	Correct     PerformanceCategory 'json:"correct"'
+	Incorrect   PerformanceCategory 'json:"incorrect"'
+	NotAssessed PerformanceCategory 'json:"not_assessed"'
 }
 type PerformanceCategory struct {
 Count      int    'json:"count"'
@@ -617,25 +613,57 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 		"Problem Description:\n%s\n\nInstructions: %s\nTotal Students:\n%sStudent Submissions:\n%s",
 		problemDescription, NewInstructions, NumberOfStudents, formattedSnapshots,
 	)
-	messages := []map[string]string{
-		{"role": "user", "content": prompt},
-	}
 
 	// Create a Gin context from http.ResponseWriter and http.Request
 	c, _ := gin.CreateTestContext(w)
 	c.Request = r
 
-	// Call Claude API request function
-	jsonText := openAI.MakeRequestClaudeAnalyze(c, messages)
+	jsonText := ""
+
+	provider, err := openAI.GetMostRecentlyUpdatedProvider()
+	if err != nil {
+		log.Println("Error determining selected AI provider:", err)
+	} else {
+		fmt.Println("Currently selected provider:", provider.Name)
+	}
+	if provider.ID == 1 {
+		messages := []map[string]string{
+			{"role": "user", "content": prompt},
+		}
+		jsonText = openAI.MakeRequestClaudeAnalyze(c, messages)
+	}
+	if provider.ID == 2 {
+		var rawMessages = []map[string]string{
+			{"role": "user", "content": prompt},
+		}
+
+		var messages []goopenai.Message
+		for _, m := range rawMessages {
+			messages = append(messages, goopenai.Message{
+				Role:    m["role"],
+				Content: m["content"],
+			})
+		}
+		jsonText = openAI.MakeRequestOpenAIAnalyze(c, messages)
+	}
 	var analysisData AnalysisData
+
+	if jsonText == "" {
+		log.Printf("Unmarshal error: %v", err)
+		return analysisData, errors.New("could not generate response")
+	}
+
 	if err := json.Unmarshal([]byte(jsonText), &analysisData); err != nil {
 		log.Printf("Unmarshal error: %v", err)
+		return analysisData, err
+	} else {
+		_, err := repository.AddCodeInsight(problemID, jsonText, time.Now())
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
-	_, err := repository.AddCodeInsight(problemID, jsonText, time.Now())
-	if err != nil {
-		fmt.Println(err)
-	}
-	return analysisData
+
+	return analysisData, nil
 }
 
 type Grade struct {

@@ -7043,7 +7043,6 @@ var AI_SETTINGS = `
       <option value="">-- Choose --</option>
       <option value="claude">Claude AI</option>
       <option value="openai">OpenAI</option>
-      <option value="deepseek">DeepSeek</option>
     </select>
 
     <div id="claude" class="api-section">
@@ -7056,10 +7055,6 @@ var AI_SETTINGS = `
       <input type="password" id="openai-key" class="input" placeholder="Enter OpenAI API Key">
     </div>
 
-    <div id="deepseek" class="api-section">
-      <label for="deepseek-key">DeepSeek API Key</label>
-      <input type="password" id="deepseek-key" class="input" placeholder="Enter DeepSeek API Key">
-    </div>
 
     <button class="button button-danger" id="submit-settings-btn">Submit Settings</button>
     <button class="button button-primary" id="display-prompts-btn">Display Prompts</button>
@@ -7079,15 +7074,14 @@ var AI_SETTINGS = `
       const selectedAI = $('#ai-select').val();
       const apiKey = $('#' + selectedAI + '-key').val();
 
-      if (!selectedAI || !apiKey) {
+      if (!selectedAI) {
         alert("Please select an AI provider and enter its API key.");
         return;
       }
 
       const aiProviderIDs = {
         'claude': 1,
-        'openai': 2,
-        'deepseek': 3
+        'openai': 2
       };
 
       const requestData = {
@@ -7101,7 +7095,7 @@ var AI_SETTINGS = `
         contentType: 'application/json',
         data: JSON.stringify(requestData),
         success: function (response) {
-          alert("API key updated successfully!");
+          alert("API provider selected successfully!");
           $('#' + selectedAI + '-key').val(''); // Clear the input
         },
         error: function (xhr) {
