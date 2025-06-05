@@ -561,7 +561,7 @@ func MakeRequestGeminiAnalyze(c *gin.Context, messages []map[string]string) stri
 	bodyJSON, _ := json.Marshal(requestBody)
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=%s", apiKey),
+		fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey),
 		bytes.NewBuffer(bodyJSON),
 	)
 	if err != nil {

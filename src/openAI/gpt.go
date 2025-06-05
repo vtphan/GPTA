@@ -1220,7 +1220,7 @@ type AddAPIKeyRequest struct {
 
 func ValidateGeminiKey(apiKey string) error {
 	// Google's Gemini API expects POST to this endpoint with the API key in query param
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=%s", apiKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
 
 	// Minimal request body to test key
 	body := `{
