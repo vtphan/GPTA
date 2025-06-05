@@ -7,8 +7,10 @@ import (
 	"github.com/GPTA/src/restHandlers"
 	"log"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GPTA/src/models"
@@ -542,7 +544,7 @@ Based on the top *inferred* errors, correlations, and code patterns:
 just give me the whole json object as response ...nothing else.
 dont even write Here is the analysis of the student code submissions for the even number counter problem:.
 JUST THE JSON OBJECT! so that the output is  in the format that I just have to unstructured it to the below go object and it works
-
+dont even give '''json
 
 type AnalysisData struct {
 ProblemSummary       ProblemSummary         'json:"problem_summary"'
@@ -646,6 +648,12 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 		}
 		jsonText = openAI.MakeRequestOpenAIAnalyze(c, messages)
 	}
+	if provider.ID == 3 {
+		messages := []map[string]string{
+			{"role": "user", "content": prompt},
+		}
+		jsonText = openAI.MakeRequestGeminiAnalyze(c, messages)
+	}
 	var analysisData AnalysisData
 
 	if jsonText == "" {
@@ -653,7 +661,7 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 		return analysisData, errors.New("could not generate response")
 	}
 
-	if err := json.Unmarshal([]byte(jsonText), &analysisData); err != nil {
+	if jsonText, err = CleanAndUnmarshal(jsonText, &analysisData); err != nil {
 		log.Printf("Unmarshal error: %v", err)
 		return analysisData, err
 	} else {
@@ -664,6 +672,28 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 	}
 
 	return analysisData, nil
+}
+func CleanAndUnmarshal(jsonText string, target interface{}) (string, error) {
+	// Trim leading/trailing whitespace
+	jsonText = strings.TrimSpace(jsonText)
+
+	// Remove ```json and ``` or just ``` if present
+	if strings.HasPrefix(jsonText, "```") {
+		re := regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
+		matches := re.FindStringSubmatch(jsonText)
+		if len(matches) >= 2 {
+			jsonText = matches[1]
+		} else {
+			return "", errors.New("failed to extract valid JSON from code block")
+		}
+	}
+
+	// Now unmarshal cleaned JSON
+	if err := json.Unmarshal([]byte(jsonText), target); err != nil {
+		log.Printf("Unmarshal error: %v", err)
+		return "", err
+	}
+	return jsonText, nil
 }
 
 type Grade struct {

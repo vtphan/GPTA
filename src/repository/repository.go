@@ -691,6 +691,8 @@ func UpdateAPIKeyByID(id int, newAPIKey string) error {
 				name = "claude_ai"
 			case 2:
 				name = "open_ai"
+			case 3:
+				name = "gemini_ai"
 			default:
 				return fmt.Errorf("invalid ID: %d", id)
 			}

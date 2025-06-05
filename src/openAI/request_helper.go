@@ -8,6 +8,7 @@ import (
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"github.com/franciscoescher/goopenai"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -528,6 +529,78 @@ func MakeRequestClaudeAnalyze(c *gin.Context, messages []map[string]string) stri
 
 	// Handle unexpected response structure
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from Claude API"})
+	return ""
+}
+
+func MakeRequestGeminiAnalyze(c *gin.Context, messages []map[string]string) string {
+
+	apiKey, err := repository.GetAPIKeyByID(3)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Gemini API key"})
+		return ""
+	}
+
+	var parts []map[string]string
+	for _, msg := range messages {
+		// You can optionally filter only user prompts if needed
+		if msg["role"] == "user" {
+			parts = append(parts, map[string]string{
+				"text": msg["content"],
+			})
+		}
+	}
+
+	requestBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": parts,
+			},
+		},
+	}
+
+	bodyJSON, _ := json.Marshal(requestBody)
+
+	req, err := http.NewRequest("POST",
+		fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=%s", apiKey),
+		bytes.NewBuffer(bodyJSON),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return ""
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gemini API request failed"})
+		return ""
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	// Parse Gemini response
+	var responseJSON map[string]interface{}
+	if err := json.Unmarshal(body, &responseJSON); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid JSON in Gemini response"})
+		return ""
+	}
+
+	// Extract text from: responseJSON["candidates"][0]["content"]["parts"][0]["text"]
+	if candidates, ok := responseJSON["candidates"].([]interface{}); ok && len(candidates) > 0 {
+		if content, ok := candidates[0].(map[string]interface{})["content"].(map[string]interface{}); ok {
+			if parts, ok := content["parts"].([]interface{}); ok && len(parts) > 0 {
+				if part, ok := parts[0].(map[string]interface{}); ok {
+					if text, ok := part["text"].(string); ok {
+						return text
+					}
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not extract text from Gemini response"})
 	return ""
 }
 

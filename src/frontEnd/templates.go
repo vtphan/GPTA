@@ -7043,6 +7043,7 @@ var AI_SETTINGS = `
       <option value="">-- Choose --</option>
       <option value="claude">Claude AI</option>
       <option value="openai">OpenAI</option>
+      <option value="gemini">Gemini</option>
     </select>
 
     <div id="claude" class="api-section">
@@ -7053,6 +7054,11 @@ var AI_SETTINGS = `
     <div id="openai" class="api-section">
       <label for="openai-key">OpenAI API Key</label>
       <input type="password" id="openai-key" class="input" placeholder="Enter OpenAI API Key">
+    </div>
+   
+    <div id="gemini" class="api-section" style="display:none;">
+    <label for="gemini-key">Gemini API Key</label>
+    <input type="password" id="gemini-key" class="input" placeholder="Enter Gemini API Key">
     </div>
 
 
@@ -7081,7 +7087,8 @@ var AI_SETTINGS = `
 
       const aiProviderIDs = {
         'claude': 1,
-        'openai': 2
+        'openai': 2,
+		'gemini': 3
       };
 
       const requestData = {
@@ -7196,229 +7203,102 @@ var PROMPT_DISPLAY = `<!DOCTYPE html>
   <div class="dashboard">
 
     <div class="prompt-container">
-      <div class="prompt-title">Prompt 1: Individual AI Feedback</div>
+
+      <div class="prompt-title">AI Prompt : Analyze Class Performance</div>
       <div class="prompt-content">
         <textarea class="code-block">
 
-You are assisting instructors in real-time classroom coding exercises, each lasting only 10-15 minutes. Your role is to analyze a student's current code submission, identify relevant error patterns, select appropriate scaffolding strategies, and generate multiple scaffolds clearly varying in effort and actionability. Your scaffolds must explicitly support student autonomy by prompting students to actively engage in problem-solving, reflect upon their coding decisions, and maintain responsibility for their learning outcomes. Scaffolds should facilitate productive struggle, fostering independence and deeper conceptual understanding rather than providing overly explicit or prescriptive solutions. The scaffolds you produce will be reviewed by instructors, who will select the most suitable scaffolds based on student needs and classroom context.
+# LLM Prompt: Analyze, Assess, and Generate Remediation Ideas for CS1 Student Code Submissions
 
-<exercise_description>
-{Detailed description of the exercise would be placed here}
-</exercise_description>
+## Role and Goal
 
-<student_code>
-{The student's current code would be placed here}
-</student_code>
+You are an expert AI assistant specializing in analyzing and assessing student code submissions for introductory computer science exercises (CS1/CS2 level). Your goal is to process a batch of student code submissions for a specific programming problem, **evaluate each submission's likely correctness and adherence to requirements based *solely* on static code analysis**, and generate a structured JSON summary. This summary should provide instructors with actionable insights for **Monitoring** student progress (performance levels), **Analyzing** common issues (errors, correlations, misconceptions), and **Responding** with targeted instructional support (explanations, examples, follow-up questions).
 
-<previous_scaffold>
-{Previous scaffold content placed here, or "None" if this is the first scaffold}
-</previous_scaffold>
+## Input Data Provided to You
 
-# Programming Language
-The student is coding in Python. Tailor all scaffolding approaches to Python-specific concepts, common Python errors, and Pythonic solutions.
+You will be provided with the following inputs:
 
-# Time Constraint Guidance
-Each scaffold MUST be implementable within the 10-15 minute exercise window. Consider:
-- For Low-Effort scaffolds: Student should need <3 minutes to understand and apply
-- For Moderate-Effort scaffolds: Student should need 3-7 minutes to process and implement
-- For High-Effort scaffolds: Student should need 7-12 minutes to understand and integrate the concept
-Avoid scaffolds requiring extensive code rewriting or introducing entirely new approaches that cannot be reasonably implemented in the remaining time.
+1.  **Problem Description:** The full text of the programming problem, including examples and specific requirements/constraints (e.g., functions not to use).
+2.  **Student Submissions:** A JSON list where each object represents a single student's submission, containing:
+3. **GradeMap:** A map of student Id and Assigned grade. If the map does not contain a students value, assign it to "NotAssessed"
+* 'student_id': A unique identifier for the student.
+* 'timestamp': The time of submission.
+* 'content': A string containing the student's source code.
+* **(Note: Assessment results like test pass/fail counts are NOT provided. You must infer correctness and errors from the code.)**
 
-# Scaffolding Strategies
-1. **Gap-Fill Prompts:** Templates with blanks requiring student input.
-2. **Incremental Hints:** Short, progressively explicit guidance.
-3. **Minimal Correction Prompts:** Highlight specific errors with minimal suggested fixes.
-4. **Guided Questions:** Reflective questions prompting conceptual thinking.
-5. **Targeted Code Comments:** Specific, embedded comments guiding improvements without explicit solutions.
-6. **Partial Worked Examples:** Concise examples aligned with the student's current approach.
-7. **Reference Examples:** Adaptable examples illustrating relevant coding patterns.
-8. **Error Message Translation:** Clear, student-friendly interpretations of errors.
+## Analysis Process and Output Structure
 
-# Effort Levels (Positive Struggle)
-- **Low (Explicit):** Direct instructions; minimal cognitive challenge.
-- **Moderate (Reflective):** Prompts thoughtful reflection and moderate reasoning.
-- **High (Conceptual):** Requires deeper conceptual understanding and integrative thinking.
+Analyze the provided data using the following staged process. You must perform the detailed error/misconception analysis described internally, as it is required for the aggregate stages. Format your final output **exclusively** as a single JSON object adhering to the structure specified at the end.
 
-# Actionability Levels
-- **High:** Clearly specifies immediate steps for student action.
-- **Moderate:** Provides directional guidance, requiring some interpretation.
-- **Low:** Offers conceptual insights without explicit instructions, significant interpretation required.
+**Crucial Task:** Your primary challenge is to **simulate an assessment** through static analysis of each student's 'content' against the 'Problem Description'.
 
-# Instructions
-Analyze the student's submitted code and clearly describe identified error patterns. Generate multiple scaffold suggestions spanning a range of effort (low to high) and actionability (high to low). Explicitly support student autonomy, productive struggle, and continuity.
+### Stage 1: Individual Code Assessment and Classification
 
-Scaffolds must incorporate the student's current code structure and approach whenever possible. Scaffolds should build upon what the student has already created rather than suggesting entirely new implementations. This ensures continuity in the student's thought process, honors their existing work, and makes scaffolds immediately actionable. Only suggest significant restructuring when the current approach contains fundamental conceptual errors that cannot be remedied through incremental improvements.
+For **each** student submission:
 
-For each scaffold clearly state:
-- **Strategy used**
-- **Effort level (Low, Moderate, High)**
-- **Actionability level (High, Moderate, Low)**
-- **Content:** Scaffold content must be brief, clear, and immediately actionable—ideally presented in 1–3 concise sentences or a succinct code snippet, easily understandable within a short time frame.
-- **Learning support:** Explicitly describe how the scaffold addresses misconceptions and supports student learning.
-- **Implementation success metrics:** Observable indicators demonstrating the student’s successful application of scaffolds (e.g., "Student correctly implements loop structures instead of repetitive statements," "Student independently resolves index errors by accurately adjusting loop boundaries.")
-- **Recommendation reasoning:** Clearly justify why this scaffold occupies its specific position in your ordered list.
+1.  **Analyze Code Logic & Requirements:**
+* Does the code attempt to solve the correct problem as described?
+* Does the core algorithm appear logically sound for typical cases?
+* Does the code adhere to all specific requirements mentioned in the 'Problem Description' (e.g., not using forbidden functions like 'min()'/'max()', specific output formats)?
+* **Internally identify** potential logical errors, incorrect initializations, mishandled edge cases (e.g., empty lists, single items, negatives, zeros), inefficiencies, requirement violations, or other flaws based on the code structure. This internal analysis is crucial for later stages.
+* Estimate the likelihood of runtime errors ('IndexError', 'TypeError', etc.) based on the logic.
+2.  **Classify Performance Level (Inferred): Use Grade map to do this
+3.  **Output (Simplified):** Contribute an object containing only the 'student_id' and your inferred 'performance_level' to the 'individual_assessment' array in the final JSON for *each* student.
 
-**IMPORTANT:**  
-Order scaffolds clearly by recommendation level. The FIRST scaffold listed should be your HIGHEST recommendation, informed by:
-1. Clearly identified common errors in the student's code.
-2. Previous scaffolds provided (if applicable).
-3. Optimal progression in cognitive complexity and student support.
-4. Feasibility of implementation within the time constraint.
+### Stage 2: Error Identification and Categorization (Aggregate)
 
-        </textarea>
-      </div>
-    </div>
+Focusing primarily on errors *you identified internally* in submissions classified as "correct" or "incorrect":
 
-    <div class="prompt-container">
-      <div class="prompt-title">Prompt 2: Class Summary</div>
-      <div class="prompt-content">
-        <textarea class="code-block">
+1.  **Consolidate & Categorize Inferred Errors:** Group the errors identified across failing submissions using these categories:
+* **Requirement Violation:** Code ignores explicit problem constraints.
+* **Misinterpretation of Problem:** Code solves the wrong problem.
+* **Logic Error:** Flawed reasoning in the algorithm.
+* **Initialization Error:** Incorrect starting values for variables.
+* **Control Flow Error:** Incorrect loops, branching, recursion.
+* **Off-by-One Error:** Loop boundaries, indexing issues.
+* **Edge Case Handling Error:** Failure on non-standard valid inputs.
+* **Data Type Error:** Incorrect use or conversion of types.
+* **Data Structure Error:** Incorrect use of lists, dictionaries, etc.
+* **Function/Method Error:** Issues with definition, calls, parameters, returns.
+* **Variable Scope Error:** Misunderstanding local vs. global scope.
+* **Inefficiency/Suboptimal Algorithm:** Correct but slow/resource-intensive solution.
+* **Potential Runtime Error:** High likelihood of crash (IndexError, TypeError, etc.).
+* *(You may identify additional specific error patterns if frequent and distinct).*
+2.  **Frequency Analysis:** Count occurrences for each category among "correct"/"incorrect".
+3.  **Select Top Errors:** Identify the top 5 most frequent *inferred* error categories.
+4.  **Output:** For each top error, populate an object in the 'top_errors' array containing 'category', 'occurrence_count', 'occurrence_percentage' (of failing students, format "XX.XX%"), 'description', 'example_code' (concise snippet illustrating the error), and 'student_ids'.
 
-You are an expert in analyzing student code submissions for introductory computer science exercises (CS1/CS2 level). Given a collection of student code submissions for a specific programming problem and their corresponding assessment results, your task is to generate a structured summary that provides instructors with actionable insights into common student difficulties.
+### Stage 3: Correlation and Pattern Analysis (Aggregate)
 
-Your analysis should follow a staged approach, where each stage builds upon insights gained in previous stages. This will ensure a systematic, consistent, and comprehensive analysis of student performance patterns.
+Analyze which *inferred* error categories (from Stage 2) frequently co-occur within the same "correct" or "incorrect" submissions.
 
-## Staged Analysis Process
+1.  **Identify Strong Correlations:** Find the 3-5 strongest co-occurrence pairs among "correct"/"incorrect".
+2.  **Output:** For each pair, populate an object in the 'error_correlations' array containing 'correlated_errors' (list of 2 categories), 'correlation_count', 'correlation_percentage' (of failing students, format "XX.XX%"), 'hypothesis' (why they might be linked), 'example_code' (concise snippet showing both errors), and 'student_ids'.
 
-### Stage 1: Data Processing and Performance Classification
-First, process the raw submission data:
-1. Calculate the total number of submissions.
-2. Classify each submission into one of these performance levels using these specific criteria:
-   - **Poor (Failing with major issues)**:
-     * Submissions that fail most or all test cases
-     * Code contains 3+ fundamental errors from different error categories
-     * Code structure shows significant misunderstanding of core concepts
-     * Code may not compile/run at all
-   - **Struggling (Failing but showing potential)**:
-     * Submissions that pass some test cases but fail others
-     * Code contains 1-2 fundamental errors, but shows understanding of basic concepts
-     * Core algorithm demonstrates partial correctness
-     * Code runs but produces incorrect results for certain inputs
-   - **Good Progress (Passing with minor mistakes)**:
-     * Submissions that pass most test cases
-     * Code has working core functionality with minor issues
-     * Errors are limited to edge cases or efficiency concerns
-     * Code produces correct results for most inputs but may have minor issues
-   - **Strong (Fully passing)**:
-     * Submissions that pass all test cases
-     * Code is efficient, well-structured, and handles all edge cases
-     * Solution demonstrates thorough understanding of concepts
-     * Code is well-documented and follows best practices
-3. Calculate counts and percentages for each performance level.
-4. Write a concise summary of overall class performance based on these categories.
+### Stage 4: Potential Misconception Inference and Remediation Content (Aggregate)
 
-### Stage 2: Error Identification and Categorization
-Using the performance classifications from Stage 1, particularly focusing on the "Poor" and "Struggling" submissions:
-1. Identify all errors in each submission. Start with these common error categories:
-   - **Logic Errors**: Fundamental mistakes in the algorithm or program logic.
-   - **Syntax Errors**: Issues with the syntax of the programming language.
-   - **Data Type Errors**: Incorrect use or manipulation of data types.
-   - **Control Flow Errors**: Problems with the sequence of execution (e.g., incorrect loop conditions, branching).
-   - **Function/Method Errors**: Incorrect use or implementation of functions/methods.
-   - **Data Structure Errors**: Incorrect use or implementation of data structures.
-   - **Edge Case Handling**: Failure to handle unusual or boundary input values.
-   - **Runtime Errors**: Errors that occur during the execution of the program.
-   - **Algorithm Selection Errors**: Choosing inappropriate algorithms or approaches for solving problems.
-   - **Variable Scope Issues**: Problems with variable accessibility (local vs. global).
-   - **Off-by-One Errors**: Errors related to boundary conditions in loops or indexing.
+Based on the top *inferred* errors, correlations, and code patterns:
 
-   You may identify additional error categories if you observe patterns that don't fit well into the above categories. Include any additional categories in the all_categories_used array in Stage 6.
+1.  **Infer Misconceptions:** Identify 1-3 high-level *potential* underlying conceptual misunderstandings likely explaining prevalent error patterns among "correct"/"incorrect" students.
+2.  **Generate Remediation Content:** For each inferred misconception, *also* generate content suitable for instructor intervention (for the "Respond" dashboard).
+3.  **Output:** For each inferred misconception, populate an object in the 'potential_misconceptions' array containing:
+* 'misconception': Concise description of the potential misunderstanding.
+* 'related_error_categories': List of inferred error categories strongly associated.
+* 'occurrence_count': Approximate number of failing students whose inferred errors align.
+* 'occurrence_percentage': Approximate percentage of failing students potentially affected (format "XX.XX%").
+* 'explanation_diagnostic': Clear explanation of the likely misunderstanding (for the instructor's analysis).
+* 'example_code_error': Concise (max 5-7 lines) code snippet vividly illustrating the *result* of this misconception (can reuse from errors/correlations if appropriate).
+* 'student_ids': Array of 'student_id's of failing students whose code strongly suggests this misconception.
+* **'suggested_explanation_for_students':** **(New)** A brief, clear, student-friendly explanation of the correct concept or why the misconception leads to errors. Suitable for direct use or adaptation by the instructor.
+* **'correct_code_example':** **(New)** A minimal, correct code snippet (max 5-7 lines) demonstrating the *proper* way to handle the specific concept related to the misconception.
+* **'follow_up_question':** **(New)** A short question (e.g., conceptual, code prediction, fill-in-the-blank) designed to check student understanding after the explanation.
 
-2. Count the frequency of each error category.
-3. Select the top 5 most common error categories.
-4. For each common error category:
-   a. Calculate occurrence count and percentage among failing submissions.
-   b. Write a clear description of the error pattern.
-   c. Select a representative code example that clearly demonstrates the issue, using no more than 5-7 lines of code.
-   d. Include the student_ids array listing all students who exhibited this error.
-   e. Choose examples that are:
-      - Clear: Demonstrate the error with minimal extraneous code
-      - Typical: Represent the most common manifestation of the error
-      - Concise: Short but with enough context to understand the issue
-      - Educational: Show cases where the fix would be instructive
+## Important Considerations & Limitations
 
-### Stage 3: Correlation and Pattern Analysis
-Building on the error categorizations from Stage 2:
-1. Analyze which error categories frequently co-occur in the same submissions.
-2. Calculate correlation percentages for pairs of errors.
-3. Identify the 3-5 strongest error correlations.
-4. For each correlated pair:
-   a. Report the correlation strength (percentage of failing submissions containing both errors).
-   b. Report the correlation count (number of students showing both errors).
-   c. Formulate a hypothesis explaining why these errors might be related.
-   d. Select an example that clearly demonstrates both errors together, using no more than 8 lines of code.
-   e. Include the student_ids array of students who exhibited this correlation.
-   f. Choose examples where:
-      - Both errors are clearly visible in proximity
-      - The relationship between the errors is evident
-      - The example supports your hypothesis about why they correlate
+* **Static Analysis Only:** Your assessment is based purely on reading the code. You cannot execute it. Inferences about errors, performance levels, and the generated remediation content require instructor validation.
+* **Focus on Clarity:** Provide clear, concise descriptions, examples, explanations, and questions. Ensure generated code examples are minimal and directly relevant.
+* **Adhere to JSON:** Ensure the entire output is a single, valid JSON object matching the structure below.
 
-### Stage 4: Misconception Inference
-Based on the error patterns and correlations identified in Stages 2 and 3:
-1. Infer 3-5 potential misconceptions that might explain the observed error patterns.
-2. For each misconception:
-   a. Link it to specific error categories from earlier stages using the related_error_categories array.
-   b. Calculate how many submissions exhibit error patterns suggesting this misconception (occurrence_count).
-   c. Calculate the percentage of submissions showing this misconception (occurrence_percentage).
-   d. Write a clear explanation of the likely misunderstanding.
-   e. Select a representative code example that demonstrates this misconception, using no more than 5-7 lines of code.
-   f. Include the student_ids array of students who exhibited this misconception.
-   g. Choose examples that:
-      - Clearly illustrate the conceptual misunderstanding
-      - Represent common patterns across multiple students
-      - Show the root cause rather than just symptoms
-
-### Stage 5: Intervention Development
-For each misconception identified in Stage 4:
-1. Develop 2-3 specific instructional interventions that address the misconception.
-2. For strongly correlated error pairs from Stage 3, suggest interventions that address both issues simultaneously.
-3. Prioritize interventions based on the frequency and severity of associated errors.
-4. For each intervention, specify:
-   a. The target_misconception it addresses.
-   b. An array of related_errors categories it targets.
-   c. An array of instructional_strategies (2-3 specific approaches).
-   d. A priority_level of "High", "Medium", or "Low".
-   e. An estimated_effort of "Low", "Medium", or "High".
-   f. An implementation_phase of "Immediate", "Short-term", or "Long-term".
-5. Make recommendations concrete and actionable, such as:
-   - Specific in-class activities
-   - Targeted assignments
-   - Code examples to discuss
-   - Conceptual explanations to emphasize
-
-### Stage 6: Additional Insights
-After completing Stages 1-5, include:
-1. Common good practices observed in successful submissions:
-   a. For each good practice, provide:
-      - A description of the practice.
-      - Example code demonstrating this good practice.
-      - A correct_implementation flag set to true.
-2. Error category distribution:
-   a. List all error categories used in the analysis in all_categories_used array.
-   b. List any additional categories identified but not included in the main analysis in additional_categories_identified array.
-3. Submission patterns:
-   a. Provide an observation about when/how students submitted their work.
-   b. Include a potential_impact analysis of these submission patterns.
-   c. Include a submission_timeline object with dynamically determined time intervals as keys and objects containing:
-      - count: number of submissions on that date
-      - passing_rate: percentage of passing submissions on that date (e.g., "75%")
-4. Comparative analysis:
-   a. Include a success_factors array listing what successful students do differently.
-   b. Include a challenge_factors array listing common challenges for struggling students.
-
-        </textarea>
-      </div>
-    </div>
-
-    <div class="prompt-container">
-      <div class="prompt-title">Prompt 3: Progress Generation</div>
-      <div class="prompt-content">
-        <textarea class="code-block">
-
-You are given multiple code submissions from students. Your task is to:
-1. Analyze each student's submission and compare it with the correct solution.
-2. Provide a one-line explanation of the student's feedback.
-3. Calculate a percentage (0-100) indicating how close their submission is to the correct solution.
        </textarea>
       </div>
     </div>

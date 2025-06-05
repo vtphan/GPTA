@@ -1,11 +1,13 @@
 package openAI
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
@@ -316,10 +318,8 @@ Format your output as a JSON object with the following structure, ensuring all r
 		"stage_1_performance_analysis": {
 		"total_submissions": 50,
 			"performance_distribution": {
-			"Poor": {"count": 8, "percentage": "16.00%"},
-			"Struggling": {"count": 10, "percentage": "20.00%"},
-			"Good_Progress": {"count": 15, "percentage": "30.00%"},
-			"Strong": {"count": 17, "percentage": "34.00%"}
+			"Correct": {"count": 8, "percentage": "16.00%"},
+			"Incorrect": {"count": 10, "percentage": "20.00%"}
 		},
 		"overall_summary": "The class shows a mixed performance. A significant portion (36%) of students are still struggling with fundamental concepts, as indicated by the 'Poor' and 'Struggling' categories. However, a majority (64%) are showing 'Good Progress' or are 'Strong', suggesting a general grasp of the core concepts."
 	},
@@ -1218,6 +1218,39 @@ type AddAPIKeyRequest struct {
 	APIKey string `json:"api_key"`
 }
 
+func ValidateGeminiKey(apiKey string) error {
+	// Google's Gemini API expects POST to this endpoint with the API key in query param
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=%s", apiKey)
+
+	// Minimal request body to test key
+	body := `{
+		"contents": [
+			{
+				"parts": [{ "text": "Hello" }]
+			}
+		]
+	}`
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Gemini API call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("invalid Gemini key, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
 func AddAPIKey(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -1246,22 +1279,25 @@ func AddAPIKey(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if req.ID == 1 {
+	switch req.ID {
+	case 1:
 		if err := ValidateClaudeAPIKey(req.APIKey); err != nil {
 			http.Error(w, "Claude API key validation failed: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-	}
-	if req.ID == 2 {
+	case 2:
 		if err := ValidateOpenAIKey(req.APIKey); err != nil {
 			http.Error(w, "OpenAI API key validation failed: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+	case 3:
+		if err := ValidateGeminiKey(req.APIKey); err != nil {
+			http.Error(w, "Gemini API key validation failed: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
-	// Update the API key using the helper function
-	err := repository.UpdateAPIKeyByID(req.ID, req.APIKey)
-	if err != nil {
+	if err := repository.UpdateAPIKeyByID(req.ID, req.APIKey); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update API key: %v", err), http.StatusInternalServerError)
 		return
 	}
