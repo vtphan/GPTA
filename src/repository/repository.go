@@ -1489,13 +1489,13 @@ func FetchScores() (map[string]map[int]int, error) {
 	type ScoreData struct {
 		StudentID int
 		Filename  string
-		Score     int
+		Grade     string
 	}
 
 	var results []ScoreData
 	err := models.DB.Table("problems as P").
-		Select("S.student_id, P.filename, S.score").
-		Joins("join scores as S on P.id = S.problem_id").
+		Select("S.student_id, P.filename, S.grade").
+		Joins("join grades as S on P.id = S.problem_id").
 		Scan(&results).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch scores: %w", err)
@@ -1507,7 +1507,11 @@ func FetchScores() (map[string]map[int]int, error) {
 		if data[result.Filename] == nil {
 			data[result.Filename] = make(map[int]int)
 		}
-		data[result.Filename][result.StudentID] = result.Score
+		Grade := 1
+		if result.Grade == "correct" {
+			Grade = 5
+		}
+		data[result.Filename][result.StudentID] = Grade
 	}
 
 	return data, nil
