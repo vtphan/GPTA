@@ -491,7 +491,7 @@ Based on the top *inferred* errors, correlations, and code patterns:
         "category": "Initialization Error",
         "occurrence_count": 18,
         "occurrence_percentage": "90.00%",
-        "description": "Inferred: Students incorrectly initialized min/max variables (e.g., to 0), likely causing failure with negative numbers.",
+        "description": "Students incorrectly initialized min/max variables (e.g., to 0), likely causing failure with negative numbers.",
         "example_code": [ /* ... */ ],
         "student_ids": [ /* ... */ ]
       }
@@ -502,7 +502,7 @@ Based on the top *inferred* errors, correlations, and code patterns:
         "correlated_errors": ["Initialization Error", "Edge Case Handling Error"],
         "correlation_count": 15,
         "correlation_percentage": "75.00%",
-        "hypothesis": "Inferred: Incorrect initialization likely leads directly to failure on edge cases involving values outside the initial assumption.",
+        "hypothesis": "Incorrect initialization likely leads directly to failure on edge cases involving values outside the initial assumption.",
         "example_code": [ /* ... */ ],
         "student_ids": [ /* ... */ ]
       }
@@ -514,7 +514,7 @@ Based on the top *inferred* errors, correlations, and code patterns:
         "related_error_categories": ["Initialization Error", "Edge Case Handling Error", "Logic Error"],
         "occurrence_count": 18,
         "occurrence_percentage": "90.00%",
-        "explanation_diagnostic": "Inferred: Students often default min/max to 0, suggesting a lack of consideration for input ranges like all negatives.",
+        "explanation_diagnostic": "Students often default min/max to 0, suggesting a lack of consideration for input ranges like all negatives.",
         "example_code_error": [
             "def find_max(nums):",
             "  max_v = 0 # Misconception here",

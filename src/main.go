@@ -135,7 +135,7 @@ func init_handlers() {
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("src/frontEnd/assets"))))
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontEnd/assets"))))
 	http.HandleFunc("/grade", ai.HandleGradeSubmission)
 
 }
@@ -198,7 +198,7 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file := "Examples/gem_config.json"
+	config_file := "../Examples/gem_config.json"
 	ai_prompts_file := "./prompts"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.Parse()
