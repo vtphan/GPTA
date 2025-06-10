@@ -199,6 +199,17 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	formattedSnapshotsCL := []CodeSnapshot{}
+	for _, snap := range codeSnapshotss {
+		formattedSnapshotsCL = append(formattedSnapshotsCL, CodeSnapshot{
+			StudentID:  snap.StudentID,
+			Timestamp:  snap.LastUpdatedAt.Format("2006-01-02 15:04:05"),
+			Content:    snap.Code,
+			Grade:      gradeMap[snap.StudentID],
+			SnapshotId: snap.ID,
+		})
+	}
+
 	// Step 3: Initialize performance counters
 	performanceCounts := map[string]int{
 		"correct":      0,
@@ -305,7 +316,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	var analysisData AnalysisData
 
 	if generateNew {
-		analysisDataa, err := makeRequest(description, formattedSnapshots, len(codeSnapshotss), problemID, gradeMap, w, r)
+		analysisDataa, err := makeRequest(description, formattedSnapshotsCL, len(codeSnapshotss), problemID, gradeMap, w, r)
 		if err != nil {
 			http.Error(w, "Error generating analysis data", http.StatusInternalServerError)
 			return
