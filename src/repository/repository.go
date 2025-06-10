@@ -1001,6 +1001,22 @@ func GetCompleteCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, 
 	return codeSnapshots, nil
 }
 
+func GetAllCodeSnapshotsByProblemID(problemID int) ([]models.CodeSnapshot, error) {
+	var codeSnapshots []models.CodeSnapshot
+
+	err := models.DB.
+		Where("problem_id = ?", problemID).
+		Order("student_id ASC, last_updated_at ASC").
+		Find(&codeSnapshots).Error
+
+	if err != nil {
+		log.Printf("Failed to fetch all code snapshots for problem ID %d: %v", problemID, err)
+		return nil, err
+	}
+
+	return codeSnapshots, nil
+}
+
 func GetLatestCodeSnapshots(problemID int) ([]models.CodeSnapshot, error) {
 	var codeSnapshots []models.CodeSnapshot
 

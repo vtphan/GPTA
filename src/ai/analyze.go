@@ -169,6 +169,12 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allCodeSnapshots, err := repository.GetAllCodeSnapshotsByProblemID(problemID)
+	if err != nil {
+		http.Error(w, "Error fetching code snapshots", http.StatusInternalServerError)
+		return
+	}
+
 	var grades []Grade
 	if err := models.DB.Where("problem_id = ?", problemID).Find(&grades).Error; err != nil {
 		http.Error(w, "Error fetching grades", http.StatusInternalServerError)
@@ -183,7 +189,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 
 	// Step 2: Merge into snapshots
 	formattedSnapshots := []CodeSnapshot{}
-	for _, snap := range codeSnapshotss {
+	for _, snap := range allCodeSnapshots {
 		formattedSnapshots = append(formattedSnapshots, CodeSnapshot{
 			StudentID:  snap.StudentID,
 			Timestamp:  snap.LastUpdatedAt.Format("2006-01-02 15:04:05"),
