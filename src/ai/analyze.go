@@ -733,31 +733,36 @@ func HandleGradeSubmission(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("🎯 Grade received - Student ID: %d | Grade: %s | Problem ID: %d\n",
 		req.StudentID, req.Grade, req.ProblemID)
 
-	// Check if grade already exists
-	var existing Grade
-	err := models.DB.Where("student_id = ? AND problem_id = ?", req.StudentID, req.ProblemID).First(&existing).Error
-	if err == nil {
-		// Grade already exists
-		http.Error(w, "Grade already exists for this student and problem", http.StatusConflict)
+	var grade Grade
+	err := models.DB.Where("student_id = ? AND problem_id = ?", req.StudentID, req.ProblemID).First(&grade).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Grade doesn't exist — create new
+		grade = Grade{
+			StudentID: req.StudentID,
+			ProblemID: req.ProblemID,
+			Grade:     req.Grade,
+		}
+		if err := models.DB.Create(&grade).Error; err != nil {
+			http.Error(w, "Failed to create grade", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("✅ Grade created successfully"))
 		return
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// Other error
+	} else if err != nil {
+		// DB error
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	// Create and save new grade
-	newGrade := Grade{
-		StudentID: req.StudentID,
-		ProblemID: req.ProblemID,
-		Grade:     req.Grade,
-	}
-
-	if err := models.DB.Create(&newGrade).Error; err != nil {
-		http.Error(w, "Failed to save grade", http.StatusInternalServerError)
+	// Grade exists — update it
+	grade.Grade = req.Grade
+	if err := models.DB.Save(&grade).Error; err != nil {
+		http.Error(w, "Failed to update grade", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("✅ Grade saved successfully"))
+	w.Write([]byte("🔄 Grade updated successfully"))
 }
