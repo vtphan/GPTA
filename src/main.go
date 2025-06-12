@@ -6,11 +6,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/GPTA/src/Grade"
+	"github.com/GPTA/src/ai"
 	"os/signal"
 	"strings"
 	"syscall"
-
-	"github.com/GPTA/src/ai"
 
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
@@ -136,7 +136,7 @@ func init_handlers() {
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontEnd/assets"))))
-	http.HandleFunc("/grade", ai.HandleGradeSubmission)
+	http.HandleFunc("/grade", Grade.HandleGradeSubmission)
 
 }
 

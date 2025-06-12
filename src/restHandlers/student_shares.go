@@ -3,6 +3,7 @@ package restHandlers
 
 import (
 	"fmt"
+	"github.com/GPTA/src/Grade"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/repository"
 	"log"
@@ -78,7 +79,16 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 					scoring_mesg = "Answer appears to be incorrect. It will be looked at."
 				}
 				models.ActiveProblems[filename].Answers = append(models.ActiveProblems[filename].Answers, answer)
-
+				var grade Grade.GradeRequest
+				grade = Grade.GradeRequest{
+					StudentID: uid,
+					ProblemID: pid,
+					Grade:     decision,
+				}
+				err = Grade.GradeStudent(grade)
+				if err != nil {
+					fmt.Println("Error in GradeStudent")
+				}
 				fmt.Fprintf(w, scoring_mesg)
 			}
 

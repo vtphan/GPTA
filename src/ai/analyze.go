@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GPTA/src/Grade"
 	"github.com/GPTA/src/models"
 	"github.com/GPTA/src/openAI"
 	"github.com/GPTA/src/repository"
 	"github.com/franciscoescher/goopenai"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type ProblemDescription struct {
@@ -175,7 +175,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var grades []Grade
+	var grades []Grade.Grade
 	if err := models.DB.Where("problem_id = ?", problemID).Find(&grades).Error; err != nil {
 		http.Error(w, "Error fetching grades", http.StatusInternalServerError)
 		return
@@ -711,69 +711,4 @@ func CleanAndUnmarshal(jsonText string, target interface{}) (string, error) {
 		return "", err
 	}
 	return jsonText, nil
-}
-
-type Grade struct {
-	ID        int       `gorm:"primaryKey;autoIncrement"`
-	StudentID int       `gorm:"not null"`
-	ProblemID int       `gorm:"not null"`
-	Grade     string    `gorm:"type:varchar(50)"`
-	GradedAt  time.Time `gorm:"autoCreateTime"`
-}
-
-type GradeRequest struct {
-	StudentID int    `json:"student_id"`
-	Grade     string `json:"grade"`
-	ProblemID int    `json:"problem_id"`
-}
-
-func HandleGradeSubmission(w http.ResponseWriter, r *http.Request) {
-	// Allow only POST
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Decode the request
-	var req GradeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	fmt.Printf("🎯 Grade received - Student ID: %d | Grade: %s | Problem ID: %d\n",
-		req.StudentID, req.Grade, req.ProblemID)
-
-	var grade Grade
-	err := models.DB.Where("student_id = ? AND problem_id = ?", req.StudentID, req.ProblemID).First(&grade).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// Grade doesn't exist — create new
-		grade = Grade{
-			StudentID: req.StudentID,
-			ProblemID: req.ProblemID,
-			Grade:     req.Grade,
-		}
-		if err := models.DB.Create(&grade).Error; err != nil {
-			http.Error(w, "Failed to create grade", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("✅ Grade created successfully"))
-		return
-	} else if err != nil {
-		// DB error
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	// Grade exists — update it
-	grade.Grade = req.Grade
-	if err := models.DB.Save(&grade).Error; err != nil {
-		http.Error(w, "Failed to update grade", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("🔄 Grade updated successfully"))
 }
