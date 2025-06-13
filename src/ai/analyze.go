@@ -316,13 +316,13 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	var analysisData AnalysisData
 
 	if generateNew {
-		analysisDataa, err := makeRequest(description, formattedSnapshotsCL, len(codeSnapshotss), problemID, gradeMap, w, r)
+		aggregateAnalysis, err := makeRequest(description, formattedSnapshotsCL, len(codeSnapshotss), problemID, gradeMap, w, r)
 		if err != nil {
 			http.Error(w, "Error generating analysis data", http.StatusInternalServerError)
 			return
 		}
-		analysisDataa.IsEnabled = true
-		analysisData = analysisDataa
+		analysisData.IsEnabled = true
+		analysisData.AggregateAnalysis = aggregateAnalysis
 	} else {
 		jsonText, _ := repository.GetLatestCodeInsightByProblemID(problemID)
 		if jsonText != nil {
@@ -388,7 +388,7 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(merged)
 }
 
-func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, gradeMap map[int]string, w http.ResponseWriter, r *http.Request) (AnalysisData, error) {
+func makeRequest(problemDescription string, formattedSnapshots []CodeSnapshot, NumberOfStudents, problemID int, gradeMap map[int]string, w http.ResponseWriter, r *http.Request) (AggregateAnalysis, error) {
 
 	NewInstructions := `# LLM Prompt: Analyze, Assess, and Generate Remediation Ideas for CS1 Student Code Submissions
 
@@ -484,24 +484,6 @@ Based on the top *inferred* errors, correlations, and code patterns:
 ## Final Output Format (Single JSON Object)
 
 '''json
-{
-  "problem_summary": {
-    "title": "Problem Title Extracted/Inferred Here"
-  },
-  "overall_assessment": {
-    "total_entries": 40, // Example
-    "performance_distribution": {
-      "correct": { "count": 15, "percentage": "37.50%" },
-      "incorrect": { "count": 10, "percentage": "25.00%" }
-    }
-  },
-  "individual_assessment": [ // Simplified Output
-    { "student_id": 1, "performance_level": "correct" },
-    { "student_id": 2, "performance_level": "incorrect" },
-    { "student_id": 3, "performance_level": "correct" },
- { "student_id": 4, "performance_level": "NotAssessed" }
-    // ... other students
-  ],
   "aggregate_analysis": {
     "top_errors": [
       {
@@ -557,41 +539,12 @@ Based on the top *inferred* errors, correlations, and code patterns:
       // ... other potential misconceptions with remediation content
     ]
   }
-}
 just give me the whole json object as response ...nothing else.
 dont even write Here is the analysis of the student code submissions for the even number counter problem:.
 JUST THE JSON OBJECT! so that the output is  in the format that I just have to unstructured it to the below go object and it works
 dont even give '''json
 
-type AnalysisData struct {
-ProblemSummary       ProblemSummary         'json:"problem_summary"'
-IsEnabled            bool                   'json:"isEnable"'
-OverallAssessment    OverallAssessment      'json:"overall_assessment"'
-IndividualAssessment []IndividualAssessment 'json:"individual_assessment"'
-AggregateAnalysis    AggregateAnalysis      'json:"aggregate_analysis"'
-}
-type ProblemSummary struct {
-Title string 'json:"title"'
-}
-type OverallAssessment struct {
-TotalEntries            int                     'json:"total_entries"'
-PerformanceDistribution PerformanceDistribution 'json:"performance_distribution"'
-}
 
-
-type PerformanceDistribution struct {
-	Correct     PerformanceCategory 'json:"correct"'
-	Incorrect   PerformanceCategory 'json:"incorrect"'
-	NotAssessed PerformanceCategory 'json:"not_assessed"'
-}
-type PerformanceCategory struct {
-Count      int    'json:"count"'
-Percentage string 'json:"percentage"'
-}
-type IndividualAssessment struct {
-StudentID        int    'json:"student_id"'
-PerformanceLevel string 'json:"performance_level"'
-}
 type AggregateAnalysis struct {
 TopErrors               []TopError               'json:"top_errors"'
 ErrorCorrelations       []ErrorCorrelation       'json:"error_correlations"'
@@ -671,24 +624,44 @@ FollowUpQuestion                string   'json:"follow_up_question"'
 		}
 		jsonText = openAI.MakeRequestGeminiAnalyze(c, messages)
 	}
-	var analysisData AnalysisData
+	var aggregateAnalysis AggregateAnalysis
 
 	if jsonText == "" {
 		log.Printf("Unmarshal error: %v", err)
-		return analysisData, errors.New("could not generate response")
+		return aggregateAnalysis, errors.New("could not generate response")
 	}
 
-	if jsonText, err = CleanAndUnmarshal(jsonText, &analysisData); err != nil {
-		log.Printf("Unmarshal error: %v", err)
-		return analysisData, err
-	} else {
-		_, err := repository.AddCodeInsight(problemID, jsonText, time.Now())
-		if err != nil {
-			fmt.Println(err)
-		}
+	cleanedJSON, err := CleanAndUnmarshal(jsonText, &aggregateAnalysis)
+	if err != nil {
+		log.Printf("Failed to clean JSON: %v", err)
+		return aggregateAnalysis, err
 	}
 
-	return analysisData, nil
+	// Extract the "aggregate_analysis" field manually
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(cleanedJSON), &raw); err != nil {
+		log.Printf("Unmarshal into RawMessage map failed: %v", err)
+		return aggregateAnalysis, err
+	}
+
+	inner, ok := raw["aggregate_analysis"]
+	if !ok {
+		log.Printf("Key 'aggregate_analysis' not found in JSON")
+		return aggregateAnalysis, errors.New("missing 'aggregate_analysis' key in JSON")
+	}
+
+	if err := json.Unmarshal(inner, &aggregateAnalysis); err != nil {
+		log.Printf("Failed to unmarshal inner aggregate_analysis: %v", err)
+		return aggregateAnalysis, err
+	}
+
+	// Save to DB (if needed)
+	_, err = repository.AddCodeInsight(problemID, cleanedJSON, time.Now())
+	if err != nil {
+		log.Printf("Failed to add code insight: %v", err)
+	}
+
+	return aggregateAnalysis, nil
 }
 func CleanAndUnmarshal(jsonText string, target interface{}) (string, error) {
 	// Trim leading/trailing whitespace
@@ -710,5 +683,6 @@ func CleanAndUnmarshal(jsonText string, target interface{}) (string, error) {
 		log.Printf("Unmarshal error: %v", err)
 		return "", err
 	}
+
 	return jsonText, nil
 }
