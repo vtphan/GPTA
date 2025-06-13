@@ -27,6 +27,10 @@ func StudentSharesHandler(w http.ResponseWriter, r *http.Request, who string, ui
 	attempt_number := -1
 	pid := 0
 	prob, ok := models.ActiveProblems[filename]
+	err = Grade.DeleteGradeByStudentAndProblem(uid, prob.Info.Pid)
+	if err != nil {
+		fmt.Println("Delete GradeByStudentAndProblem Error")
+	}
 	now := time.Now()
 	snapshotID := -1
 	if ok {

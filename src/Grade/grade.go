@@ -77,3 +77,24 @@ func GradeStudent(req GradeRequest) error {
 	}
 	return err
 }
+
+func DeleteGradeByStudentAndProblem(studentID int, problemID int) error {
+	var grade Grade
+
+	// Try to find the grade first
+	err := models.DB.Where("student_id = ? AND problem_id = ?", studentID, problemID).First(&grade).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Nothing to delete
+		return nil
+	} else if err != nil {
+		// Some other error occurred
+		return err
+	}
+
+	// Grade found — proceed with deletion
+	if err := models.DB.Delete(&grade).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
