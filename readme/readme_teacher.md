@@ -1,47 +1,85 @@
-# Teacher Usage Guide for GEM Web Page
+# Teacher Installation & Usage Guide for GEM Web App
 
 ## 1. Logging In
 
-When you visit the GEM web page, you will be prompted to log in.
+Open the GPTA Teacher Login page:
 
-### Admin-Provided Credentials
-Your administrator should have already provided you with:
-- **Username**
-- **Password**
-- **Server Address** (pre-configured)
+**URL**: `http://184.168.28.95:8080/teacher_signin`
 
-### Steps to Log In
-1. Open the **GEM Web Page** in your browser.
-2. Enter your **Username** and **Password**.
-3. Click **Login** to access your dashboard.
+Your login **username** and **password** will be shared with you by the administrator.
 
 ---
 
-## 2. Course Setting Page
+## 2. Setting Up Your Course
 
-![Course Settings](/assets/documentation/teacher/course_setting.png)
+After logging in, you’ll be directed to the Teacher Dashboard.
 
-After logging in, you will see the **Teacher Dashboard**, which allows you to manage courses, students, and teaching assistants (TAs).
+![alt text](/assets/documentation/teacher/instructor_dashboard.png)
 
-### Features
+### Steps:
 
-1. **Select a Course & View Exercises**  
-   - Use the **dropdown** to select a course.  
-   - Click **View Exercises** to access assignments.  
+1. **Add a Course**
+   - Enter a unique Course ID (e.g., `S2025_COMP7712_01`).
+   - Click **Add Course**.
 
-2. **Add Teaching Assistants (TAs)**  
-   - Enter the **TA’s name**.  
-   - Set a **password** for the TA.  
-   - Click **Add Teacher** to assign the TA to the course.  
+2. **Select a Course**
+   - Use the dropdown to choose your course.
 
-3. **Add Students to a Course**  
-   - Enter **student names**, separated by commas.  
-   - Click **Add Students** to enroll them.  
+3. **Add Students**
+   - Enter student names separated by commas.
+   - Click **Add Students**.
 
-4. **Add a New Course**  
-   - Enter a unique **Course ID** (e.g., `S2025_COMP7712_01`).  
-   - Click **Add Course** to create it.  
+4. **Add Teaching Assistants**
+   - Enter TA’s name and password.
+   - Click **Add Teacher** to assign them to the course.
 
-5. **Logout**  
-   - Click the **Logout** button to securely exit your session.  
+---
+
+## 3. Configuring AI Settings
+
+To enable AI features, you need to configure the AI settings:
+1. Click **View AI Settings**.
+2. Choose an AI provider.
+3. Enter your API key and click **Submit**.
+
+---
+
+## 4. Accessing and Managing Exercises
+
+1. Select a course from the dropdown in the Teacher Dashboard.
+2. Click **View Exercises** to access the list of assignments.
+3. You’ll be taken to the **Main Dashboard**, where you can:
+   - Click **Add Exercise** to create a new one.
+   - Click "Deactivate" button to deactivate an exercise.
+   - Click on any listed exercise to view its specific dashboard.
+
+![alt text](/assets/documentation/teacher/main_dashboard.png)
+---
+
+## 5. Monitor Page Overview (Default View)
+
+The exercise-specific dashboard opens to the **Monitor** tab:
+
+- **Class Progress Chart**: Visual summary of submission statuses.
+- **Snapshot Activity**: Timeline of student snapshots and submissions.
+  - Dots represent snapshots.
+  - Squares represent submissions.
+  - Click a marker to view student code.
+- **Submissions Section**: Toggle between reviewed and unreviewed.
+- **Help Requests**: Shows any incoming requests from students.
+
+![alt text](/assets/documentation/teacher/monitor_page.png)
+
+---
+
+## 6. Analysis Page
+
+Switch to the **Analysis** tab for AI-powered insights:
+
+- Click on "Regenerate Analysis" to regenerate AI insights.
+- View common errors, misconceptions, and correlated issues.
+- See affected students and send group feedback.
+![alt text](/assets/documentation/teacher/analysis_page.png)
+
+---
 
