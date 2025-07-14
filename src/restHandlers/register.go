@@ -457,6 +457,8 @@ func AddCourseHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Course added successfully"})
 }
 
+var AIPromptsMap = make(map[string]string)
+
 // load ai prompt from files on server, update to db on server start.
 func LoadAIPromptsFromFiles(promptsFolder string) error {
 	if _, err := os.Stat(promptsFolder); os.IsNotExist(err) {
@@ -515,6 +517,14 @@ func LoadAIPromptsFromFiles(promptsFolder string) error {
 					fmt.Printf("Prompt record %s is up to date\n", title)
 				}
 			}
+		}
+	}
+	var allPrompts []models.AIPrompt
+	if err := models.DB.Find(&allPrompts).Error; err != nil {
+		fmt.Printf("Error fetching prompts from database: %v\n", err)
+	} else {
+		for _, prompt := range allPrompts {
+			AIPromptsMap[prompt.Title] = prompt.PromptText
 		}
 	}
 
