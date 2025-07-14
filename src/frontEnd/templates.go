@@ -6362,6 +6362,7 @@ var PROBLEM_LIST_TEMPLATE = `
           <th>Attendance</th>
           <th>Active Students</th>
           <th>Help Requests</th>
+          {{if ne .UserRole "student"}}<th>Status</th>{{end}}
         </tr>
       </thead>
       <tbody>
@@ -6376,6 +6377,20 @@ var PROBLEM_LIST_TEMPLATE = `
           <td>{{.Attendance}}</td>
           <td>{{.NumActive}}</td>
           <td>{{.NumHelpRequest}}</td>
+          {{if ne $.UserRole "student"}}
+          <td>
+            {{if .IsActive}}
+            <button class="button deactivate-problem-btn" 
+                    data-problem-id="{{.ID}}" 
+                    data-filename="{{.Filename}}"
+                    style="background-color: #6b7280; color: #f3f4f6; font-size: 11px; padding: 2px 6px; border: 1px solid #9ca3af;">
+              Deactivate
+            </button>
+            {{else}}
+            <span style="color: #6b7280; font-size: 12px;">Inactive</span>
+            {{end}}
+          </td>
+          {{end}}
         </tr>
         {{end}}
       </tbody>
@@ -6390,6 +6405,60 @@ var PROBLEM_LIST_TEMPLATE = `
       const courseID = params.get("course_id");
       const teacherID = params.get("uid");
       window.location.href = "/settings_view?course_id=" + courseID + "&teacher_id=" + teacherID;
+    });
+
+    $('#deactivate-button').click(function () {
+      if (confirm('Are you sure you want to deactivate problems?')) {
+        $.ajax({
+          type: "POST",
+          url: "/teacher_deactivates_problems",
+          data: {
+            uid: {{.UserID}},
+            role: "{{.UserRole}}"{{if ne .Password ""}},
+            password: "{{.Password}}"{{end}}
+          },
+          success: function (response) {
+            alert('Problems deactivated successfully');
+            location.reload();
+          },
+          error: function (xhr, status, error) {
+            alert('Error deactivating problems: ' + error);
+          }
+        });
+      }
+    });
+
+    $('.deactivate-problem-btn').click(function () {
+      const problemId = $(this).data('problem-id');
+      const filename = $(this).data('filename');
+      const button = $(this);
+      
+      if (confirm('Are you sure you want to deactivate "' + filename + '"?')) {
+        $.ajax({
+          type: "POST",
+          url: "/teacher_deactivates_problems",
+          data: {
+            problem_id: problemId,
+            filename: filename,
+            uid: {{.UserID}},
+            role: "{{.UserRole}}"{{if ne .Password ""}},
+            password: "{{.Password}}"{{end}}
+          },
+          success: function (response) {
+            if (response === '1') {
+              console.log('Problem Deactivated');
+            } else if (response === '0') {
+              console.log('Problem Deactivated');
+            } else {
+              alert('Problem not found or already deactivated');
+            }
+            location.reload();
+          },
+          error: function (xhr, status, error) {
+            alert('Error deactivating problem: ' + error);
+          }
+        });
+      }
     });
 
     $('#export-button').click(function () {
@@ -9630,7 +9699,7 @@ var ANALYSIS_TEMPLATE = `
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeInsight</title>
-    <script type="module" crossorigin src="./assets/index3.js"></script>
+    <script type="module" crossorigin src="./assets/index.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index3.css">
   </head>
   <body>

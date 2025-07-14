@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/GPTA/src/restHandlers"
 	"log"
 	"net/http"
 	"regexp"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GPTA/src/restHandlers"
 
 	"github.com/GPTA/src/Grade"
 	"github.com/GPTA/src/models"
@@ -24,6 +25,7 @@ import (
 type ProblemDescription struct {
 	Timestamp          string `json:"timestamp"`
 	ProblemDescription string `json:"problem_description"`
+	IsMCQ              bool   `json:"is_mcq"`
 }
 
 type CodeSnapshot struct {
@@ -157,10 +159,19 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Failed to fetch problem description: %v", err), http.StatusInternalServerError)
 		return
 	}
-
-	problemDescription := ProblemDescription{
-		Timestamp:          uploadedAt.Format("2006-01-02 15:04:05"),
-		ProblemDescription: description,
+	var problemDescription ProblemDescription
+	if models.ActiveProblems[filename] == nil || models.ActiveProblems[filename].Info == nil {
+		problemDescription = ProblemDescription{
+			Timestamp:          uploadedAt.Format("2006-01-02 15:04:05"),
+			ProblemDescription: description,
+			IsMCQ:              false, // Default to false if no active problem found
+		}
+	} else {
+		problemDescription = ProblemDescription{
+			Timestamp:          uploadedAt.Format("2006-01-02 15:04:05"),
+			ProblemDescription: description,
+			IsMCQ:              models.ActiveProblems[filename].Info.Answer != "",
+		}
 	}
 
 	codeSnapshotss, err := repository.GetCompleteCodeSnapshotsByProblemID(problemID)
@@ -375,7 +386,6 @@ func HandleMergedData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	analysisData.IndividualAssessment = individualAssessment
-
 	merged := map[string]interface{}{
 		"analysisData":       analysisData,
 		"problemDescription": problemDescription,
