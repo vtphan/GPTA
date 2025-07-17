@@ -56,7 +56,7 @@ Focusing primarily on errors *you identified internally* in submissions classifi
 * *(You may identify additional specific error patterns if frequent and distinct).*
 2.  **Frequency Analysis:** Count occurrences for each category among "correct"/"incorrect".
 3.  **Select Top Errors:** Identify the top 5 most frequent *inferred* error categories.
-4.  **Output:** For each top error, populate an object in the 'top_errors' array containing 'category', 'occurrence_count', 'occurrence_percentage' (of failing students, format "XX.XX%"), 'description', 'example_code' (concise snippet illustrating the error), and 'student_ids'.
+4.  **Output:** For each top error, populate an object in the 'top_errors' array containing 'category', 'occurrence_count', 'occurrence_percentage' (of failing students, format "XX.XX%"), 'description', 'example_code' (concise snippet illustrating the error), 'student_ids', and **'feedback_to_students'** (clear, actionable guidance for students who made this error).
 
 ### Stage 3: Correlation and Pattern Analysis (Aggregate)
 
@@ -79,9 +79,18 @@ Based on the top *inferred* errors, correlations, and code patterns:
 * 'explanation_diagnostic': Clear explanation of the likely misunderstanding (for the instructor's analysis).
 * 'example_code_error': Concise (max 5-7 lines) code snippet vividly illustrating the *result* of this misconception (can reuse from errors/correlations if appropriate).
 * 'student_ids': Array of 'student_id's of failing students whose code strongly suggests this misconception.
-* **'suggested_explanation_for_students':** **(New)** A brief, clear, student-friendly explanation of the correct concept or why the misconception leads to errors. Suitable for direct use or adaptation by the instructor.
-* **'correct_code_example':** **(New)** A minimal, correct code snippet (max 5-7 lines) demonstrating the *proper* way to handle the specific concept related to the misconception.
-* **'follow_up_question':** **(New)** A short question (e.g., conceptual, code prediction, fill-in-the-blank) designed to check student understanding after the explanation.
+* **'suggested_explanation_for_students':** A brief, clear, student-friendly explanation of the correct concept or why the misconception leads to errors. Suitable for direct use or adaptation by the instructor.
+* **'correct_code_example':** A minimal, correct code snippet (max 5-7 lines) demonstrating the *proper* way to handle the specific concept related to the misconception.
+* **'follow_up_question':** A short question (e.g., conceptual, code prediction, fill-in-the-blank) designed to check student understanding after the explanation.
+
+## Key Guidelines for Student Feedback
+
+When generating **'feedback_to_students'** fields in top_errors:
+- Write in second person ("you", "your") addressing students directly
+- Focus on actionable advice rather than just identifying the problem
+- Explain the reasoning behind the correct approach
+- Keep feedback concise but comprehensive (2-4 sentences)
+- Use encouraging, instructional tone rather than critical language
 
 ## Important Considerations & Limitations
 
@@ -91,7 +100,8 @@ Based on the top *inferred* errors, correlations, and code patterns:
 
 ## Final Output Format (Single JSON Object)
 
-'''json
+```json
+{
   "aggregate_analysis": {
     "top_errors": [
       {
@@ -100,9 +110,10 @@ Based on the top *inferred* errors, correlations, and code patterns:
         "occurrence_percentage": "90.00%",
         "description": "Students incorrectly initialized min/max variables (e.g., to 0), likely causing failure with negative numbers.",
         "example_code": [ /* ... */ ],
-        "student_ids": [ /* ... */ ]
+        "student_ids": [ /* ... */ ],
+        "feedback_to_students": "When finding minimum or maximum values, avoid initializing to arbitrary numbers like 0. Instead, use the first element of your list as the starting point, then compare with the remaining elements. This ensures your solution works with any range of numbers, including all negatives or all positives."
       }
-      // ... other top errors
+      // ... other top errors with feedback_to_students field
     ],
     "error_correlations": [
       {
@@ -122,31 +133,18 @@ Based on the top *inferred* errors, correlations, and code patterns:
         "occurrence_count": 18,
         "occurrence_percentage": "90.00%",
         "explanation_diagnostic": "Students often default min/max to 0, suggesting a lack of consideration for input ranges like all negatives.",
-        "example_code_error": [
-            "def find_max(nums):",
-            "  max_v = 0 # Misconception here",
-            "  for n in nums: # Fails if nums = [-10, -5, -2]",
-            "    if n > max_v:",
-            "      max_v = n",
-            "  return max_v"
-         ],
+        "example_code_error": [ /* ... */ ],
         "student_ids": [ /* ... */ ],
-        // --- Fields for Respond Dashboard ---
         "suggested_explanation_for_students": "When finding a minimum or maximum, initializing your tracking variable to a value like 0 can fail if all numbers are outside that range (e.g., all negative). A safer way is to initialize using the *first element* of the list, then loop through the *rest*.",
-        "correct_code_example": [
-            "def find_max_safe(nums):",
-            "  if not nums: return None # Handle empty list",
-            "  max_v = nums[0] # Initialize with first element",
-            "  for i in range(1, len(nums)):",
-            "    if nums[i] > max_v:",
-            "      max_v = nums[i]",
-            "  return max_v"
-        ],
+        "correct_code_example": [ /* ... */ ],
         "follow_up_question": "Consider 'find_max_safe([-5, -12, -3])'. What value will 'max_v' be initialized to, and what will the function return?"
       }
       // ... other potential misconceptions with remediation content
     ]
   }
+}
+```
+
 just give me the whole json object as response ...nothing else.
 dont even write Here is the analysis of the student code submissions for the even number counter problem:.
 JUST THE JSON OBJECT! so that the output is  in the format that I just have to unstructured it to the below go object and it works
@@ -165,6 +163,7 @@ OccurrencePercentage string   'json:"occurrence_percentage"'
 Description          string   'json:"description"'
 ExampleCode          []string 'json:"example_code"'
 StudentIDs           []int    'json:"student_ids"'
+FeedbackToStudents   string   `json:"feedback_to_students"`
 }
 type ErrorCorrelation struct {
 CorrelatedErrors      []string 'json:"correlated_errors"'

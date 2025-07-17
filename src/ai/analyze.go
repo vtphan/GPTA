@@ -88,6 +88,7 @@ type TopError struct {
 	Description          string   `json:"description"`
 	ExampleCode          []string `json:"example_code"`
 	StudentIDs           []int    `json:"student_ids"`
+	FeedbackToStudents   string   `json:"feedback_to_students"`
 }
 
 type ErrorCorrelation struct {
