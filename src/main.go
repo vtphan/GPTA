@@ -134,6 +134,7 @@ func init_handlers() {
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
 	http.HandleFunc("/add_api_key", openAI.AddAPIKey)
 	http.HandleFunc("/get_participants", GetParticipantsHandler)
+	http.HandleFunc("/gemini_analyze", GeminiAnalyzeHandler)
 
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/data", ai.HandleMergedData)
@@ -480,4 +481,33 @@ func GetParticipantsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ParticipantsResponse{Students: students, TAs: tas})
+}
+
+func GeminiAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Exercise string `json:"exercise"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	messages := []map[string]string{
+		{"role": "user", "content": "Enhance this exercise by adding examples or sub-questions, making it more interesting, just give me the exercise and no other text. I just want the enhanced exercise in the same format as it is:\n" + req.Exercise},
+	}
+
+	// Use your existing function
+	modified := openAI.MakeRequestGeminiAnalyze(nil, messages)
+	if modified == "" {
+		http.Error(w, "Failed to get Gemini response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"modified": modified})
 }

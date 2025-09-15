@@ -8260,238 +8260,284 @@ var ADMIN_DASHBOARD = `
 </html>
 `
 
-var PROBLEM_FILE_UPLOAD_VIEW = `
-<!DOCTYPE html>
+var PROBLEM_FILE_UPLOAD_VIEW = `<!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Broadcast Problem</title>
-      <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadcast Problem</title>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" integrity="sha512-hGVnilhYD74EGnPbzyvje74/Urjrg5LSNGx0ARG1Ucqyiaz+lFvtsXk/1jCwT9/giXP0qoXSlVDjxNxjLvmqAw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" integrity="sha512-/mavDpedrvPG/0Grj2Ughxte/fsm42ZmZWWpHz1jCbzd5ECv8CB7PomGtw0NAnhHmE/lkDFkRMupjoohbKNA1Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" integrity="sha512-GAled7oA9WlRkBaUQlUEgxm37hf43V2KEMaEiWlvBO/ueP2BLvBLKN5tIJu4VZOTwo6Z4XvrojYngoN9dJw2ug==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" integrity="sha512-6sALqOPMrNSc+1p5xOhPwGIzs6kIlST+9oGWlI4Wwcbj1saaX9J3uzO3Vub016dmHV7hM+bMi/rfXLiF5DNIZg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" integrity="sha512-R6PH4vSzF2Yxjdvb2p2FA06yWul+U0PDDav4b/od/oXf9Iw37zl10plvwOXelrjV2Ai7Eo3vyHeyFUjhXdBCVQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-	  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-	<style>
-		.menu {
-			padding: 10px;
-			padding-left: 100px;
-		}
-		.content {
-			padding-top: 115px;
-		}
-		.topcorner{
-			position:absolute;
-			top:0;
-			right:0;
-		}
-	</style>
-	</head>
-   <body>
-   <div class="container">
-   <nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
-   <ul>
-		<li>
-			<a id="view-exercise-link" href="#">
-			<span class="icon is-small">
-				<i class="fas fa-home" aria-hidden="true"></i>
-			</span>
-			<span>Exercises</span>
-			</a>
-		</li>
-		<li class="is-active">
-			<a href="#">
-			<span class="icon is-small">
-				<i class="fas fa-book" aria-hidden="true"></i>
-			</span>
-			<span>Add a new exercise</span>
-			</a>
-		</li>
-		</ul>
-	</nav>
-	<div class="content">
-		<div id="problem" class="file is-centered is-boxed is-success has-name">
-				<label class="file-label">
-					<input class="file-input" type="file" name="resume">
-					<span class="file-cta">
-					<span class="file-icon">
-						<i class="fas fa-upload"></i>
-					</span>
-					<span class="file-label">
-						Select Exercise File
-					</span>
-					</span>
-				</label>
-			</div>
-		<div style="visibility:hidden;" id="editor-area">
-			<article class="message">
-					<div class="message-header">
-						<p><span id="filename"></span></p>
-					</div>
-					<div class="message-body">
-						<div>
-							<textarea id="editor"></textarea>
-						</div>
-					</div>
-				</article>
-		</div>
-		
-		<div id="answer" class="file is-centered is-info has-name">
-			<label class="file-label">
-			  <input class="file-input" type="file" name="resume">
-			  <span class="file-cta">
-				<span class="file-icon">
-				  <i class="fas fa-upload"></i>
-				</span>
-				<span class="file-label">
-				Select Answer File (if any)
-				</span>
-			  </span>
-			  <span id="answer_filename" class="file-name">
-				No file selected
-			  </span>
-			</label>
-		  </div>
-		<button style="visibility:hidden" id="submit" class="button is-success is-rounded">
-				<span class="icon is-small">
-					<i class="fas fa-check"></i>
-				</span>
-				<span>Broadcast</span>
-			</button>
-			<input type="hidden" id="points" value="">
-			<input type="hidden" id="effort" value="">
-			<input type="hidden" id="attempt" value="">
-			<input type="hidden" id="tag" value="">
-			<input type="hidden" id="exact_answer" value="">
-		</div>
-	</div>
-	<script>
-	$(document).ready(function(){
-		$('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
-	  });
-	document.querySelector('#problem input[type=file]').onchange = function(){
-		document.querySelector('#problem').style.visibility = "hidden";
-		var file = this.files[0];
-		document.querySelector('#filename').textContent = file.name;
-		var reader = new FileReader();
-		reader.onload = function(progressEvent){
-	  
-		  // By lines
-		  var lines = this.result.split('\n');
-		  var firstLine = lines[0];
-		  lines.splice(0, 1);
-		  var content = lines.join('\n');
-		  if (firstLine.length == 0 || (firstLine[0]!='#' && !firstLine.startsWith('//') )){
-			  alert("Invalid problem header!");
-			return;
-		  }
-		  var prefix = '';
-		  if (firstLine[0] == '#') {
-			  prefix = '#';
-			firstLine.replace("#", '');
-		  } else {
-			  prefix = '//';
-			firstLine.replace("//", '');
-		  }
-		  params = get_problem_info(firstLine);
-		//   alert(params[1]+" Points, "+params[2]+" for effort. Maximum attempts: " + params[3]);
-		 $('#editor-area').css('visibility', 'visible');
-		  document.querySelector('#editor').textContent = prefix + ' ' + params[1]+" Points, "+params[2]+" for effort. Maximum attempts: " + params[3] + "\n" + content;
-		  var editor = document.getElementById("editor");
-		  var myCodeMirror = CodeMirror.fromTextArea(editor, {lineNumbers: true, mode: get_editor_mode(file.name), theme: "monokai", matchBrackets: true, indentUnit: 4, indentWithTabs: true, readOnly: "nocursor"});
-		  myCodeMirror.setSize("100%", 400)
-		  $('#submit').css('visibility', 'visible');
-		  $('#points').val(params[1]);
-		  $('#effort').val(params[2]);
-		  $('#attempt').val(params[3]);
-		  $('#tag').val(params[4]);
-		};
-		reader.readAsText(file);
-	  };
-	  
-	  document.querySelector('#answer input[type=file]').onchange = function(){
-		// document.querySelector('#answer').style.visibility = "hidden";
-		var file = this.files[0];
-		document.querySelector('#answer_filename').textContent = file.name;
-		var reader = new FileReader();
-		reader.onload = function(progressEvent){
-	  
-		  $('#exact_answer').val(this.result);
-		};
-		reader.readAsText(file);
-	  };
+<!-- Font Awesome -->
+<script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
 
-	  function get_problem_info(content) {
-		  let regexpNames =  /\s*(\d+)\s+(\d+)\s+(\d+)(?:\s+(\w.*))?/mg;
-		let match = regexpNames.exec(content);
-		return match;
-	  }
-	  function get_editor_mode(filename) {
-		filename = filename.toLowerCase();
-		if (filename.endsWith('.py')) {
-			return "python";
-		}
-		if (filename.endsWith('.java')) {
-			return "text/x-java";
-		}
-		if (filename.endsWith('.cpp') || filename.endsWith('.c++') || filename.endsWith('.c')) {
-			return "text/x-c++src";
-		}
-		return "text";
-	  }
-	$(document).ready(function() {
-		$.ajaxSetup({
-			xhrFields: {
-			  withCredentials: true
-			}
-		});
-		$('#submit').click(function() {
+<!-- Bulma CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" crossorigin="anonymous"/>
+
+<!-- CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" crossorigin="anonymous"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" crossorigin="anonymous"></script>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+
+<style>
+.menu { padding: 10px; padding-left: 100px; }
+.content { padding-top: 115px; }
+.topcorner{ position:absolute; top:0; right:0; }
+.modal-card-body textarea { width: 100%; height: 300px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
+  <ul>
+    <li>
+      <a id="view-exercise-link" href="#">
+        <span class="icon is-small"><i class="fas fa-home" aria-hidden="true"></i></span>
+        <span>Exercises</span>
+      </a>
+    </li>
+    <li class="is-active">
+      <a href="#">
+        <span class="icon is-small"><i class="fas fa-book" aria-hidden="true"></i></span>
+        <span>Add a new exercise</span>
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<div class="content">
+
+  <!-- Exercise Upload -->
+  <div id="problem" class="file is-centered is-boxed is-success has-name">
+    <label class="file-label">
+      <input class="file-input" type="file" name="resume">
+      <span class="file-cta">
+        <span class="file-icon"><i class="fas fa-upload"></i></span>
+        <span class="file-label"> Select Exercise File </span>
+      </span>
+    </label>
+  </div>
+
+  <!-- CodeMirror Editor -->
+  <div style="visibility:hidden;" id="editor-area">
+    <article class="message">
+      <div class="message-header"><p><span id="filename"></span></p></div>
+      <div class="message-body">
+        <textarea id="editor"></textarea>
+      </div>
+    </article>
+  </div>
+
+  <!-- Answer Upload -->
+  <div id="answer" class="file is-centered is-info has-name">
+    <label class="file-label">
+      <input class="file-input" type="file" name="resume">
+      <span class="file-cta">
+        <span class="file-icon"><i class="fas fa-upload"></i></span>
+        <span class="file-label"> Select Answer File (if any) </span>
+      </span>
+      <span id="answer_filename" class="file-name"> No file selected </span>
+    </label>
+  </div>
+
+  <!-- Buttons -->
+  <button style="visibility:hidden" id="submit" class="button is-success is-rounded">
+    <span class="icon is-small"><i class="fas fa-check"></i></span>
+    <span>Broadcast</span>
+  </button>
+
+  <button id="enhance" class="button is-warning is-rounded" style="display:none; position: relative;">
+  <span class="icon is-small"><i class="fas fa-magic"></i></span>
+  <span>Enhance with AI</span>
+  <span id="gemini-spinner" class="icon is-small" style="display:none; position: absolute; right: 10px;">
+    <i class="fas fa-spinner fa-pulse"></i>
+  </span>
+</button>
+
+
+
+  <!-- Hidden Inputs -->
+  <input type="hidden" id="points" value="">
+  <input type="hidden" id="effort" value="">
+  <input type="hidden" id="attempt" value="">
+  <input type="hidden" id="tag" value="">
+  <input type="hidden" id="exact_answer" value="">
+
+</div>
+</div>
+
+<!-- Gemini Modal -->
+<div id="gemini-modal" class="modal">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">AI Suggested Exercise</p>
+      <button class="delete" aria-label="close" id="gemini-close"></button>
+    </header>
+    <section class="modal-card-body">
+      <textarea id="gemini-content"></textarea>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-success" id="broadcast-gemini">Broadcast Modified</button>
+      <button class="button" id="cancel-gemini">Cancel</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+$(document).ready(function(){
+  $('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
+
+  // Exercise file upload
+  document.querySelector('#problem input[type=file]').onchange = function(){
+    document.querySelector('#problem').style.visibility = "hidden";
+    var file = this.files[0];
+    document.querySelector('#filename').textContent = file.name;
+    var reader = new FileReader();
+    reader.onload = function(progressEvent){
+      var lines = this.result.split('\n');
+      var firstLine = lines[0];
+      lines.splice(0, 1);
+      var content = lines.join('\n');
+      if(firstLine.length == 0 || (firstLine[0]!='#' && !firstLine.startsWith('//'))) {
+        alert("Invalid problem header!");
+        return;
+      }
+      var prefix = firstLine[0] == '#' ? '#' : '//';
+      var params = get_problem_info(firstLine);
+      $('#editor-area').css('visibility','visible');
+      document.querySelector('#editor').textContent = prefix + ' ' + params[1]+" Points, "+params[2]+" for effort. Maximum attempts: " + params[3] + "\n" + content;
+      var editor = document.getElementById("editor");
+      var myCodeMirror = CodeMirror.fromTextArea(editor, {
+        lineNumbers: true, mode: get_editor_mode(file.name),
+        theme: "monokai", matchBrackets: true, indentUnit: 4, indentWithTabs: true,
+        readOnly: "nocursor"
+      });
+      myCodeMirror.setSize("100%",400)
+      $('#submit').css('visibility','visible');
+     $('#enhance').show();
+      $('#points').val(params[1]);
+      $('#effort').val(params[2]);
+      $('#attempt').val(params[3]);
+      $('#tag').val(params[4]);
+    };
+    reader.readAsText(file);
+  };
+
+  // Answer file upload
+  document.querySelector('#answer input[type=file]').onchange = function(){
+    var file = this.files[0];
+    document.querySelector('#answer_filename').textContent = file.name;
+    var reader = new FileReader();
+    reader.onload = function(progressEvent){
+      $('#exact_answer').val(this.result);
+    };
+    reader.readAsText(file);
+  };
+
+  function get_problem_info(content){
+    let regexpNames = /\s*(\d+)\s+(\d+)\s+(\d+)(?:\s+(\w.*))?/mg;
+    let match = regexpNames.exec(content);
+    return match;
+  }
+
+  function get_editor_mode(filename){
+    filename = filename.toLowerCase();
+    if(filename.endsWith('.py')) return "python";
+    if(filename.endsWith('.java')) return "text/x-java";
+    if(filename.endsWith('.cpp') || filename.endsWith('.c++') || filename.endsWith('.c')) return "text/x-c++src";
+    return "text";
+  }
+
+  // Broadcast original
+  $('#submit').click(function(){
     var editor = document.querySelector('.CodeMirror').CodeMirror;
     var uid = new URLSearchParams(window.location.search).get('uid');
-    var points = $('#points').val();
-    var effort = $('#effort').val();
-    var attempt = $('#attempt').val();
-    var tag = $('#tag').val();
-    var filename = $('#filename').text();
-    var answer = $('#exact_answer').val().trim();
-
     $.post("/teacher_broadcasts", {
-        role: "teacher", 
-        uid: uid, 
-        content: editor.getValue(), 
-        answer: answer, 
-        merit: points, 
-        effort: effort, 
-        attempts: attempt, 
-        tag: tag, 
-        filename: filename, 
-        exact_answer: "True"
-    })
-    .done(function(data, status, xhr) {
-        // Check if the request was successful (HTTP status 200)
-        if (xhr.status == 200) {
-            alert("Exercise broadcasted successfully!");
-            window.location.replace("/view_exercises?role=teacher&uid=" + uid);
-        }
-    })
-    .fail(function(xhr, status, error) {
-        // Handle failure, display the error message from the server
-        if (xhr.status === 400) {
-            alert(xhr.responseText); // This will show the error message sent by the server
-        } else {
-            alert("Failed to broadcast. Try again!");
+      role: "teacher",
+      uid: uid,
+      content: editor.getValue(),
+      answer: $('#exact_answer').val().trim(),
+      merit: $('#points').val(),
+      effort: $('#effort').val(),
+      attempts: $('#attempt').val(),
+      tag: $('#tag').val(),
+      filename: $('#filename').text(),
+      exact_answer: "True"
+    }).done(function(data,status,xhr){
+      if(xhr.status==200){
+        alert("Exercise broadcasted successfully!");
+        window.location.replace("/view_exercises?role=teacher&uid="+uid);
+      }
+    }).fail(function(){ alert("Failed to broadcast. Try again!"); });
+  });
+
+  // Enhance with Gemini
+  $('#enhance').click(function(){
+    var editor = document.querySelector('.CodeMirror').CodeMirror;
+    var currentExercise = editor.getValue();
+
+    // Show spinner
+    $('#gemini-spinner').show();
+    $('#enhance').prop('disabled', true);
+
+    $.ajax({
+        url: "/gemini_analyze",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({exercise: currentExercise}),
+        success: function(resp){
+            $('#gemini-content').val(resp.modified);
+            $('#gemini-modal').addClass('is-active');
+        },
+        error: function(){
+            alert("Failed to enhance exercise. Try again!");
+        },
+        complete: function(){
+            // Hide spinner after request completes
+            $('#gemini-spinner').hide();
+            $('#enhance').prop('disabled', false);
         }
     });
 });
 
-	});
-	
-	</script>
-   </body>
+
+  // Close modal
+  $('#gemini-close, #cancel-gemini').click(function(){
+    $('#gemini-modal').removeClass('is-active');
+  });
+
+  // Broadcast modified
+  $('#broadcast-gemini').click(function(){
+    var uid = new URLSearchParams(window.location.search).get('uid');
+    var content = $('#gemini-content').val();
+    $.post("/teacher_broadcasts", {
+      role: "teacher",
+      uid: uid,
+      content: content,
+      answer: $('#exact_answer').val().trim(),
+      merit: $('#points').val(),
+      effort: $('#effort').val(),
+      attempts: $('#attempt').val(),
+      tag: $('#tag').val(),
+      filename: $('#filename').text(),
+      exact_answer: "True"
+    }).done(function(data,status,xhr){
+      if(xhr.status==200){
+        alert("Modified exercise broadcasted successfully!");
+        window.location.replace("/view_exercises?role=teacher&uid="+uid);
+      }
+    }).fail(function(){ alert("Failed to broadcast. Try again!"); });
+  });
+
+});
+</script>
+</body>
 </html>
 `
 var CODE_SNAPSHOT_TAB_TEMPLATE = `
