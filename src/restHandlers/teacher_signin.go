@@ -126,17 +126,26 @@ func TeacherSigninHandler(w http.ResponseWriter, r *http.Request) {
 
 type SettingsData struct {
 	Username string
+	Students []string
+	TAs      []string
 }
 
 func SettingsViewHandler(w http.ResponseWriter, r *http.Request) {
 	username := models.LoggedInTeacher
-	data := SettingsData{Username: username}
-	temp := template.New("")
+
+	data := SettingsData{
+		Username: username,
+		Students: nil,
+		TAs:      nil,
+	}
+
+	temp := template.New("settings")
 	t, err := temp.Parse(frontEnd.SETTINGS_VIEW)
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Header().Set("Content-Type", "Text/html")
+
+	w.Header().Set("Content-Type", "text/html")
 	err = t.Execute(w, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

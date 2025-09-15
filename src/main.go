@@ -9,6 +9,7 @@ import (
 	"github.com/GPTA/src/Grade"
 	"github.com/GPTA/src/ai"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -132,10 +133,20 @@ func init_handlers() {
 	http.HandleFunc("/add_students", restHandlers.AddStudentsHandler)
 	http.HandleFunc("/get_feedback_list", openAI.ListFeedbackHistoryByProblemID)
 	http.HandleFunc("/add_api_key", openAI.AddAPIKey)
+	http.HandleFunc("/get_participants", GetParticipantsHandler)
+
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/data", ai.HandleMergedData)
 	http.HandleFunc("/analyse_view", restHandlers.AnalyseViewHandler)
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontEnd/assets"))))
+	wd, _ := os.Getwd()
+	assetsDir := filepath.Join(wd, "src", "frontEnd", "assets") // note "src"
+	fs := http.FileServer(http.Dir(assetsDir))
+
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Asset request:", r.URL.Path)
+		fs.ServeHTTP(w, r)
+	})))
+
 	http.HandleFunc("/grade", Grade.HandleGradeSubmission)
 
 }
@@ -198,7 +209,7 @@ func init_config(filename string) *models.Configuration {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	rand.Seed(time.Now().UnixNano())
-	config_file := "../Examples/gem_config.json"
+	config_file := "./Examples/gem_config.json"
 	ai_prompts_file := "./prompts"
 	flag.StringVar(&config_file, "c", config_file, "json-formatted configuration file.")
 	flag.Parse()
@@ -428,4 +439,45 @@ func ReloadGlobalMaps() error {
 	}
 
 	return nil
+}
+
+type ParticipantsResponse struct {
+	Students []string `json:"students"`
+	TAs      []string `json:"tas"`
+}
+
+func GetParticipantsHandler(w http.ResponseWriter, r *http.Request) {
+	courseID := r.URL.Query().Get("course_id")
+	if courseID == "" {
+		http.Error(w, "Missing course_id", http.StatusBadRequest)
+		return
+	}
+
+	var students []string
+	var tas []string
+
+	// Students
+	if err := models.DB.
+		Table("students").
+		Select("students.name").
+		Joins("JOIN student_classes ON student_classes.student_id = students.id").
+		Where("student_classes.course_id = ?", courseID).
+		Pluck("students.name", &students).Error; err != nil {
+		http.Error(w, "Failed to fetch students", http.StatusInternalServerError)
+		return
+	}
+
+	// TAs
+	if err := models.DB.
+		Table("teachers").
+		Select("teachers.name").
+		Joins("JOIN teacher_classes ON teacher_classes.teacher_id = teachers.id").
+		Where("teacher_classes.course_id = ?", courseID).
+		Pluck("teachers.name", &tas).Error; err != nil {
+		http.Error(w, "Failed to fetch TAs", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ParticipantsResponse{Students: students, TAs: tas})
 }

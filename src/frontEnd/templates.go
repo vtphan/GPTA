@@ -6369,10 +6369,14 @@ var PROBLEM_LIST_TEMPLATE = `
         {{range .Problems}}
         <tr>
           <td>
-            <a href="/analyse_view?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
-              {{.Filename}}
-            </a>
-          </td>
+  {{if eq $.UserRole "student"}}
+    <span style="color: #374151;">{{.Filename}}</span>
+  {{else}}
+    <a href="/analyse_view?problem_id={{.ID}}&uid={{$.UserID}}&role={{$.UserRole}}{{if ne $.Password ""}}&password={{$.Password}}{{end}}">
+      {{.Filename}}
+    </a>
+  {{end}}
+</td>
           <td>{{ .UploadedAt.Format "Jan 02, 2006 3:04:05 PM" }}</td>
           <td>{{.Attendance}}</td>
           <td>{{.NumActive}}</td>
@@ -7417,10 +7421,12 @@ var SETTINGS_VIEW = `
       background: #fff;
       border-radius: 10px;
       padding: 30px;
-      max-width: 900px;
+      max-width: 1080px;
       width: 100%;
       box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
       text-align: center;
+      margin-top: 20px;
+      margin-bottom: 20px; 
     }
     .dashboard-box .title {
       font-size: 1.8rem;
@@ -7568,6 +7574,54 @@ var SETTINGS_VIEW = `
       grid-template-columns: 1fr; /* Single column on small screens */
     }
   }
+
+.scroll-box {
+  max-height: 250px;   /* Adjust this to match other grid item height */
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  flex-grow: 1;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+/* Custom scrollbar */
+.scroll-box ul::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-box ul::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
+}
+.scroll-box ul::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
+
+.styled-list li {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.styled-list li:last-child {
+  border-bottom: none;
+}
+
+.styled-list li i {
+  margin-right: 8px;
+  color: cornflowerblue;
+}
+
   </style>
 </head>
 <body>
@@ -7599,10 +7653,10 @@ var SETTINGS_VIEW = `
 
     <!-- Add Students to Course -->
     <div class="grid-item">
-      <h4>Add Students to Course</h4>
-      <input id="student-names" class="input" placeholder="Enter Comma Separated Names">
-      <button class="button is-primary" id="add-students-btn">Add Students</button>
-    </div>
+  <h4>Add Students to Course</h4>
+  <textarea id="student-names" class="textarea" placeholder="Enter student IDs, separated by comma or newline"></textarea>
+  <button class="button is-primary" id="add-students-btn">Add Students</button>
+</div>
 
     <!-- Add Course -->
     <div class="grid-item">
@@ -7611,6 +7665,38 @@ var SETTINGS_VIEW = `
       <p class="help is-info">Example: <strong>S2025_COMP7712_01</strong></p>
       <button class="button is-primary" id="add-course-btn">Add Course</button>
     </div>
+
+<div class="grid-item scroll-box">
+  <h4>Current Students</h4>
+  <ul id="student-list" class="styled-list">
+    {{if .Students}}
+      {{range .Students}}
+        <li><i class='fas fa-user'></i> {{.}}</li>
+      {{end}}
+    {{else}}
+      <li style="color: #888; font-style: italic;">
+        Please select a course to view students
+      </li>
+    {{end}}
+  </ul>
+</div>
+
+<div class="grid-item scroll-box">
+  <h4>Current TAs</h4>
+  <ul id="ta-list" class="styled-list">
+    {{if .TAs}}
+      {{range .TAs}}
+        <li><i class='fas fa-user-tie'></i> {{.}}</li>
+      {{end}}
+    {{else}}
+      <li style="color: #888; font-style: italic;">
+        Please select a course to view TAs
+      </li>
+    {{end}}
+  </ul>
+</div>
+
+
 
     <!-- Peer Tutoring -->
     
@@ -7688,16 +7774,44 @@ $(document).ready(function () {
         alert("Failed to load courses.");
     });
 
-    // Handle course selection (change URL without navigation)
     $('#course-dropdown').change(function () {
-        let courseID = $(this).val();
-        if (courseID) {
-            // Change the URL without navigating
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('course_id', courseID);
-            history.pushState({}, '', currentUrl); // This updates the URL in the browser
-        }
-    });
+    let courseID = $(this).val();
+    if (courseID) {
+        // Update URL
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('course_id', courseID);
+        history.pushState({}, '', currentUrl);
+
+        // Fetch participants
+        $.get('/get_participants?course_id=' + courseID, function (data) {
+            let studentList = $('#student-list');
+            let taList = $('#ta-list');
+
+            studentList.empty();
+            taList.empty();
+
+            // Students
+            if (data.students && data.students.length > 0) {
+                data.students.forEach(s => {
+                    studentList.append("<li><i class='fas fa-user'></i> " + s + "</li>");
+                });
+            } else {
+                studentList.append("<li style='color:#888;font-style:italic;'>No students enrolled yet</li>");
+            }
+
+            // TAs
+            if (data.tas && data.tas.length > 0) {
+                data.tas.forEach(t => {
+                    taList.append("<li><i class='fas fa-user-tie'></i> " + t + "</li>");
+                });
+            } else {
+                taList.append("<li style='color:#888;font-style:italic;'>No TAs assigned yet</li>");
+            }
+        }).fail(function () {
+            alert("Failed to load participants.");
+        });
+    }
+});
 
     // Handle "View Exercises" button click (trigger navigation)
     $('#view-exercises-btn').click(function () {
@@ -7771,7 +7885,10 @@ alert("Please Select a course");
 return;
 }
 
-        let studentsArray = studentNames.split(',').map(name => name.trim()).filter(name => name !== "");
+        let studentsArray = studentNames
+    .split(/[\n,]+/)   // split on newline OR comma
+    .map(name => name.trim())
+    .filter(name => name !== "");
 
         if (studentsArray.length === 0) {
             alert("Please enter valid student names.");
@@ -7790,6 +7907,7 @@ return;
             success: function(response) {
                 alert(response.message || "Students added successfully");
                 $('#student-names').val(''); // Clear input field
+				 $('#course-dropdown').trigger('change');
             },
             error: function(xhr, status, error) {
                 alert("Failed to add students: " + xhr.responseText);
@@ -8129,6 +8247,7 @@ var ADMIN_DASHBOARD = `
               // Clear input fields after successful addition
               $('#teacher-name').val('');
               $('#teacher-pass').val('');
+		      $('#course-dropdown').trigger('change');
             },
             error: function (xhr, status, error) {
               alert("Failed to add teacher: " + xhr.responseText);
@@ -9699,8 +9818,8 @@ var ANALYSIS_TEMPLATE = `
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeInsight</title>
-    <script type="module" crossorigin src="./assets/index.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index3.css">
+    <script type="module" crossorigin src="/assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index3.css">
   </head>
   <body>
     <div id="root"></div>
