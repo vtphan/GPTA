@@ -489,16 +489,26 @@ func GeminiAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Updated struct to accept the prompt from the frontend
 	var req struct {
 		Exercise string `json:"exercise"`
+		Prompt   string `json:"prompt"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	// Check if the prompt or exercise is empty
+	if req.Prompt == "" || req.Exercise == "" {
+		http.Error(w, "Exercise and prompt cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// Use the prompt from the request body instead of a hardcoded one
 	messages := []map[string]string{
-		{"role": "user", "content": "Enhance this exercise by adding examples or sub-questions, making it more interesting, just give me the exercise and no other text. I just want the enhanced exercise in the same format as it is:\n" + req.Exercise},
+		{"role": "user", "content": req.Prompt + "\n" + req.Exercise},
 	}
 
 	// Use your existing function

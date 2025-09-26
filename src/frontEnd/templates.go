@@ -8263,283 +8263,286 @@ var ADMIN_DASHBOARD = `
 var PROBLEM_FILE_UPLOAD_VIEW = `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Broadcast Problem</title>
-
-<!-- Font Awesome -->
-<script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
-
-<!-- Bulma CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" crossorigin="anonymous"/>
-
-<!-- CodeMirror -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" crossorigin="anonymous"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" crossorigin="anonymous"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" crossorigin="anonymous"></script>
-
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
-
-<style>
-.menu { padding: 10px; padding-left: 100px; }
-.content { padding-top: 115px; }
-.topcorner{ position:absolute; top:0; right:0; }
-.modal-card-body textarea { width: 100%; height: 300px; }
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Broadcast Problem</title>
+    <script src="https://kit.fontawesome.com/923539b4ee.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/theme/monokai.min.css" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/python/python.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/clike/clike.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+    <style>
+        .menu { padding: 10px; padding-left: 100px; }
+        .content { padding-top: 115px; }
+        .topcorner{ position:absolute; top:0; right:0; }
+        .modal-card-body textarea { width: 100%; height: 300px; }
+    </style>
 </head>
 <body>
-<div class="container">
+    <div class="container">
+        <nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a id="view-exercise-link" href="#">
+                        <span class="icon is-small"><i class="fas fa-home" aria-hidden="true"></i></span>
+                        <span>Exercises</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                        <span class="icon is-small"><i class="fas fa-book" aria-hidden="true"></i></span>
+                        <span>Add a new exercise</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="content">
+            <div id="problem" class="file is-centered is-boxed is-success has-name">
+                <label class="file-label">
+                    <input class="file-input" type="file" name="resume">
+                    <span class="file-cta">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label"> Select Exercise File </span>
+                    </span>
+                </label>
+            </div>
+            <div style="visibility:hidden;" id="editor-area">
+                <article class="message">
+                    <div class="message-header"><p><span id="filename"></span></p></div>
+                    <div class="message-body">
+                        <textarea id="editor"></textarea>
+                    </div>
+                </article>
+            </div>
+            <div id="answer" class="file is-centered is-info has-name">
+                <label class="file-label">
+                    <input class="file-input" type="file" name="resume">
+                    <span class="file-cta">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label"> Select Answer File (if any) </span>
+                    </span>
+                    <span id="answer_filename" class="file-name"> No file selected </span>
+                </label>
+            </div>
+            
+            <div id="gemini-prompt-area" style="display:none; margin-top: 20px;">
+                <div class="field">
+                    <label class="label">AI Enhancement Prompt</label>
+                    <div class="control">
+                        <textarea id="gemini-prompt" class="textarea" placeholder="Enter your prompt for the AI here..."></textarea>
+                    </div>
+                </div>
+            </div>
 
-<nav class="navbar is-fixed-top breadcrumb menu" role="navigation" aria-label="breadcrumbs">
-  <ul>
-    <li>
-      <a id="view-exercise-link" href="#">
-        <span class="icon is-small"><i class="fas fa-home" aria-hidden="true"></i></span>
-        <span>Exercises</span>
-      </a>
-    </li>
-    <li class="is-active">
-      <a href="#">
-        <span class="icon is-small"><i class="fas fa-book" aria-hidden="true"></i></span>
-        <span>Add a new exercise</span>
-      </a>
-    </li>
-  </ul>
-</nav>
-
-<div class="content">
-
-  <!-- Exercise Upload -->
-  <div id="problem" class="file is-centered is-boxed is-success has-name">
-    <label class="file-label">
-      <input class="file-input" type="file" name="resume">
-      <span class="file-cta">
-        <span class="file-icon"><i class="fas fa-upload"></i></span>
-        <span class="file-label"> Select Exercise File </span>
-      </span>
-    </label>
-  </div>
-
-  <!-- CodeMirror Editor -->
-  <div style="visibility:hidden;" id="editor-area">
-    <article class="message">
-      <div class="message-header"><p><span id="filename"></span></p></div>
-      <div class="message-body">
-        <textarea id="editor"></textarea>
-      </div>
-    </article>
-  </div>
-
-  <!-- Answer Upload -->
-  <div id="answer" class="file is-centered is-info has-name">
-    <label class="file-label">
-      <input class="file-input" type="file" name="resume">
-      <span class="file-cta">
-        <span class="file-icon"><i class="fas fa-upload"></i></span>
-        <span class="file-label"> Select Answer File (if any) </span>
-      </span>
-      <span id="answer_filename" class="file-name"> No file selected </span>
-    </label>
-  </div>
-
-  <!-- Buttons -->
-  <button style="visibility:hidden" id="submit" class="button is-success is-rounded">
-    <span class="icon is-small"><i class="fas fa-check"></i></span>
-    <span>Broadcast</span>
-  </button>
-
-  <button id="enhance" class="button is-warning is-rounded" style="display:none; position: relative;">
-  <span class="icon is-small"><i class="fas fa-magic"></i></span>
-  <span>Enhance with AI</span>
-  <span id="gemini-spinner" class="icon is-small" style="display:none; position: absolute; right: 10px;">
-    <i class="fas fa-spinner fa-pulse"></i>
-  </span>
-</button>
-
-
-
-  <!-- Hidden Inputs -->
-  <input type="hidden" id="points" value="">
-  <input type="hidden" id="effort" value="">
-  <input type="hidden" id="attempt" value="">
-  <input type="hidden" id="tag" value="">
-  <input type="hidden" id="exact_answer" value="">
-
-</div>
-</div>
-
-<!-- Gemini Modal -->
-<div id="gemini-modal" class="modal">
-  <div class="modal-background"></div>
-  <div class="modal-card">
-    <header class="modal-card-head">
-      <p class="modal-card-title">AI Suggested Exercise</p>
-      <button class="delete" aria-label="close" id="gemini-close"></button>
-    </header>
-    <section class="modal-card-body">
-      <textarea id="gemini-content"></textarea>
-    </section>
-    <footer class="modal-card-foot">
-      <button class="button is-success" id="broadcast-gemini">Broadcast Modified</button>
-      <button class="button" id="cancel-gemini">Cancel</button>
-    </footer>
-  </div>
-</div>
-
+            <div id="buttons-area" style="margin-top:20px; visibility:hidden;">
+                 <button id="submit" class="button is-success is-rounded">
+                    <span class="icon is-small"><i class="fas fa-check"></i></span>
+                    <span>Broadcast</span>
+                </button>
+                <button id="enhance" class="button is-warning is-rounded" style="position: relative;">
+                    <span class="icon is-small"><i class="fas fa-magic"></i></span>
+                    <span>Enhance with AI</span>
+                    <span id="gemini-spinner" class="icon is-small" style="display:none; position: absolute; right: 10px;">
+                        <i class="fas fa-spinner fa-pulse"></i>
+                    </span>
+                </button>
+            </div>
+           
+            <input type="hidden" id="points" value="">
+            <input type="hidden" id="effort" value="">
+            <input type="hidden" id="attempt" value="">
+            <input type="hidden" id="tag" value="">
+            <input type="hidden" id="exact_answer" value="">
+        </div>
+    </div>
+    <div id="gemini-modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">AI Suggested Exercise</p>
+                <button class="delete" aria-label="close" id="gemini-close"></button>
+            </header>
+            <section class="modal-card-body">
+                <textarea id="gemini-content"></textarea>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="broadcast-gemini">Broadcast Modified</button>
+                <button class="button" id="cancel-gemini">Cancel</button>
+            </footer>
+        </div>
+    </div>
 <script>
 $(document).ready(function(){
-  $('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
+    const defaultGeminiPrompt = "Enhance this exercise by adding examples or sub-questions, making it more interesting. Just give me the enhanced exercise and no other text. I just want the enhanced exercise in the same format as it is:";
+    
+    $('#gemini-prompt').val(defaultGeminiPrompt);
 
-  // Exercise file upload
-  document.querySelector('#problem input[type=file]').onchange = function(){
-    document.querySelector('#problem').style.visibility = "hidden";
-    var file = this.files[0];
-    document.querySelector('#filename').textContent = file.name;
-    var reader = new FileReader();
-    reader.onload = function(progressEvent){
-      var lines = this.result.split('\n');
-      var firstLine = lines[0];
-      lines.splice(0, 1);
-      var content = lines.join('\n');
-      if(firstLine.length == 0 || (firstLine[0]!='#' && !firstLine.startsWith('//'))) {
-        alert("Invalid problem header!");
-        return;
-      }
-      var prefix = firstLine[0] == '#' ? '#' : '//';
-      var params = get_problem_info(firstLine);
-      $('#editor-area').css('visibility','visible');
-      document.querySelector('#editor').textContent = prefix + ' ' + params[1]+" Points, "+params[2]+" for effort. Maximum attempts: " + params[3] + "\n" + content;
-      var editor = document.getElementById("editor");
-      var myCodeMirror = CodeMirror.fromTextArea(editor, {
-        lineNumbers: true, mode: get_editor_mode(file.name),
-        theme: "monokai", matchBrackets: true, indentUnit: 4, indentWithTabs: true,
-        readOnly: "nocursor"
-      });
-      myCodeMirror.setSize("100%",400)
-      $('#submit').css('visibility','visible');
-     $('#enhance').show();
-      $('#points').val(params[1]);
-      $('#effort').val(params[2]);
-      $('#attempt').val(params[3]);
-      $('#tag').val(params[4]);
+    $('#view-exercise-link').attr("href", "/view_exercises"+window.location.search);
+    
+    // Exercise file upload
+    document.querySelector('#problem input[type=file]').onchange = function(){
+        document.querySelector('#problem').style.visibility = "hidden";
+        var file = this.files[0];
+        document.querySelector('#filename').textContent = file.name;
+        var reader = new FileReader();
+        reader.onload = function(progressEvent){
+            // CORRECTED: Use single backslash '\n' for newlines
+            var lines = this.result.split('\n');
+            var firstLine = lines[0];
+            lines.splice(0, 1);
+            var content = lines.join('\n');
+            if(firstLine.length == 0 || (firstLine[0]!='#' && !firstLine.startsWith('//'))) {
+                alert("Invalid problem header!");
+                return;
+            }
+            var prefix = firstLine[0] == '#' ? '#' : '//';
+            var params = get_problem_info(firstLine);
+            $('#editor-area').css('visibility','visible');
+            // CORRECTED: Use single backslash '\n' for newlines
+            document.querySelector('#editor').textContent = prefix + ' ' + params[1]+" Points, "+params[2]+" for effort. Maximum attempts: " + params[3] + "\n" + content;
+            var editor = document.getElementById("editor");
+            var myCodeMirror = CodeMirror.fromTextArea(editor, {
+                lineNumbers: true,
+                mode: get_editor_mode(file.name),
+                theme: "monokai",
+                matchBrackets: true,
+                indentUnit: 4,
+                indentWithTabs: true,
+                readOnly: "nocursor"
+            });
+            myCodeMirror.setSize("100%",400)
+            $('#buttons-area').css('visibility','visible');
+            $('#gemini-prompt-area').show();
+            $('#points').val(params[1]);
+            $('#effort').val(params[2]);
+            $('#attempt').val(params[3]);
+            $('#tag').val(params[4]);
+        };
+        reader.readAsText(file);
     };
-    reader.readAsText(file);
-  };
-
-  // Answer file upload
-  document.querySelector('#answer input[type=file]').onchange = function(){
-    var file = this.files[0];
-    document.querySelector('#answer_filename').textContent = file.name;
-    var reader = new FileReader();
-    reader.onload = function(progressEvent){
-      $('#exact_answer').val(this.result);
+    
+    // Answer file upload
+    document.querySelector('#answer input[type=file]').onchange = function(){
+        var file = this.files[0];
+        document.querySelector('#answer_filename').textContent = file.name;
+        var reader = new FileReader();
+        reader.onload = function(progressEvent){
+            $('#exact_answer').val(this.result);
+        };
+        reader.readAsText(file);
     };
-    reader.readAsText(file);
-  };
 
-  function get_problem_info(content){
-    let regexpNames = /\s*(\d+)\s+(\d+)\s+(\d+)(?:\s+(\w.*))?/mg;
-    let match = regexpNames.exec(content);
-    return match;
-  }
+    function get_problem_info(content){
+        // CORRECTED: Use single backslash '\s' for whitespace
+        let regexpNames = /\s*(\d+)\s+(\d+)\s+(\d+)(?:\s+(\w.*))?/mg;
+        let match = regexpNames.exec(content);
+        return match;
+    }
 
-  function get_editor_mode(filename){
-    filename = filename.toLowerCase();
-    if(filename.endsWith('.py')) return "python";
-    if(filename.endsWith('.java')) return "text/x-java";
-    if(filename.endsWith('.cpp') || filename.endsWith('.c++') || filename.endsWith('.c')) return "text/x-c++src";
-    return "text";
-  }
+    function get_editor_mode(filename){
+        filename = filename.toLowerCase();
+        if(filename.endsWith('.py')) return "python";
+        if(filename.endsWith('.java')) return "text/x-java";
+        if(filename.endsWith('.cpp') || filename.endsWith('.c++') || filename.endsWith('.c')) return "text/x-c++src";
+        return "text";
+    }
 
-  // Broadcast original
-  $('#submit').click(function(){
-    var editor = document.querySelector('.CodeMirror').CodeMirror;
-    var uid = new URLSearchParams(window.location.search).get('uid');
-    $.post("/teacher_broadcasts", {
-      role: "teacher",
-      uid: uid,
-      content: editor.getValue(),
-      answer: $('#exact_answer').val().trim(),
-      merit: $('#points').val(),
-      effort: $('#effort').val(),
-      attempts: $('#attempt').val(),
-      tag: $('#tag').val(),
-      filename: $('#filename').text(),
-      exact_answer: "True"
-    }).done(function(data,status,xhr){
-      if(xhr.status==200){
-        alert("Exercise broadcasted successfully!");
-        window.location.replace("/view_exercises?role=teacher&uid="+uid);
-      }
-    }).fail(function(){ alert("Failed to broadcast. Try again!"); });
-  });
-
-  // Enhance with Gemini
-  $('#enhance').click(function(){
-    var editor = document.querySelector('.CodeMirror').CodeMirror;
-    var currentExercise = editor.getValue();
-
-    // Show spinner
-    $('#gemini-spinner').show();
-    $('#enhance').prop('disabled', true);
-
-    $.ajax({
-        url: "/gemini_analyze",
-        method: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({exercise: currentExercise}),
-        success: function(resp){
-            $('#gemini-content').val(resp.modified);
-            $('#gemini-modal').addClass('is-active');
-        },
-        error: function(){
-            alert("Failed to enhance exercise. Try again!");
-        },
-        complete: function(){
-            // Hide spinner after request completes
-            $('#gemini-spinner').hide();
-            $('#enhance').prop('disabled', false);
-        }
+    // Broadcast original
+    $('#submit').click(function(){
+        var editor = document.querySelector('.CodeMirror').CodeMirror;
+        var uid = new URLSearchParams(window.location.search).get('uid');
+        $.post("/teacher_broadcasts", {
+            role: "teacher",
+            uid: uid,
+            content: editor.getValue(),
+            answer: $('#exact_answer').val().trim(),
+            merit: $('#points').val(),
+            effort: $('#effort').val(),
+            attempts: $('#attempt').val(),
+            tag: $('#tag').val(),
+            filename: $('#filename').text(),
+            exact_answer: "True"
+        }).done(function(data,status,xhr){
+            if(xhr.status==200){
+                alert("Exercise broadcasted successfully!");
+                window.location.replace("/view_exercises?role=teacher&uid="+uid);
+            }
+        }).fail(function(){
+            alert("Failed to broadcast. Try again!");
+        });
     });
-});
 
+    // Enhance with Gemini
+    $('#enhance').click(function(){
+        var editor = document.querySelector('.CodeMirror').CodeMirror;
+        var currentExercise = editor.getValue();
+        var currentPrompt = $('#gemini-prompt').val(); // Get the prompt from the textarea
+        
+        if (!currentPrompt.trim()) {
+            alert("Please enter a prompt for the AI.");
+            return;
+        }
 
-  // Close modal
-  $('#gemini-close, #cancel-gemini').click(function(){
-    $('#gemini-modal').removeClass('is-active');
-  });
+        $('#gemini-spinner').show();
+        $('#enhance').prop('disabled', true);
 
-  // Broadcast modified
-  $('#broadcast-gemini').click(function(){
-    var uid = new URLSearchParams(window.location.search).get('uid');
-    var content = $('#gemini-content').val();
-    $.post("/teacher_broadcasts", {
-      role: "teacher",
-      uid: uid,
-      content: content,
-      answer: $('#exact_answer').val().trim(),
-      merit: $('#points').val(),
-      effort: $('#effort').val(),
-      attempts: $('#attempt').val(),
-      tag: $('#tag').val(),
-      filename: $('#filename').text(),
-      exact_answer: "True"
-    }).done(function(data,status,xhr){
-      if(xhr.status==200){
-        alert("Modified exercise broadcasted successfully!");
-        window.location.replace("/view_exercises?role=teacher&uid="+uid);
-      }
-    }).fail(function(){ alert("Failed to broadcast. Try again!"); });
-  });
+        $.ajax({
+            url: "/gemini_analyze",
+            method: "POST",
+            contentType: "application/json",
+            // Send both the exercise and the prompt
+            data: JSON.stringify({exercise: currentExercise, prompt: currentPrompt}),
+            success: function(resp){
+                $('#gemini-content').val(resp.modified);
+                $('#gemini-modal').addClass('is-active');
+            },
+            error: function(){
+                alert("Failed to enhance exercise. Try again!");
+            },
+            complete: function(){
+                $('#gemini-spinner').hide();
+                $('#enhance').prop('disabled', false);
+            }
+        });
+    });
 
+    // Close modal
+    $('#gemini-close, #cancel-gemini').click(function(){
+        $('#gemini-modal').removeClass('is-active');
+    });
+
+    // Broadcast modified
+    $('#broadcast-gemini').click(function(){
+        var uid = new URLSearchParams(window.location.search).get('uid');
+        var content = $('#gemini-content').val();
+        $.post("/teacher_broadcasts", {
+            role: "teacher",
+            uid: uid,
+            content: content,
+            answer: $('#exact_answer').val().trim(),
+            merit: $('#points').val(),
+            effort: $('#effort').val(),
+            attempts: $('#attempt').val(),
+            tag: $('#tag').val(),
+            filename: $('#filename').text(),
+            exact_answer: "True"
+        }).done(function(data,status,xhr){
+            if(xhr.status==200){
+                alert("Modified exercise broadcasted successfully!");
+                window.location.replace("/view_exercises?role=teacher&uid="+uid);
+            }
+        }).fail(function(){
+            alert("Failed to broadcast. Try again!");
+        });
+    });
 });
 </script>
 </body>
-</html>
-`
+</html>`
+
 var CODE_SNAPSHOT_TAB_TEMPLATE = `
 	<!DOCTYPE html>
 	<html lang="en">
