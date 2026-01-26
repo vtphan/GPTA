@@ -1,0 +1,36 @@
+Generate 3 variations of this problem using the fill-in-the-blanks scaffolding technique, tailored to different student skill levels: 
+(struggling, developing, nearly_proficient).
+
+Each variation must be a complete, self-contained problem description that students can understand without additional context.
+
+For each variation, include the following:
+1. A clear problem statement with an example of input and output.
+2. A brief "Purpose" explaining why this skill matters and its real-world application.
+3. The code with strategically placed blanks (e.g., ___1___, ___2___, etc.). The blanks should correspond to missing code sections that the student needs to fill in.
+   - Start with a highly scaffolded version with small blanks and a word bank for support.
+   - Gradually reduce support in later versions by removing the word bank and providing entire missing blocks of code.
+4. Label each blank (e.g., ___1___) and provide appropriate hints to guide students.
+5. Include assessment criteria to evaluate students' work, such as correctness, completeness, and clarity.
+6. Add 1-2 reflection questions that encourage students to think about the reasoning behind their choices.
+7. Clearly label each version with its corresponding skill level (struggling, developing, nearly_proficient) and provide an estimated time for completion.
+
+Return the response strictly in **JSON format** as shown below:
+
+{
+  "struggling": "The generated scaffolding for struggling students",
+  "developing": "The generated scaffolding for developing students",
+  "nearly_proficient": "The generated scaffolding for nearly proficient students"
+}
+
+Ensure that the JSON is **valid**:
+- The output **must pass the following check**:
+
+  if !json.Valid([]byte(extractedJSON)) {
+      c.JSON(http.StatusInternalServerError, gin.H{"error": "Extracted JSON is not valid"})
+      return
+  }
+- Only include valid key-value pairs for "struggling", "developing", and "nearly_proficient".
+- Do not include any additional text, formatting, or explanations outside of the JSON structure.
+- The JSON keys must exactly match "strugglin", "developing", and "nearly_proficient".
+- The output should be **pure JSON** with no extra characters, sentences, or formatting.
+- dont even write "Here is my attempt at the scaffolded solutions in valid JSON format:" just give the json object

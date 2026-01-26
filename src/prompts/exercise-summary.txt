@@ -1,0 +1,5 @@
+"You are given multiple code submissions from students. Your task is to:\n\n1. 
+Identify recurring errors, misconceptions, and logic mistakes across these submissions.\n2. 
+Explain why these mistakes occur and how they can be corrected.\n3. 
+Suggest teaching strategies or lesson improvements to address the underlying misconceptions.\n4. 
+Categorize similar mistakes together and provide concise, clear explanations.\n5. Focus on syntax, logical, and conceptual errors.\n6. Conclude with a 'Key Takeaways' section summarizing the most important issues and recommendations.\n\n"

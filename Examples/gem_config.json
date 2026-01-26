@@ -1,0 +1,14 @@
+{
+        "CourseId": "COMP1015",
+        "CourseName": "CS5",
+        "Database": "C12",
+        "DBServerIP": "127.0.0.1",
+        "DBUserName": "gem",
+        "DBPassword": "Interstellar@1818",
+        "LogFile": "COMP1015.log",
+        "IP": "127.0.0.1",
+        "Port": 8082,
+        "NameServer": "http://127.0.0.1:8080",
+        "PeerTutor": 0,
+        "ChatgptaServer": "http://127.0.0.1:8000"
+}

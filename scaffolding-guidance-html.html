@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Guidance: Selecting Appropriate Scaffolding Techniques</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .toc {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+        .toc h2 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .toc ul {
+            padding-left: 20px;
+        }
+        .toc a {
+            text-decoration: none;
+            color: #3498db;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .technique {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 5px 5px 0;
+        }
+        .what {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .when {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instructor Guidance: Selecting Appropriate Scaffolding Techniques</h1>
+    
+    <div class="toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#fill-in-the-blanks">Fill-in-the-Blanks</a></li>
+            <li><a href="#step-by-step">Step-by-Step Task Guide</a></li>
+            <li><a href="#guided-code">Guided Code with Hints</a></li>
+            <li><a href="#debugging">Interactive Debugging Guide</a></li>
+            <li><a href="#progressive">Progressive Enhancement</a></li>
+            <li><a href="#decision-framework">Decision Framework</a></li>
+        </ul>
+    </div>
+
+    <div class="technique">
+        <h2 id="fill-in-the-blanks">Fill-in-the-Blanks</h2>
+        <p class="what">What: Code framework with strategic gaps for students to complete specific portions.</p>
+        <p class="when">When to Use:</p>
+        <ul>
+            <li>Student shows basic syntax understanding but struggles with implementing specific concepts</li>
+            <li>Student appears overwhelmed by starting from scratch</li>
+            <li>Code patterns need reinforcement without rewriting everything</li>
+            <li>Student's code shows they understand the overall approach but miss crucial elements</li>
+        </ul>
+    </div>
+
+    <div class="technique">
+        <h2 id="step-by-step">Step-by-Step Task Guide</h2>
+        <p class="what">What: Sequential breakdown of the solution process into manageable parts.</p>
+        <p class="when">When to Use:</p>
+        <ul>
+            <li>Student doesn't know where to begin</li>
+            <li>Student's code shows haphazard approach without clear sequence</li>
+            <li>Problem requires a methodical approach that isn't obvious</li>
+            <li>Student needs practice in breaking down complex problems</li>
+            <li>Student is trying to solve everything at once and getting lost</li>
+        </ul>
+    </div>
+
+    <div class="technique">
+        <h2 id="guided-code">Guided Code with Hints</h2>
+        <p class="what">What: Partial implementation with TODO comments and hints about implementation.</p>
+        <p class="when">When to Use:</p>
+        <ul>
+            <li>Student understands concepts but struggles with application</li>
+            <li>Student's code shows they know what to do but not how to do it</li>
+            <li>Student needs targeted practice with specific programming constructs</li>
+            <li>Student is missing key considerations in their implementation</li>
+            <li>Student demonstrates partial understanding but needs direction for completion</li>
+        </ul>
+    </div>
+
+    <div class="technique">
+        <h2 id="debugging">Interactive Debugging Guide</h2>
+        <p class="what">What: Code with deliberate bugs or inefficiencies for students to identify and fix.</p>
+        <p class="when">When to Use:</p>
+        <ul>
+            <li>Student has basic implementation skills but poor debugging practices</li>
+            <li>Student's own code has similar bugs to those in the guide</li>
+            <li>Student needs practice with code reading and understanding</li>
+            <li>Student struggles with identifying logical errors</li>
+            <li>Student can write code but doesn't test edge cases</li>
+        </ul>
+    </div>
+
+    <div class="technique">
+        <h2 id="progressive">Progressive Enhancement</h2>
+        <p class="what">What: Series of incrementally more complex versions of a solution.</p>
+        <p class="when">When to Use:</p>
+        <ul>
+            <li>Student needs to see how solutions evolve and improve</li>
+            <li>Student struggles with refactoring and improving code</li>
+            <li>Student has mastered basics but needs challenges to advance</li>
+            <li>Student's code works but is inefficient or lacks sophistication</li>
+            <li>Student tends to stop at the first working solution without considering improvements</li>
+        </ul>
+    </div>
+
+    <h2 id="decision-framework">Decision Framework</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Student Observation</th>
+                <th>Recommended Scaffold</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Cannot start or freezes when facing blank editor</td>
+                <td>Step-by-Step Task Guide</td>
+            </tr>
+            <tr>
+                <td>Has conceptual understanding but syntax issues</td>
+                <td>Fill-in-the-Blanks</td>
+            </tr>
+            <tr>
+                <td>Writes disorganized code without clear structure</td>
+                <td>Step-by-Step or Guided Code</td>
+            </tr>
+            <tr>
+                <td>Makes consistent logical errors</td>
+                <td>Interactive Debugging</td>
+            </tr>
+            <tr>
+                <td>Implements basic solutions but lacks optimization</td>
+                <td>Progressive Enhancement</td>
+            </tr>
+            <tr>
+                <td>Shows partial progress but gets stuck at specific points</td>
+                <td>Guided Code with Hints</td>
+            </tr>
+            <tr>
+                <td>Confuses language features or API usage</td>
+                <td>Fill-in-the-Blanks or Guided Code</td>
+            </tr>
+            <tr>
+                <td>Writes code that passes simple cases but fails edge cases</td>
+                <td>Interactive Debugging</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

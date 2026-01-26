@@ -1,0 +1,34 @@
+[
+    {
+        "id": "GEMStudent", 
+        "caption": "Gem", 
+        "children": [
+            {
+                "id": "gemsSetServerAddress", 
+                "caption": "Set server address", 
+                "command": "gems_set_server_address"
+            }, 
+            {
+                "id": "gemsSetCourseId", 
+                "caption": "Set course id", 
+                "command": "gems_set_course_id"
+            }, 
+            {
+                "id": "gemsSetName", 
+                "caption": "Set username", 
+                "command": "gems_set_name"
+            }, 
+            {
+                "id": "gemsCompleteRegistration", 
+                "caption": "Login", 
+                "command": "gems_complete_registration"
+            },
+            {"caption": "-", "id": "side-bar-separator"},
+            {
+                "caption": "Update GEM",
+                "id": "gemsUpdate",
+                "command": "gems_update",
+            },
+        ]
+    }
+]
